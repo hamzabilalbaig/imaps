@@ -3,14 +3,15 @@ import "leaflet/dist/leaflet.css";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
+    iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
+//   iconRetinaUrl: require("../assets/save.gif"),
   iconUrl: require("leaflet/dist/images/marker-icon.png"),
   shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
 });
 
 export const MAP_CONFIG = {
   defaultCenter: [24.917037, 67.131161],
-  defaultZoom: 13,
+  defaultZoom: 80,
 };
 
 export const createMarker = (latlng) => ({
