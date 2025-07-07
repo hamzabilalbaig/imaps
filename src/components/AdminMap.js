@@ -28,13 +28,15 @@ import POIList from "./POIList";
 import LayerManager from "./LayerManager";
 import MapWithLayers from "./MapWithLayers";
 import { useMapMarkers } from "../hooks/useMapMarkers";
+import { useAuth } from "../contexts/AuthContext";
 import { MAP_CONFIG } from "../utils/mapUtils";
 
 /**
  * Admin Map component with full editing capabilities
  */
 function AdminMap() {
-  const { markers, addMarker, updateMarker, removeMarker, clearAllMarkers } = useMapMarkers();
+  const { allMarkers: markers, addMarker, updateMarker, removeMarker, clearAllMarkers } = useMapMarkers();
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingPOI, setEditingPOI] = useState(null);
   const [pendingLocation, setPendingLocation] = useState(null);

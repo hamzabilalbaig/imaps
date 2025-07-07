@@ -5,34 +5,63 @@ import { Box } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 import './App.css';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
 import PublicMap from './components/PublicMap';
 import AdminMap from './components/AdminMap';
+import Login from './components/Login';
+import Pricing from './components/Pricing';
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        <Box sx={{ 
-          height: '100vh', 
-          display: 'flex', 
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
-          <Navigation />
+      <AuthProvider>
+        <Router>
           <Box sx={{ 
-            flex: 1, 
-            minHeight: 0,
+            height: '100vh', 
+            display: 'flex', 
+            flexDirection: 'column',
             overflow: 'hidden'
           }}>
-            <Routes>
-              <Route path="/" element={<PublicMap />} />
-              <Route path="/admin" element={<AdminMap />} />
-            </Routes>
+            <Navigation />
+            <Box sx={{ 
+              flex: 1, 
+              minHeight: 0,
+              overflow: 'hidden'
+            }}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route 
+                  path="/" 
+                  element={
+                    <ProtectedRoute>
+                      <PublicMap />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/pricing" 
+                  element={
+                    <ProtectedRoute>
+                      <Pricing />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin" 
+                  element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <AdminMap />
+                    </ProtectedRoute>
+                  } 
+                />
+              </Routes>
+            </Box>
           </Box>
-        </Box>
-      </Router>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

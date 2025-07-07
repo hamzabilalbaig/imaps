@@ -21,8 +21,9 @@ import { generateShareableLink, createCategoryIcon } from "../utils/mapUtils";
  * @param {Function} onRemove - Callback function to remove the marker
  * @param {Function} onEdit - Callback function to edit the marker
  * @param {boolean} isAdmin - Whether this is admin view with edit capabilities
+ * @param {boolean} canEdit - Whether the current user can edit this marker
  */
-function MapMarker({ marker, onRemove, onEdit, isAdmin = false }) {
+function MapMarker({ marker, onRemove, onEdit, isAdmin = false, canEdit = false }) {
   const theme = useTheme();
   
   const handleShare = async () => {

@@ -9,13 +9,23 @@ import {
   Container,
   Chip,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Menu,
+  MenuItem,
+  IconButton,
+  Avatar,
+  Divider
 } from "@mui/material";
 import { 
   Map as MapIcon, 
   Settings as SettingsIcon,
-  Public as PublicIcon 
+  Public as PublicIcon,
+  AttachMoney as PricingIcon,
+  AccountCircle as AccountIcon,
+  Logout as LogoutIcon,
+  Person as PersonIcon
 } from "@mui/icons-material";
+import { useAuth } from "../contexts/AuthContext";
 
 /**
  * Navigation component for switching between public and admin views
@@ -24,6 +34,26 @@ function Navigation() {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { user, logout, isAdmin } = useAuth();
+  const [anchorEl, setAnchorEl] = React.useState(null);
+
+  const handleMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    handleClose();
+  };
+
+  // Don't show navigation on login page
+  if (location.pathname === '/login') {
+    return null;
+  }
 
   return (
     <AppBar 
@@ -68,7 +98,7 @@ function Navigation() {
           
           <Box sx={{ flexGrow: 1 }} />
           
-          <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, alignItems: 'center', flexShrink: 0 }}>
             <Button
               component={Link}
               to="/"
@@ -93,30 +123,124 @@ function Navigation() {
             >
               {isMobile ? "Public" : "Public View"}
             </Button>
-            <Button
-              component={Link}
-              to="/admin"
-              color="inherit"
-              variant={location.pathname === "/admin" ? "contained" : "text"}
-              sx={{
-                backgroundColor: location.pathname === "/admin" ? "rgba(255,255,255,0.2)" : "transparent",
-                borderRadius: 2,
-                px: { xs: 1, sm: 2, md: 3 },
-                py: 1,
-                fontWeight: 600,
-                fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
-                backdropFilter: location.pathname === "/admin" ? 'blur(10px)' : 'none',
-                border: location.pathname === "/admin" ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
-                '&:hover': {
-                  backgroundColor: "rgba(255,255,255,0.15)",
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.2)'
-                }
-              }}
-              startIcon={!isMobile ? <SettingsIcon /> : null}
-            >
-              {isMobile ? "Admin" : "Admin Panel"}
-            </Button>
+            
+            {/* Show Admin Panel for admins, Pricing for regular users */}
+            {isAdmin ? (
+              <Button
+                component={Link}
+                to="/admin"
+                color="inherit"
+                variant={location.pathname === "/admin" ? "contained" : "text"}
+                sx={{
+                  backgroundColor: location.pathname === "/admin" ? "rgba(255,255,255,0.2)" : "transparent",
+                  borderRadius: 2,
+                  px: { xs: 1, sm: 2, md: 3 },
+                  py: 1,
+                  fontWeight: 600,
+                  fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+                  backdropFilter: location.pathname === "/admin" ? 'blur(10px)' : 'none',
+                  border: location.pathname === "/admin" ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+                  '&:hover': {
+                    backgroundColor: "rgba(255,255,255,0.15)",
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.2)'
+                  }
+                }}
+                startIcon={!isMobile ? <SettingsIcon /> : null}
+              >
+                {isMobile ? "Admin" : "Admin Panel"}
+              </Button>
+            ) : (
+              <Button
+                component={Link}
+                to="/pricing"
+                color="inherit"
+                variant={location.pathname === "/pricing" ? "contained" : "text"}
+                sx={{
+                  backgroundColor: location.pathname === "/pricing" ? "rgba(255,255,255,0.2)" : "transparent",
+                  borderRadius: 2,
+                  px: { xs: 1, sm: 2, md: 3 },
+                  py: 1,
+                  fontWeight: 600,
+                  fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+                  backdropFilter: location.pathname === "/pricing" ? 'blur(10px)' : 'none',
+                  border: location.pathname === "/pricing" ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+                  '&:hover': {
+                    backgroundColor: "rgba(255,255,255,0.15)",
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.2)'
+                  }
+                }}
+                startIcon={!isMobile ? <PricingIcon /> : null}
+              >
+                {isMobile ? "Pricing" : "Pricing"}
+              </Button>
+            )}
+
+            {/* User Menu */}
+            {user && (
+              <>
+                <IconButton
+                  size="large"
+                  onClick={handleMenu}
+                  color="inherit"
+                  sx={{
+                    ml: 1,
+                    backgroundColor: "rgba(255,255,255,0.1)",
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    '&:hover': {
+                      backgroundColor: "rgba(255,255,255,0.2)",
+                    }
+                  }}
+                >
+                  <Avatar 
+                    sx={{ 
+                      width: 32, 
+                      height: 32, 
+                      bgcolor: 'secondary.main',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    {user.name?.charAt(0) || user.email?.charAt(0)}
+                  </Avatar>
+                </IconButton>
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleClose}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                  PaperProps={{
+                    sx: {
+                      mt: 1,
+                      minWidth: 200,
+                      borderRadius: 2,
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                    }
+                  }}
+                >
+                  <Box sx={{ px: 2, py: 1 }}>
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      {user.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {user.email}
+                    </Typography>
+                    <Chip 
+                      label={user.plan || 'Free'} 
+                      size="small" 
+                      color={user.role === 'admin' ? 'error' : 'primary'}
+                      sx={{ mt: 0.5 }}
+                    />
+                  </Box>
+                  <Divider />
+                  <MenuItem onClick={handleLogout}>
+                    <LogoutIcon sx={{ mr: 1 }} />
+                    Logout
+                  </MenuItem>
+                </Menu>
+              </>
+            )}
           </Box>
         </Toolbar>
       </Container>
