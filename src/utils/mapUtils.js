@@ -60,6 +60,8 @@ export const createMarker = (latlng, poiData = {}) => ({
   title: poiData.title || "New POI",
   description: poiData.description || "",
   category: poiData.category || "Other",
+  selectedIcon: poiData.selectedIcon || null,
+  customIcon: poiData.customIcon || null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });
@@ -115,17 +117,62 @@ export const CATEGORY_COLORS = {
   "Other": "#6b7280"           // Gray
 };
 
+// Utility function to get custom icons from localStorage
+export const getCustomIcons = () => {
+  try {
+    return JSON.parse(localStorage.getItem('customIcons') || '[]');
+  } catch (error) {
+    console.error('Error loading custom icons from localStorage:', error);
+    return [];
+  }
+};
+
 // Create custom icon for a category
-export const createCategoryIcon = (category) => {
-  const IconComponent = CATEGORY_ICONS[category] || CATEGORY_ICONS["Other"];
-  const color = CATEGORY_COLORS[category] || CATEGORY_COLORS["Other"];
+export const createCategoryIcon = (category, customIcon = null, selectedIcon = null) => {
+  let IconComponent;
+  let iconHtml;
   
-  const iconHtml = ReactDOMServer.renderToString(
-    React.createElement(IconComponent, {
-      size: 24,
-      color: "white"
-    })
-  );
+  // Check if we should use a custom icon
+  if (selectedIcon && customIcon) {
+    // Use custom uploaded icon
+    iconHtml = `<img src="${customIcon.data}" style="width: 24px; height: 24px; object-fit: contain;" alt="${customIcon.name}" />`;
+  } else if (selectedIcon && selectedIcon.startsWith('custom_')) {
+    // Try to find custom icon in localStorage
+    const customIcons = getCustomIcons();
+    const foundCustomIcon = customIcons.find(icon => icon.id === selectedIcon);
+    if (foundCustomIcon) {
+      iconHtml = `<img src="${foundCustomIcon.data}" style="width: 24px; height: 24px; object-fit: contain;" alt="${foundCustomIcon.name}" />`;
+    } else {
+      // Fallback to category-based icon if custom icon not found
+      IconComponent = CATEGORY_ICONS[category] || CATEGORY_ICONS["Other"];
+      iconHtml = ReactDOMServer.renderToString(
+        React.createElement(IconComponent, {
+          size: 24,
+          color: "white"
+        })
+      );
+    }
+  } else if (selectedIcon && CATEGORY_ICONS[selectedIcon]) {
+    // Use selected built-in icon
+    IconComponent = CATEGORY_ICONS[selectedIcon];
+    iconHtml = ReactDOMServer.renderToString(
+      React.createElement(IconComponent, {
+        size: 24,
+        color: "white"
+      })
+    );
+  } else {
+    // Fallback to category-based icon
+    IconComponent = CATEGORY_ICONS[category] || CATEGORY_ICONS["Other"];
+    iconHtml = ReactDOMServer.renderToString(
+      React.createElement(IconComponent, {
+        size: 24,
+        color: "white"
+      })
+    );
+  }
+  
+  const color = CATEGORY_COLORS[category] || CATEGORY_COLORS["Other"];
   
   return L.divIcon({
     html: `

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { POI_CATEGORIES } from "../utils/mapUtils";
+import { POI_CATEGORIES, getCustomIcons } from "../utils/mapUtils";
+import IconSelector from "./IconSelector";
 
 /**
  * Form component for adding or editing POIs
@@ -9,14 +10,23 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
     title: "",
     description: "",
     category: "Other",
+    customIcon: null,
+    selectedIcon: null,
   });
+  const [customIcons, setCustomIcons] = useState([]);
 
   useEffect(() => {
+    // Load custom icons from localStorage
+    const savedCustomIcons = getCustomIcons();
+    setCustomIcons(savedCustomIcons);
+
     if (poi && isEdit) {
       setFormData({
         title: poi.title || "",
         description: poi.description || "",
         category: poi.category || "Other",
+        customIcon: poi.customIcon || null,
+        selectedIcon: poi.selectedIcon || null,
       });
     }
   }, [poi, isEdit]);
@@ -38,16 +48,46 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
     }));
   };
 
+  const handleIconSelect = (iconKey, customIconData = null) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedIcon: iconKey,
+      customIcon: customIconData,
+    }));
+
+    // If it's a new custom icon, update the custom icons list
+    if (customIconData) {
+      setCustomIcons((prev) => {
+        const exists = prev.find((icon) => icon.id === customIconData.id);
+        if (!exists) {
+          return [...prev, customIconData];
+        }
+        return prev;
+      });
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <h3 className="text-lg font-semibold mb-4">
           {isEdit ? "Edit POI" : "Add New POI"}
         </h3>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+            <IconSelector
+              selectedIcon={formData.selectedIcon}
+              onIconSelect={handleIconSelect}
+              customIcons={customIcons}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="title"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Title *
             </label>
             <input
@@ -63,7 +103,10 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Description
             </label>
             <textarea
@@ -78,7 +121,10 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
           </div>
 
           <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="category"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Category
             </label>
             <select
@@ -98,9 +144,14 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
 
           {poi && (
             <div className="text-sm text-gray-600">
-              <p><strong>Location:</strong> {poi.coords}</p>
+              <p>
+                <strong>Location:</strong> {poi.coords}
+              </p>
               {isEdit && (
-                <p><strong>Created:</strong> {new Date(poi.createdAt).toLocaleDateString()}</p>
+                <p>
+                  <strong>Created:</strong>{" "}
+                  {new Date(poi.createdAt).toLocaleDateString()}
+                </p>
               )}
             </div>
           )}

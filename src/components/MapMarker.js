@@ -53,7 +53,7 @@ function MapMarker({ marker, onRemove, onEdit, isAdmin = false }) {
     <Marker 
       key={marker.id} 
       position={marker.position}
-      icon={createCategoryIcon(marker.category)}
+      icon={createCategoryIcon(marker.category, marker.customIcon, marker.selectedIcon)}
     >
       <Popup className="custom-popup">
         <div className="min-w-64">
