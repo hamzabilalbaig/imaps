@@ -126,6 +126,7 @@ export function useMapLayers() {
         isActive: layer.id === layerId
       }))
     );
+    window.location.reload(); // Force reload to apply new active layer
   };
 
   const resetToDefaults = () => {

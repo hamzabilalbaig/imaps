@@ -5,36 +5,7 @@ const STORAGE_KEY = "map-markers";
 
 // Default POIs for initial demonstration
 const DEFAULT_POIS = [
-  {
-    id: 1,
-    position: [24.917037, 67.131161],
-    coords: "24.917037, 67.131161",
-    title: "Karachi Port",
-    description: "Major seaport of Pakistan located in Karachi, Sindh",
-    category: "Transportation",
-    createdAt: "2025-01-01T00:00:00.000Z",
-    updatedAt: "2025-01-01T00:00:00.000Z"
-  },
-  {
-    id: 2,
-    position: [24.860735, 67.001151],
-    coords: "24.860735, 67.001151",
-    title: "Clifton Beach",
-    description: "Popular beach destination in Karachi with restaurants and activities",
-    category: "Tourist Attraction",
-    createdAt: "2025-01-01T00:00:00.000Z",
-    updatedAt: "2025-01-01T00:00:00.000Z"
-  },
-  {
-    id: 3,
-    position: [24.865048, 67.075453],
-    coords: "24.865048, 67.075453",
-    title: "Dolmen Mall",
-    description: "Large shopping mall with restaurants, shops and entertainment",
-    category: "Shopping",
-    createdAt: "2025-01-01T00:00:00.000Z",
-    updatedAt: "2025-01-01T00:00:00.000Z"
-  }
+  
 ];
 
 /**
