@@ -1,41 +1,47 @@
 import React from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
-import MapClickHandler from "./MapClickHandler";
 import MapMarker from "./MapMarker";
-import MapControls from "./MapControls";
 import { useMapMarkers } from "../hooks/useMapMarkers";
 import { MAP_CONFIG } from "../utils/mapUtils";
 
-function InteractiveMap() {
-  const { markers, addMarker, removeMarker, clearAllMarkers } = useMapMarkers();
+/**
+ * Public Map component - read-only view for visitors
+ */
+function PublicMap() {
+  const { markers } = useMapMarkers();
 
   return (
     <div className="w-full h-full flex flex-col">
-      <MapControls markers={markers} onClearAll={clearAllMarkers} />
+      <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-4">
+        <div className="flex">
+          <div className="ml-3">
+            <p className="text-sm text-green-700">
+              <strong>Public View:</strong> Explore the map and view points of interest. ({markers.length} markers)
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="flex-1 relative">
         <MapContainer
           center={MAP_CONFIG.defaultCenter}
           zoom={MAP_CONFIG.defaultZoom}
-          className="w-full h-full z-10"
+          className="w-full h-full"
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
-            attribution="&copy; OpenStreetMap contributors &copy; CARTO"
-          /> */}
-
-          <MapClickHandler onMapClick={addMarker} />
-
+          {/* No MapClickHandler - users can't add markers */}
+          
           {markers.map((marker) => (
             <MapMarker
               key={marker.id}
               marker={marker}
-              onRemove={removeMarker}
+              onRemove={null} // No remove functionality in public view
+              onEdit={null} // No edit functionality in public view
+              isAdmin={false}
             />
           ))}
         </MapContainer>
@@ -44,4 +50,4 @@ function InteractiveMap() {
   );
 }
 
-export default InteractiveMap;
+export default PublicMap;
