@@ -1,6 +1,6 @@
 import React from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
 import MapMarker from "./MapMarker";
+import MapWithLayers from "./MapWithLayers";
 import { useMapMarkers } from "../hooks/useMapMarkers";
 import { MAP_CONFIG } from "../utils/mapUtils";
 
@@ -23,16 +23,13 @@ function PublicMap() {
       </div>
 
       <div className="flex-1 relative">
-        <MapContainer
+        <MapWithLayers
           center={MAP_CONFIG.defaultCenter}
           zoom={MAP_CONFIG.defaultZoom}
-          className="w-full h-full"
+          showLayerSelector={true}
+          layerSelectorPosition="top-right"
+          isAdmin={false}
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-
           {/* No MapClickHandler - users can't add markers */}
           
           {markers.map((marker) => (
@@ -44,7 +41,7 @@ function PublicMap() {
               isAdmin={false}
             />
           ))}
-        </MapContainer>
+        </MapWithLayers>
       </div>
     </div>
   );

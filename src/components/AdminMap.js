@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
 import MapClickHandler from "./MapClickHandler";
 import MapMarker from "./MapMarker";
 import MapControls from "./MapControls";
 import POIForm from "./POIForm";
 import POIList from "./POIList";
+import LayerManager from "./LayerManager";
+import MapWithLayers from "./MapWithLayers";
 import { useMapMarkers } from "../hooks/useMapMarkers";
 import { MAP_CONFIG } from "../utils/mapUtils";
 
@@ -17,6 +18,7 @@ function AdminMap() {
   const [editingPOI, setEditingPOI] = useState(null);
   const [pendingLocation, setPendingLocation] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("pois"); // "pois" or "layers"
 
   const handleMapClick = (latlng) => {
     setPendingLocation(latlng);
@@ -78,11 +80,11 @@ function AdminMap() {
         fixed lg:relative z-30 lg:z-auto
         w-auto lg:w-auto
         transition-transform duration-300 ease-in-out
-        overflow-y-auto bg-white border-r border-gray-200 p-4 h-full max-h-[calc(100vh-64px)]
+        overflow-y-auto bg-white border-r border-gray-200 h-full max-h-[calc(100vh-64px)]
       `}>
         {/* Mobile Close Button */}
-        <div className="lg:hidden flex justify-between items-center mb-4 pb-2 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">POI Management</h2>
+        <div className="lg:hidden flex justify-between items-center mb-4 pb-2 border-b p-4">
+          <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
           <button
             onClick={() => setSidebarOpen(false)}
             className="p-2 rounded-md hover:bg-gray-100"
@@ -93,12 +95,46 @@ function AdminMap() {
           </button>
         </div>
 
-        <POIList
-          markers={markers}
-          onEdit={handleEditPOI}
-          onRemove={handleRemovePOI}
-          onClearAll={handleClearAll}
-        />
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 px-4">
+          <nav className="-mb-px flex space-x-4">
+            <button
+              onClick={() => setActiveTab("pois")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "pois"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              POI Management
+            </button>
+            <button
+              onClick={() => setActiveTab("layers")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "layers"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Map Layers
+            </button>
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        <div className="p-4">
+          {activeTab === "pois" && (
+            <POIList
+              markers={markers}
+              onEdit={handleEditPOI}
+              onRemove={handleRemovePOI}
+              onClearAll={handleClearAll}
+            />
+          )}
+          {activeTab === "layers" && (
+            <LayerManager />
+          )}
+        </div>
       </div>
 
       {/* Map Section */}
@@ -117,7 +153,7 @@ function AdminMap() {
               </button>
               <div className="ml-3">
                 <p className="text-sm text-blue-700">
-                  <strong>Admin Mode:</strong> Click on the map to add new POIs. Use the sidebar to manage existing POIs.
+                  <strong>Admin Mode:</strong> Click on the map to add new POIs. Use the sidebar to manage POIs and map layers.
                 </p>
               </div>
             </div>
@@ -127,16 +163,13 @@ function AdminMap() {
         <MapControls markers={markers} onClearAll={handleClearAll} />
 
         <div className="flex-1 relative">
-          <MapContainer
+          <MapWithLayers
             center={MAP_CONFIG.defaultCenter}
             zoom={MAP_CONFIG.defaultZoom}
-            className="w-full h-full"
+            showLayerSelector={true}
+            layerSelectorPosition="top-right"
+            isAdmin={true}
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-
             <MapClickHandler onMapClick={handleMapClick} />
 
             {markers.map((marker) => (
@@ -148,7 +181,7 @@ function AdminMap() {
                 isAdmin={true}
               />
             ))}
-          </MapContainer>
+          </MapWithLayers>
         </div>
       </div>
 

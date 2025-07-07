@@ -31,7 +31,7 @@ L.Icon.Default.mergeOptions({
 
 export const MAP_CONFIG = {
   defaultCenter: [24.917037, 67.131161],
-  defaultZoom: 80,
+  defaultZoom: 11,
 };
 
 export const POI_CATEGORIES = [
