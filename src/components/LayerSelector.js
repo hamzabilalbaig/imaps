@@ -1,4 +1,20 @@
 import React, { useState } from "react";
+import {
+  Box,
+  Paper,
+  Button,
+  Menu,
+  MenuItem,
+  Typography,
+  Divider,
+  useTheme,
+  useMediaQuery
+} from "@mui/material";
+import {
+  ExpandMore as ExpandMoreIcon,
+  Check as CheckIcon,
+  Layers as LayersIcon
+} from "@mui/icons-material";
 import { useMapLayers } from "../hooks/useMapLayers";
 
 /**
@@ -6,87 +22,121 @@ import { useMapLayers } from "../hooks/useMapLayers";
  */
 function LayerSelector({ position = "top-right", showInPublic = true, isAdmin = false }) {
   const { layers, activeLayer, setActiveLayer } = useMapLayers();
-  const [isOpen, setIsOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   if (!showInPublic && !isAdmin) {
     return null;
   }
 
   const positionClasses = {
-    "top-right": "top-4 right-4",
-    "top-left": "top-4 left-4",
-    "bottom-right": "bottom-4 right-4",
-    "bottom-left": "bottom-4 left-4",
+    "top-right": { top: { xs: 8, md: 16 }, right: { xs: 8, md: 16 } },
+    "top-left": { top: { xs: 8, md: 16 }, left: { xs: 8, md: 16 } },
+    "bottom-right": { bottom: { xs: 8, md: 16 }, right: { xs: 8, md: 16 } },
+    "bottom-left": { bottom: { xs: 8, md: 16 }, left: { xs: 8, md: 16 } },
+  };
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
   };
 
   const handleLayerChange = (layerId) => {
     setActiveLayer(layerId);
-    setIsOpen(false);
+    handleClose();
   };
 
   return (
-    <div className={`absolute ${positionClasses[position]} z-[1000]`}>
-      <div className="bg-white rounded-lg shadow-lg border border-gray-200 min-w-[200px]">
-        {/* Current Layer Display */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-full px-4 py-3 text-left hover:bg-gray-50 rounded-lg flex items-center justify-between"
+    <Box
+      sx={{
+        position: 'absolute',
+        ...positionClasses[position],
+        zIndex: 1000,
+        minWidth: { xs: 140, md: 200 }
+      }}
+    >
+      <Paper elevation={3} sx={{ borderRadius: 2 }}>
+        <Button
+          onClick={handleClick}
+          fullWidth
+          sx={{
+            p: { xs: 1.5, md: 2 },
+            justifyContent: 'space-between',
+            textTransform: 'none',
+            borderRadius: 2,
+            '&:hover': {
+              backgroundColor: 'grey.50'
+            }
+          }}
+          endIcon={<ExpandMoreIcon sx={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />}
+          startIcon={!isMobile ? <LayersIcon /> : null}
         >
-          <div>
-            <div className="text-sm font-medium text-gray-900">
+          <Box sx={{ textAlign: 'left' }}>
+            <Typography variant="body2" fontWeight="medium" color="text.primary" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
               {activeLayer?.name || "No Layer"}
-            </div>
-            <div className="text-xs text-gray-500">Map Layer</div>
-          </div>
-          <svg
-            className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
+            </Typography>
+            {!isMobile && (
+              <Typography variant="caption" color="text.secondary">
+                Map Layer
+              </Typography>
+            )}
+          </Box>
+        </Button>
 
-        {/* Layer Options */}
-        {isOpen && (
-          <div className="border-t border-gray-200">
-            <div className="max-h-64 overflow-y-auto">
-              {layers.map((layer) => (
-                <button
-                  key={layer.id}
-                  onClick={() => handleLayerChange(layer.id)}
-                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between ${
-                    layer.isActive ? "bg-blue-50 text-blue-700" : "text-gray-700"
-                  }`}
-                >
-                  <div>
-                    <div className="text-sm font-medium">{layer.name}</div>
-                    <div className="text-xs opacity-75">
-                      {layer.type === "custom" ? "Custom" : "Built-in"}
-                    </div>
-                  </div>
-                  {layer.isActive && (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleClose}
+          PaperProps={{
+            sx: {
+              minWidth: { xs: 140, md: 200 },
+              maxHeight: 300
+            }
+          }}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+          {layers.map((layer) => (
+            <MenuItem
+              key={layer.id}
+              onClick={() => handleLayerChange(layer.id)}
+              selected={layer.isActive}
+              sx={{
+                py: 1.5,
+                px: 2,
+                '&.Mui-selected': {
+                  backgroundColor: 'primary.50',
+                  color: 'primary.700',
+                  '&:hover': {
+                    backgroundColor: 'primary.100'
+                  }
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <Box>
+                  <Typography variant="body2" fontWeight="medium">
+                    {layer.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {layer.type === "custom" ? "Custom" : "Built-in"}
+                  </Typography>
+                </Box>
+                {layer.isActive && (
+                  <CheckIcon sx={{ width: 16, height: 16 }} />
+                )}
+              </Box>
+            </MenuItem>
+          ))}
+        </Menu>
+      </Paper>
+    </Box>
   );
 }
 

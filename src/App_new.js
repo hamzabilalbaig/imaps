@@ -14,18 +14,9 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Box sx={{ 
-          height: '100vh', 
-          display: 'flex', 
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
+        <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Navigation />
-          <Box sx={{ 
-            flex: 1, 
-            minHeight: 0,
-            overflow: 'hidden'
-          }}>
+          <Box sx={{ flex: 1 }}>
             <Routes>
               <Route path="/" element={<PublicMap />} />
               <Route path="/admin" element={<AdminMap />} />

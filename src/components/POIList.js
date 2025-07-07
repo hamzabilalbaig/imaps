@@ -1,4 +1,32 @@
 import React, { useState } from "react";
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  ButtonGroup,
+  Chip,
+  List,
+  ListItem,
+  Alert,
+  Paper,
+  Divider,
+  useTheme,
+  useMediaQuery
+} from "@mui/material";
+import {
+  Share as ShareIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Clear as ClearIcon,
+  Search as SearchIcon
+} from "@mui/icons-material";
 import { POI_CATEGORIES, generateShareableLink } from "../utils/mapUtils";
 
 /**
@@ -7,6 +35,9 @@ import { POI_CATEGORIES, generateShareableLink } from "../utils/mapUtils";
 function POIList({ markers, onEdit, onRemove, onClearAll }) {
   const [filterCategory, setFilterCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
 
   const filteredMarkers = markers.filter(marker => {
     const matchesCategory = filterCategory === "All" || marker.category === filterCategory;
@@ -35,127 +66,302 @@ function POIList({ markers, onEdit, onRemove, onClearAll }) {
 
   const getCategoryColor = (category) => {
     const colors = {
-      "Restaurant": "bg-red-100 text-red-800",
-      "Tourist Attraction": "bg-blue-100 text-blue-800",
-      "Hotel": "bg-purple-100 text-purple-800",
-      "Shopping": "bg-green-100 text-green-800",
-      "Transportation": "bg-yellow-100 text-yellow-800",
-      "Healthcare": "bg-pink-100 text-pink-800",
-      "Education": "bg-indigo-100 text-indigo-800",
-      "Entertainment": "bg-orange-100 text-orange-800",
-      "Other": "bg-gray-100 text-gray-800"
+      "Restaurant": "error",
+      "Tourist Attraction": "primary",
+      "Hotel": "secondary",
+      "Shopping": "success",
+      "Transportation": "warning",
+      "Healthcare": "error",
+      "Education": "info",
+      "Entertainment": "warning",
+      "Other": "default"
     };
-    return colors[category] || colors["Other"];
+    return colors[category] || "default";
   };
 
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            POI Management ({markers.length})
-          </h2>
-          <button
+    <Paper 
+      elevation={0} 
+      sx={{ 
+        width: { xs: '100%', lg: 380, xl: 420 }, 
+        minWidth: { lg: 380 },
+        borderRight: { lg: 1 }, 
+        borderColor: 'grey.200', 
+        display: 'flex', 
+        flexDirection: 'column',
+        height: '100%',
+        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)'
+      }}
+    >
+      <Box sx={{ 
+        p: { xs: 2, md: 3 }, 
+        borderBottom: 1, 
+        borderColor: 'grey.200',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          mb: { xs: 2, md: 3 },
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 0 }
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
+            <Paper
+              sx={{
+                backgroundColor: 'primary.main',
+                borderRadius: 2,
+                p: 1,
+                mr: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <SearchIcon sx={{ color: 'white', fontSize: { xs: 16, md: 20 } }} />
+            </Paper>
+            <Box sx={{ flex: { xs: 1, sm: 'none' } }}>
+              <Typography variant="h6" component="h2" fontWeight={700} sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
+                Locations
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+                {markers.length} item{markers.length !== 1 ? 's' : ''}
+              </Typography>
+            </Box>
+          </Box>
+          <Button
             onClick={onClearAll}
             disabled={markers.length === 0}
-            className={`px-3 py-1 text-sm font-medium rounded ${
-              markers.length === 0
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-red-500 text-white hover:bg-red-600"
-            }`}
+            variant="outlined"
+            color="error"
+            size="small"
+            startIcon={<ClearIcon />}
+            sx={{
+              borderRadius: 2,
+              px: { xs: 1.5, md: 2 },
+              fontSize: { xs: '0.75rem', md: '0.875rem' },
+              fontWeight: 500,
+              border: '1px solid',
+              borderColor: 'error.300',
+              '&:hover': {
+                borderColor: 'error.400',
+                backgroundColor: 'error.50'
+              }
+            }}
           >
             Clear All
-          </button>
-        </div>
+          </Button>
+        </Box>
 
         {/* Search */}
-        <div className="mb-3">
-          <input
-            type="text"
-            placeholder="Search POIs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search locations..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: <SearchIcon sx={{ color: 'grey.500', mr: 1, fontSize: { xs: 16, md: 20 } }} />
+          }}
+          sx={{ 
+            mb: 2,
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              backgroundColor: 'white',
+              fontSize: { xs: '0.875rem', md: '1rem' }
+            }
+          }}
+        />
 
         {/* Category Filter */}
-        <div>
-          <select
+        <FormControl fullWidth size="small">
+          <InputLabel>Filter by Category</InputLabel>
+          <Select
             value={filterCategory}
+            label="Filter by Category"
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            sx={{
+              borderRadius: 2,
+              backgroundColor: 'white',
+              fontSize: { xs: '0.875rem', md: '1rem' }
+            }}
           >
-            <option value="All">All Categories</option>
+            <MenuItem value="All">All Categories</MenuItem>
             {POI_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
+              <MenuItem key={category} value={category}>
                 {category}
-              </option>
+              </MenuItem>
             ))}
-          </select>
-        </div>
-      </div>
+          </Select>
+        </FormControl>
+      </Box>
 
-      <div className="flex-1 overflow-y-auto">
+      <Box sx={{ flex: 1, overflow: 'auto', p: { xs: 1, md: 2 } }}>
         {filteredMarkers.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
-            {markers.length === 0 ? "No POIs added yet" : "No POIs match your filters"}
-          </div>
+          <Paper
+            sx={{
+              p: { xs: 3, md: 4 },
+              textAlign: 'center',
+              borderRadius: 3,
+              border: '1px dashed',
+              borderColor: 'grey.300',
+              backgroundColor: 'grey.50'
+            }}
+          >
+            <SearchIcon sx={{ fontSize: { xs: 32, md: 40 }, color: 'grey.400', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
+              {markers.length === 0 ? "No locations yet" : "No matches found"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+              {markers.length === 0 
+                ? "Click on the map to add your first location"
+                : "Try adjusting your search or filter criteria"}
+            </Typography>
+          </Paper>
         ) : (
-          <div className="space-y-2 p-2">
-            {filteredMarkers.map((marker) => (
-              <div
-                key={marker.id}
-                className="bg-gray-50 rounded-lg p-3 border border-gray-200 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-medium text-gray-900 text-sm">
-                    {marker.title || "Untitled POI"}
-                  </h3>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(marker.category)}`}>
-                    {marker.category}
-                  </span>
-                </div>
+          <List sx={{ p: 0 }}>
+            {filteredMarkers.map((marker, index) => (
+              <ListItem key={marker.id} sx={{ p: 0, mb: { xs: 1.5, md: 2 } }}>
+                <Card 
+                  variant="outlined" 
+                  sx={{ 
+                    width: '100%',
+                    borderRadius: { xs: 2, md: 3 },
+                    border: '1px solid',
+                    borderColor: 'grey.200',
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': { 
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      borderColor: 'primary.200',
+                      transform: 'translateY(-1px)'
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 1.5, md: 2.5 }, '&:last-child': { pb: { xs: 1.5, md: 2.5 } } }}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      justifyContent: 'space-between', 
+                      mb: 1.5,
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      gap: { xs: 1, sm: 0 }
+                    }}>
+                      <Typography variant="subtitle1" fontWeight={600} sx={{ 
+                        flex: 1, 
+                        mr: { sm: 1 },
+                        fontSize: { xs: '0.875rem', md: '1rem' }
+                      }}>
+                        {marker.title || "Untitled Location"}
+                      </Typography>
+                      <Chip 
+                        label={marker.category} 
+                        color={getCategoryColor(marker.category)}
+                        size="small"
+                        sx={{ 
+                          fontWeight: 500,
+                          borderRadius: 1.5,
+                          fontSize: { xs: '0.65rem', md: '0.75rem' }
+                        }}
+                      />
+                    </Box>
 
-                {marker.description && (
-                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                    {marker.description}
-                  </p>
-                )}
+                    {marker.description && (
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary" 
+                        sx={{ 
+                          display: '-webkit-box',
+                          WebkitLineClamp: { xs: 2, md: 3 },
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          mb: 1.5,
+                          lineHeight: 1.4,
+                          fontSize: { xs: '0.75rem', md: '0.875rem' }
+                        }}
+                      >
+                        {marker.description}
+                      </Typography>
+                    )}
 
-                <p className="text-xs text-gray-500 mb-3">
-                  {marker.coords}
-                </p>
+                    <Typography variant="caption" color="text.secondary" sx={{ 
+                      mb: 2, 
+                      display: 'block',
+                      fontSize: { xs: '0.65rem', md: '0.75rem' }
+                    }}>
+                      📍 {marker.coords}
+                    </Typography>
 
-                <div className="flex space-x-1">
-                  <button
-                    onClick={() => handleShare(marker)}
-                    className="flex-1 px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
-                    title="Share POI"
-                  >
-                    Share
-                  </button>
-                  <button
-                    onClick={() => onEdit(marker)}
-                    className="flex-1 px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
-                    title="Edit POI"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onRemove(marker.id)}
-                    className="flex-1 px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
-                    title="Delete POI"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+                    <ButtonGroup 
+                      fullWidth 
+                      size="small" 
+                      variant="outlined"
+                      orientation={isMobile ? 'vertical' : 'horizontal'}
+                      sx={{
+                        '& .MuiButton-root': {
+                          borderRadius: '6px',
+                          fontSize: { xs: '0.65rem', md: '0.75rem' },
+                          fontWeight: 500,
+                          textTransform: 'none',
+                          py: { xs: 0.75, md: 1 }
+                        },
+                        '& .MuiButton-root + .MuiButton-root': {
+                          marginLeft: isMobile ? 0 : '8px',
+                          marginTop: isMobile ? '8px' : 0
+                        }
+                      }}
+                    >
+                      <Button
+                        onClick={() => handleShare(marker)}
+                        startIcon={<ShareIcon />}
+                        sx={{ 
+                          borderColor: 'primary.200',
+                          color: 'primary.600',
+                          '&:hover': {
+                            borderColor: 'primary.400',
+                            backgroundColor: 'primary.50'
+                          }
+                        }}
+                      >
+                        Share
+                      </Button>
+                      <Button
+                        onClick={() => onEdit(marker)}
+                        startIcon={<EditIcon />}
+                        sx={{ 
+                          borderColor: 'success.200',
+                          color: 'success.600',
+                          '&:hover': {
+                            borderColor: 'success.400',
+                            backgroundColor: 'success.50'
+                          }
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={() => onRemove(marker.id)}
+                        startIcon={<DeleteIcon />}
+                        sx={{ 
+                          borderColor: 'error.200',
+                          color: 'error.600',
+                          '&:hover': {
+                            borderColor: 'error.400',
+                            backgroundColor: 'error.50'
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </ButtonGroup>
+                  </CardContent>
+                </Card>
+              </ListItem>
             ))}
-          </div>
+          </List>
         )}
-      </div>
-    </div>
+      </Box>
+    </Paper>
   );
 }
 

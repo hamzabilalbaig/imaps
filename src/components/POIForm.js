@@ -1,4 +1,22 @@
 import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  Box,
+  Typography,
+  Alert,
+  useTheme,
+  useMediaQuery
+} from "@mui/material";
+import { Save as SaveIcon, Cancel as CancelIcon } from "@mui/icons-material";
 import { POI_CATEGORIES, getCustomIcons } from "../utils/mapUtils";
 import IconSelector from "./IconSelector";
 
@@ -14,6 +32,10 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
     selectedIcon: null,
   });
   const [customIcons, setCustomIcons] = useState([]);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
 
   useEffect(() => {
     // Load custom icons from localStorage
@@ -68,112 +90,205 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">
-          {isEdit ? "Edit POI" : "Add New POI"}
-        </h3>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+    <Dialog 
+      open={true} 
+      onClose={onCancel} 
+      maxWidth="sm" 
+      fullWidth
+      fullScreen={isMobile}
+      PaperProps={{
+        component: 'form',
+        onSubmit: handleSubmit,
+        sx: {
+          ...(isMobile && {
+            m: 0,
+            maxHeight: '100vh',
+            borderRadius: 0,
+            maxWidth: '100vw'
+          }),
+          ...(isTablet && !isMobile && {
+            m: 1,
+            maxWidth: 'calc(100vw - 32px)'
+          })
+        }
+      }}
+    >
+      <DialogTitle sx={{ 
+        pb: 2, 
+        borderBottom: '1px solid',
+        borderColor: 'grey.100',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+        p: { xs: 2, md: 3 }
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box
+            sx={{
+              backgroundColor: 'primary.main',
+              borderRadius: 2,
+              p: { xs: 0.75, md: 1 },
+              mr: { xs: 1.5, md: 2 },
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <SaveIcon sx={{ color: 'white', fontSize: { xs: 16, md: 20 } }} />
+          </Box>
+          <Typography variant="h5" component="h2" fontWeight={600} sx={{ fontSize: { xs: '1.125rem', md: '1.5rem' } }}>
+            {isEdit ? "Edit Location" : "Add New Location"}
+          </Typography>
+        </Box>
+      </DialogTitle>
+      
+      <DialogContent sx={{ p: { xs: 2, md: 3 } }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, md: 3 }, pt: 1 }}>
+          <Box>
+            <Typography variant="subtitle1" gutterBottom fontWeight={600} sx={{ 
+              mb: 2, 
+              fontSize: { xs: '0.875rem', md: '1rem' }
+            }}>
+              Choose Icon
+            </Typography>
             <IconSelector
               selectedIcon={formData.selectedIcon}
               onIconSelect={handleIconSelect}
               customIcons={customIcons}
             />
-          </div>
+          </Box>
 
-          <div>
-            <label
-              htmlFor="title"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Title *
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter POI title"
-              required
-            />
-          </div>
+          <TextField
+            name="title"
+            label="Location Name"
+            value={formData.title}
+            onChange={handleChange}
+            fullWidth
+            required
+            placeholder="Enter a descriptive name for this location"
+            helperText="Required field"
+            variant="outlined"
+            size={isMobile ? "small" : "medium"}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                fontSize: { xs: '0.875rem', md: '1rem' }
+              }
+            }}
+          />
 
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows="3"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter POI description"
-            />
-          </div>
+          <TextField
+            name="description"
+            label="Description"
+            value={formData.description}
+            onChange={handleChange}
+            fullWidth
+            multiline
+            rows={isMobile ? 3 : 4}
+            placeholder="Add any additional details about this location"
+            variant="outlined"
+            size={isMobile ? "small" : "medium"}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                fontSize: { xs: '0.875rem', md: '1rem' }
+              }
+            }}
+          />
 
-          <div>
-            <label
-              htmlFor="category"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Category
-            </label>
-            <select
-              id="category"
+          <FormControl fullWidth size={isMobile ? "small" : "medium"}>
+            <InputLabel>Category</InputLabel>
+            <Select
               name="category"
               value={formData.category}
+              label="Category"
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              sx={{
+                borderRadius: 2,
+                fontSize: { xs: '0.875rem', md: '1rem' }
+              }}
             >
               {POI_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
+                <MenuItem key={category} value={category}>
                   {category}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-          </div>
+            </Select>
+          </FormControl>
 
           {poi && (
-            <div className="text-sm text-gray-600">
-              <p>
+            <Alert 
+              severity="info" 
+              sx={{ 
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'info.light',
+                backgroundColor: 'info.50',
+                fontSize: { xs: '0.75rem', md: '0.875rem' }
+              }}
+            >
+              <Typography variant="body2" fontWeight={500} sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
                 <strong>Location:</strong> {poi.coords}
-              </p>
+              </Typography>
               {isEdit && (
-                <p>
+                <Typography variant="body2" sx={{ mt: 0.5, fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
                   <strong>Created:</strong>{" "}
                   {new Date(poi.createdAt).toLocaleDateString()}
-                </p>
+                </Typography>
               )}
-            </div>
+            </Alert>
           )}
+        </Box>
+      </DialogContent>
 
-          <div className="flex space-x-3 pt-4">
-            <button
-              type="submit"
-              className="flex-1 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
-            >
-              {isEdit ? "Update POI" : "Add POI"}
-            </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      <DialogActions sx={{ 
+        p: { xs: 2, md: 3 }, 
+        pt: 2,
+        borderTop: '1px solid',
+        borderColor: 'grey.100',
+        backgroundColor: 'grey.50',
+        flexDirection: { xs: 'column', sm: 'row' },
+        gap: { xs: 1, sm: 0 }
+      }}>
+        <Button 
+          onClick={onCancel} 
+          startIcon={<CancelIcon />}
+          color="inherit"
+          variant="outlined"
+          fullWidth={isMobile}
+          sx={{
+            borderRadius: 2,
+            px: { xs: 2, md: 3 },
+            py: { xs: 1, md: 1.5 },
+            fontSize: { xs: '0.875rem', md: '1rem' },
+            borderColor: 'grey.300',
+            '&:hover': {
+              borderColor: 'grey.400',
+              backgroundColor: 'grey.50'
+            }
+          }}
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          variant="contained" 
+          startIcon={<SaveIcon />}
+          fullWidth={isMobile}
+          sx={{
+            borderRadius: 2,
+            px: { xs: 2, md: 3 },
+            py: { xs: 1, md: 1.5 },
+            fontSize: { xs: '0.875rem', md: '1rem' },
+            ml: { xs: 0, sm: 1 },
+            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)'
+            }
+          }}
+        >
+          {isEdit ? "Update Location" : "Add Location"}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 

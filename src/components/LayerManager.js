@@ -1,4 +1,35 @@
 import React, { useState } from "react";
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Chip,
+  IconButton,
+  Alert,
+  Divider
+} from "@mui/material";
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Refresh as RefreshIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon
+} from "@mui/icons-material";
 import { useMapLayers } from "../hooks/useMapLayers";
 
 /**
@@ -101,221 +132,241 @@ function LayerManager() {
   };
 
   return (
-    <div className="bg-white border rounded-lg shadow-sm">
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-gray-900">Map Layers</h3>
-          <div className="flex gap-2">
-            <button
+    <Card>
+      <CardContent>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: { xs: 'flex-start', sm: 'center' }, 
+          mb: 3,
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 }
+        }}>
+          <Typography variant="h6" component="h3" sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
+            Map Layers
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
+            <Button
               onClick={handleAddLayer}
-              className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              sx={{ 
+                flex: { xs: 1, sm: 'none' },
+                fontSize: { xs: '0.75rem', md: '0.875rem' }
+              }}
             >
               Add Layer
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleResetLayers}
-              className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+              variant="outlined"
+              size="small"
+              startIcon={<RefreshIcon />}
+              sx={{ 
+                flex: { xs: 1, sm: 'none' },
+                fontSize: { xs: '0.75rem', md: '0.875rem' }
+              }}
             >
               Reset
-            </button>
-          </div>
-        </div>
-      </div>
+            </Button>
+          </Box>
+        </Box>
 
-      <div className="p-4">
-        <div className="space-y-4">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {/* Built-in Layers */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Built-in Layers</h4>
-            <div className="space-y-2">
+          <Box>
+            <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+              Built-in Layers
+            </Typography>
+            <RadioGroup
+              value={activeLayer?.id || ''}
+              onChange={(e) => setActiveLayer(e.target.value)}
+            >
               {builtinLayers.map((layer) => (
-                <div
-                  key={layer.id}
-                  className={`p-3 border rounded-lg ${
-                    layer.isActive ? "border-blue-500 bg-blue-50" : "border-gray-200"
-                  }`}
+                <Card 
+                  key={layer.id} 
+                  variant="outlined" 
+                  sx={{ 
+                    mb: 1,
+                    backgroundColor: layer.isActive ? 'primary.50' : 'background.paper',
+                    borderColor: layer.isActive ? 'primary.main' : 'grey.300'
+                  }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        name="activeLayer"
-                        checked={layer.isActive}
-                        onChange={() => setActiveLayer(layer.id)}
-                        className="mr-2"
-                      />
-                      <div>
-                        <span className="font-medium text-gray-900">{layer.name}</span>
-                        {layer.isActive && (
-                          <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                            Active
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
+                    <FormControlLabel
+                      value={layer.id}
+                      control={<Radio />}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" fontWeight="medium">
+                            {layer.name}
+                          </Typography>
+                          {layer.isActive && (
+                            <Chip label="Active" color="primary" size="small" />
+                          )}
+                        </Box>
+                      }
+                      sx={{ margin: 0 }}
+                    />
+                  </CardContent>
+                </Card>
               ))}
-            </div>
-          </div>
+            </RadioGroup>
+          </Box>
 
           {/* Custom Layers */}
           {customLayers.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Custom Layers</h4>
-              <div className="space-y-2">
-                {customLayers.map((layer) => (
-                  <div
-                    key={layer.id}
-                    className={`p-3 border rounded-lg ${
-                      layer.isActive ? "border-blue-500 bg-blue-50" : "border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          name="activeLayer"
-                          checked={layer.isActive}
-                          onChange={() => setActiveLayer(layer.id)}
-                          className="mr-2"
-                        />
-                        <div>
-                          <span className="font-medium text-gray-900">{layer.name}</span>
-                          {layer.isActive && (
-                            <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                              Active
-                            </span>
-                          )}
-                          <div className="text-xs text-gray-500 mt-1">
-                            Max Zoom: {layer.maxZoom}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => handleEditLayer(layer)}
-                          className="p-1 text-blue-500 hover:text-blue-700"
-                          title="Edit layer"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleRemoveLayer(layer)}
-                          className="p-1 text-red-500 hover:text-red-700"
-                          title="Remove layer"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <>
+              <Divider />
+              <Box>
+                <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                  Custom Layers
+                </Typography>
+                <RadioGroup
+                  value={activeLayer?.id || ''}
+                  onChange={(e) => setActiveLayer(e.target.value)}
+                >
+                  {customLayers.map((layer) => (
+                    <Card 
+                      key={layer.id} 
+                      variant="outlined" 
+                      sx={{ 
+                        mb: 1,
+                        backgroundColor: layer.isActive ? 'primary.50' : 'background.paper',
+                        borderColor: layer.isActive ? 'primary.main' : 'grey.300'
+                      }}
+                    >
+                      <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <FormControlLabel
+                            value={layer.id}
+                            control={<Radio />}
+                            label={
+                              <Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Typography variant="body2" fontWeight="medium">
+                                    {layer.name}
+                                  </Typography>
+                                  {layer.isActive && (
+                                    <Chip label="Active" color="primary" size="small" />
+                                  )}
+                                </Box>
+                                <Typography variant="caption" color="text.secondary">
+                                  Max Zoom: {layer.maxZoom}
+                                </Typography>
+                              </Box>
+                            }
+                            sx={{ margin: 0, flex: 1 }}
+                          />
+                          <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <IconButton
+                              onClick={() => handleEditLayer(layer)}
+                              size="small"
+                              color="primary"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              onClick={() => handleRemoveLayer(layer)}
+                              size="small"
+                              color="error"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </RadioGroup>
+              </Box>
+            </>
           )}
-        </div>
-      </div>
+        </Box>
+      </CardContent>
 
-      {/* Add/Edit Layer Form Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                {editingLayer ? "Edit Layer" : "Add New Layer"}
-              </h3>
-              
-              <form onSubmit={handleSaveLayer} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Layer Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Satellite View"
-                    required
-                  />
-                </div>
+      {/* Add/Edit Layer Form Dialog */}
+      <Dialog 
+        open={showAddForm} 
+        onClose={handleCancelForm} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          component: 'form',
+          onSubmit: handleSaveLayer
+        }}
+      >
+        <DialogTitle>
+          {editingLayer ? "Edit Layer" : "Add New Layer"}
+        </DialogTitle>
+        
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+            <TextField
+              label="Layer Name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              fullWidth
+              required
+              placeholder="e.g., Satellite View"
+            />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tile URL *
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.url}
-                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://example.com/{z}/{x}/{y}.png"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    URL must include {"{z}"}, {"{x}"}, and {"{y}"} placeholders
-                  </p>
-                  {formData.url && !validateLayerUrl(formData.url) && (
-                    <p className="text-xs text-red-500 mt-1">
-                      Invalid URL format. Must include {"{z}"}, {"{x}"}, and {"{y}"}
-                    </p>
-                  )}
-                </div>
+            <Box>
+              <TextField
+                label="Tile URL"
+                value={formData.url}
+                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                fullWidth
+                required
+                placeholder="https://example.com/{z}/{x}/{y}.png"
+                helperText="URL must include {z}, {x}, and {y} placeholders"
+                error={formData.url && !validateLayerUrl(formData.url)}
+              />
+              {formData.url && !validateLayerUrl(formData.url) && (
+                <Alert severity="error" sx={{ mt: 1 }}>
+                  Invalid URL format. Must include {"{z}"}, {"{x}"}, and {"{y}"}
+                </Alert>
+              )}
+            </Box>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Attribution
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.attribution}
-                    onChange={(e) => setFormData({ ...formData, attribution: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="© Map provider name"
-                  />
-                </div>
+            <TextField
+              label="Attribution"
+              value={formData.attribution}
+              onChange={(e) => setFormData({ ...formData, attribution: e.target.value })}
+              fullWidth
+              placeholder="© Map provider name"
+            />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Zoom Level
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="22"
-                    value={formData.maxZoom}
-                    onChange={(e) => setFormData({ ...formData, maxZoom: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+            <TextField
+              label="Max Zoom Level"
+              type="number"
+              inputProps={{ min: 1, max: 22 }}
+              value={formData.maxZoom}
+              onChange={(e) => setFormData({ ...formData, maxZoom: e.target.value })}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
 
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="submit"
-                    disabled={!validateLayerUrl(formData.url) || !formData.name.trim()}
-                    className="flex-1 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {editingLayer ? "Update Layer" : "Add Layer"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelForm}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+        <DialogActions>
+          <Button 
+            onClick={handleCancelForm}
+            startIcon={<CancelIcon />}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            variant="contained"
+            disabled={!validateLayerUrl(formData.url) || !formData.name.trim()}
+            startIcon={<SaveIcon />}
+          >
+            {editingLayer ? "Update Layer" : "Add Layer"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Card>
   );
 }
 

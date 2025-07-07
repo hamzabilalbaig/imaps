@@ -1,4 +1,6 @@
 import React from "react";
+import { Box, Typography, Button, Paper, useTheme, useMediaQuery } from "@mui/material";
+import { Clear as ClearIcon } from "@mui/icons-material";
 
 /**
  * Control panel for map actions
@@ -6,25 +8,41 @@ import React from "react";
  * @param {Function} onClearAll - Callback to clear all markers
  */
 function MapControls({ markers, onClearAll }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   return (
-    <div className="p-4 bg-gray-50 border-b">
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          Total markers: <span className="font-medium">{markers.length}</span>
-        </div>
-        <button
+    <Paper elevation={1} sx={{ p: { xs: 1.5, md: 2 }, borderBottom: 1, borderColor: 'grey.200' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        flexDirection: { xs: 'column', sm: 'row' },
+        gap: { xs: 1, sm: 0 }
+      }}>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+          Total markers: <Typography component="span" fontWeight="medium">{markers.length}</Typography>
+        </Typography>
+        <Button
           onClick={onClearAll}
           disabled={markers.length === 0}
-          className={`px-4 py-2 text-sm font-medium rounded-md ${
-            markers.length === 0
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : "bg-red-500 text-white hover:bg-red-600 transition-colors"
-          }`}
+          variant="contained"
+          color="error"
+          size={isMobile ? "small" : "small"}
+          startIcon={<ClearIcon />}
+          sx={{
+            fontSize: { xs: '0.75rem', md: '0.875rem' },
+            px: { xs: 2, md: 3 },
+            '&:disabled': {
+              backgroundColor: 'grey.200',
+              color: 'grey.400'
+            }
+          }}
         >
-          Clear All Markers
-        </button>
-      </div>
-    </div>
+          {isMobile ? "Clear All" : "Clear All Markers"}
+        </Button>
+      </Box>
+    </Paper>
   );
 }
 

@@ -1,4 +1,6 @@
 import React from "react";
+import { Box, Alert, AlertTitle, Typography, useTheme, useMediaQuery } from "@mui/material";
+import { Visibility as VisibilityIcon } from "@mui/icons-material";
 import MapMarker from "./MapMarker";
 import MapWithLayers from "./MapWithLayers";
 import { useMapMarkers } from "../hooks/useMapMarkers";
@@ -9,20 +11,33 @@ import { MAP_CONFIG } from "../utils/mapUtils";
  */
 function PublicMap() {
   const { markers } = useMapMarkers();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-4">
-        <div className="flex">
-          <div className="ml-3">
-            <p className="text-sm text-green-700">
-              <strong>Public View:</strong> Explore the map and view points of interest. ({markers.length} markers)
-            </p>
-          </div>
-        </div>
-      </div>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Alert 
+        severity="info" 
+        icon={<VisibilityIcon />}
+        sx={{ 
+          m: { xs: 1, md: 2 }, 
+          mb: { xs: 0.5, md: 1 }
+        }}
+      >
+        <AlertTitle sx={{ fontWeight: 'bold', fontSize: { xs: '0.875rem', md: '1rem' } }}>
+          Public View
+        </AlertTitle>
+        <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+          Explore the map and view points of interest. ({markers.length} markers)
+        </Typography>
+      </Alert>
 
-      <div className="flex-1 relative">
+      <Box sx={{ 
+        flex: 1, 
+        position: 'relative', 
+        mx: { xs: 1, md: 2 }, 
+        mb: { xs: 1, md: 2 }
+      }}>
         <MapWithLayers
           center={MAP_CONFIG.defaultCenter}
           zoom={MAP_CONFIG.defaultZoom}
@@ -42,8 +57,8 @@ function PublicMap() {
             />
           ))}
         </MapWithLayers>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 

@@ -1,4 +1,25 @@
 import React, { useState } from "react";
+import {
+  Box,
+  Drawer,
+  IconButton,
+  Tabs,
+  Tab,
+  Typography,
+  Fab,
+  useTheme,
+  useMediaQuery,
+  Alert,
+  AlertTitle,
+  Paper,
+  AppBar
+} from "@mui/material";
+import {
+  Menu as MenuIcon,
+  Close as CloseIcon,
+  LocationOn as LocationOnIcon,
+  Layers as LayersIcon
+} from "@mui/icons-material";
 import MapClickHandler from "./MapClickHandler";
 import MapMarker from "./MapMarker";
 import MapControls from "./MapControls";
@@ -19,6 +40,10 @@ function AdminMap() {
   const [pendingLocation, setPendingLocation] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("pois"); // "pois" or "layers"
+  
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleMapClick = (latlng) => {
     setPendingLocation(latlng);
@@ -63,106 +88,150 @@ function AdminMap() {
     }
   };
 
-  return (
-    <div className="w-full h-full flex relative">
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div 
-        //   className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
-            className="lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+  const sidebarContent = (
+    <Box sx={{ width: 'auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Mobile Header */}
+      {!isDesktop && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: 1, borderColor: 'grey.200' }}>
+          <Typography variant="h6" fontWeight="bold">
+            Admin Panel
+          </Typography>
+          <IconButton onClick={() => setSidebarOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
       )}
 
-      {/* POI Management Sidebar */}
-      <div className={`
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        fixed lg:relative z-30 lg:z-auto
-        w-auto lg:w-auto
-        transition-transform duration-300 ease-in-out
-        overflow-y-auto bg-white border-r border-gray-200 h-full max-h-[calc(100vh-64px)]
-      `}>
-        {/* Mobile Close Button */}
-        <div className="lg:hidden flex justify-between items-center mb-4 pb-2 border-b p-4">
-          <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="p-2 rounded-md hover:bg-gray-100"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      {/* Tab Navigation */}
+      <AppBar position="static" color="default" elevation={0}>
+        <Tabs 
+          value={activeTab} 
+          onChange={(e, newValue) => setActiveTab(newValue)}
+          variant="fullWidth"
+          indicatorColor="primary"
+        >
+          <Tab 
+            value="pois" 
+            label="POI Management" 
+            icon={<LocationOnIcon />}
+            iconPosition="start"
+          />
+          <Tab 
+            value="layers" 
+            label="Map Layers" 
+            icon={<LayersIcon />}
+            iconPosition="start"
+          />
+        </Tabs>
+      </AppBar>
 
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200 px-4">
-          <nav className="-mb-px flex space-x-4">
-            <button
-              onClick={() => setActiveTab("pois")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "pois"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              POI Management
-            </button>
-            <button
-              onClick={() => setActiveTab("layers")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "layers"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              Map Layers
-            </button>
-          </nav>
-        </div>
-
-        {/* Tab Content */}
-        <div className="p-4">
-          {activeTab === "pois" && (
-            <POIList
-              markers={markers}
-              onEdit={handleEditPOI}
-              onRemove={handleRemovePOI}
-              onClearAll={handleClearAll}
-            />
-          )}
-          {activeTab === "layers" && (
+      {/* Tab Content */}
+      <Box sx={{ flex: 1, overflow: 'hidden' }}>
+        {activeTab === "pois" && (
+          <POIList
+            markers={markers}
+            onEdit={handleEditPOI}
+            onRemove={handleRemovePOI}
+            onClearAll={handleClearAll}
+          />
+        )}
+        {activeTab === "layers" && (
+          <Box sx={{ p: 2 }}>
             <LayerManager />
-          )}
-        </div>
-      </div>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+
+  return (
+    <Box sx={{ 
+      width: '100%', 
+      height: '100%', 
+      display: 'flex', 
+      position: 'relative',
+      flexDirection: { xs: 'column', lg: 'row' }
+    }}>
+      {/* Sidebar */}
+      {isDesktop ? (
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            width: { lg: 380, xl: 420 },
+            minWidth: { lg: 380 },
+            borderRight: 1, 
+            borderColor: 'grey.200',
+            height: '100%',
+            maxHeight: 'calc(100vh - 64px)',
+            overflow: 'hidden'
+          }}
+        >
+          {sidebarContent}
+        </Paper>
+      ) : (
+        <Drawer
+          anchor="left"
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: { xs: '100vw', sm: '90vw', md: 480 },
+              maxWidth: { xs: '100vw', sm: '90vw', md: 480 },
+              boxSizing: 'border-box',
+            },
+          }}
+        >
+          {sidebarContent}
+        </Drawer>
+      )}
 
       {/* Map Section */}
-      <div className="flex-1 flex flex-col z-[1]">
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center">
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', zIndex: 1, minHeight: 0 }}>
+        <Alert 
+          severity="info" 
+          sx={{ 
+            m: { xs: 0.5, sm: 1, md: 2 },
+            borderRadius: { xs: 1, md: 2 },
+            borderLeft: 4,
+            borderLeftColor: 'primary.main'
+          }}
+        >
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: { xs: 'flex-start', sm: 'center' }, 
+            width: '100%',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 1, sm: 0 }
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {/* Mobile Menu Button */}
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mr-3 p-2 rounded-md hover:bg-blue-100"
-              >
-                <svg className="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              <div className="ml-3">
-                <p className="text-sm text-blue-700">
-                  <strong>Admin Mode:</strong> Click on the map to add new POIs. Use the sidebar to manage POIs and map layers.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+              {!isDesktop && (
+                <IconButton 
+                  onClick={() => setSidebarOpen(true)}
+                  sx={{ mr: 1 }}
+                  color="primary"
+                  size="small"
+                >
+                  <MenuIcon />
+                </IconButton>
+              )}
+              <Box>
+                <AlertTitle sx={{ mb: 0, fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+                  <strong>Admin Mode:</strong>
+                </AlertTitle>
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+                  {isMobile ? 'Tap map to add POIs' : 'Click on the map to add new POIs. Use the sidebar to manage POIs and map layers.'}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Alert>
         
         <MapControls markers={markers} onClearAll={handleClearAll} />
 
-        <div className="flex-1 relative">
+        <Box sx={{ flex: 1, position: 'relative' }}>
           <MapWithLayers
             center={MAP_CONFIG.defaultCenter}
             zoom={MAP_CONFIG.defaultZoom}
@@ -182,8 +251,8 @@ function AdminMap() {
               />
             ))}
           </MapWithLayers>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* POI Form Modal */}
       {showForm && (
@@ -194,7 +263,7 @@ function AdminMap() {
           isEdit={!!editingPOI}
         />
       )}
-    </div>
+    </Box>
   );
 }
 
