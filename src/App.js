@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 import './App.css';
 import { AuthProvider } from './contexts/AuthContext';
+import { CategoriesProvider } from './contexts/CategoriesContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
 import PublicMap from './components/PublicMap';
@@ -18,49 +19,58 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Router>
-          <Box sx={{ 
-            height: '100vh', 
-            display: 'flex', 
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}>
-            <Navigation />
+        <CategoriesProvider>
+          <Router>
             <Box sx={{ 
-              flex: 1, 
-              minHeight: 0,
-              overflow: 'hidden'
+              height: '100vh', 
+              width: '100vw',
+              display: 'flex', 
+              flexDirection: 'column',
+              overflow: 'hidden',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0
             }}>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route 
-                  path="/" 
-                  element={
-                    <ProtectedRoute>
-                      <PublicMap />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/pricing" 
-                  element={
-                    <ProtectedRoute>
-                      <Pricing />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin" 
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminMap />
-                    </ProtectedRoute>
-                  } 
-                />
-              </Routes>
+              <Navigation />
+              <Box sx={{ 
+                flex: 1, 
+                minHeight: 0,
+                overflow: 'hidden',
+                position: 'relative'
+              }}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route 
+                    path="/" 
+                    element={
+                      <ProtectedRoute>
+                        <PublicMap />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/pricing" 
+                    element={
+                      <ProtectedRoute>
+                        <Pricing />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminMap />
+                      </ProtectedRoute>
+                    } 
+                  />
+                </Routes>
+              </Box>
             </Box>
-          </Box>
-        </Router>
+          </Router>
+        </CategoriesProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -6,11 +6,13 @@
 html {
   height: 100%;
   width: 100%;
+  overflow: hidden; /* Prevent document scroll */
 }
 
 #root {
   height: 100%;
   width: 100%;
+  overflow: hidden; /* Prevent root overflow */
 }
 
 body {
@@ -22,6 +24,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   height: 100%;
   width: 100%;
+  overflow: hidden; /* Prevent body scroll */
 }
 
 code {

@@ -1,17 +1,29 @@
 import { useState, useEffect } from "react";
 
 const LAYERS_STORAGE_KEY = "map-layers";
+const LAYERS_VERSION_KEY = "map-layers-version";
+const CURRENT_VERSION = "2.0"; // Updated version to force reset
 
 // Default built-in layers
 const DEFAULT_LAYERS = [
   {
-    id: "osm",
-    name: "OpenStreetMap",
+    id: "base",
+    name: "Base Map (No Labels)",
     type: "builtin",
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    url: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     isActive: true,
     isDefault: true,
+    maxZoom: 19,
+  },
+  {
+    id: "osm",
+    name: "OpenStreetMap (No Labels)",
+    type: "builtin",
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    isActive: false,
+    isDefault: false,
     maxZoom: 19,
   },
   {
@@ -26,19 +38,19 @@ const DEFAULT_LAYERS = [
   },
   {
     id: "topo",
-    name: "Topographic",
+    name: "Topographic (No Labels)",
     type: "builtin",
-    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     isActive: false,
     isDefault: false,
-    maxZoom: 17,
+    maxZoom: 19,
   },
   {
     id: "dark",
-    name: "Dark Theme",
+    name: "Dark Theme (No Labels)",
     type: "builtin",
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     isActive: false,
     isDefault: false,
@@ -52,6 +64,14 @@ const DEFAULT_LAYERS = [
 export function useMapLayers() {
   const [layers, setLayers] = useState(() => {
     try {
+      // Check version and reset if outdated
+      const savedVersion = localStorage.getItem(LAYERS_VERSION_KEY);
+      if (savedVersion !== CURRENT_VERSION) {
+        localStorage.removeItem(LAYERS_STORAGE_KEY);
+        localStorage.setItem(LAYERS_VERSION_KEY, CURRENT_VERSION);
+        return DEFAULT_LAYERS;
+      }
+
       const savedLayers = localStorage.getItem(LAYERS_STORAGE_KEY);
       if (savedLayers) {
         const parsed = JSON.parse(savedLayers);

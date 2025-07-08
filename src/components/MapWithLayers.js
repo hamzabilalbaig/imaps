@@ -14,7 +14,8 @@ function MapWithLayers({
   className = "w-full h-full",
   showLayerSelector = true,
   layerSelectorPosition = "top-right",
-  isAdmin = false 
+  isAdmin = false,
+  streetsVisible = true
 }) {
   const { activeLayer } = useMapLayers();
 
@@ -43,7 +44,12 @@ function MapWithLayers({
   }
 
   return (
-    <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
+    <Box sx={{ 
+      position: 'relative', 
+      width: '100%', 
+      height: '100%',
+      overflow: 'hidden' // Prevent map overflow
+    }}>
       <MapContainer
         center={center}
         zoom={zoom}
@@ -55,6 +61,17 @@ function MapWithLayers({
           attribution={activeLayer.attribution}
           maxZoom={activeLayer.maxZoom}
         />
+        
+        {/* Street Labels Overlay - Comprehensive street names and labels */}
+        {streetsVisible && (
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            zIndex={1000}
+            pane="overlayPane"
+            opacity={0.8}
+          />
+        )}
         
         {children}
       </MapContainer>

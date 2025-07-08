@@ -34,25 +34,6 @@ export const MAP_CONFIG = {
   defaultZoom: 11,
 };
 
-export const POI_CATEGORIES = [
-  "Restaurant",
-  "Cafe",
-  "Fast Food",
-  "Tourist Attraction", 
-  "Museum",
-  "Hotel",
-  "Shopping",
-  "Transportation",
-  "Gas Station",
-  "Healthcare",
-  "Education",
-  "Entertainment",
-  "Recreation",
-  "Bank",
-  "Religious",
-  "Other"
-];
-
 export const createMarker = (latlng, poiData = {}) => ({
   id: Date.now(),
   position: [latlng.lat, latlng.lng],
@@ -62,6 +43,7 @@ export const createMarker = (latlng, poiData = {}) => ({
   category: poiData.category || "Other",
   selectedIcon: poiData.selectedIcon || null,
   customIcon: poiData.customIcon || null,
+  iconColor: poiData.iconColor || "#6b7280",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });
@@ -128,7 +110,7 @@ export const getCustomIcons = () => {
 };
 
 // Create custom icon for a category
-export const createCategoryIcon = (category, customIcon = null, selectedIcon = null) => {
+export const createCategoryIcon = (category, customIcon = null, selectedIcon = null, iconColor = null) => {
   let IconComponent;
   let iconHtml;
   
@@ -172,7 +154,8 @@ export const createCategoryIcon = (category, customIcon = null, selectedIcon = n
     );
   }
   
-  const color = CATEGORY_COLORS[category] || CATEGORY_COLORS["Other"];
+  // Use custom icon color if provided, otherwise use category color
+  const color = iconColor || CATEGORY_COLORS[category] || CATEGORY_COLORS["Other"];
   
   return L.divIcon({
     html: `

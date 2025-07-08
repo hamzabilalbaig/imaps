@@ -186,8 +186,8 @@ function Navigation() {
                   color="inherit"
                   sx={{
                     ml: 1,
-                    backgroundColor: "rgba(255,255,255,0.1)",
-                    border: '1px solid rgba(255,255,255,0.2)',
+                    // backgroundColor: "rgba(255,255,255,0.1)",
+                    // border: '1px solid rgba(255,255,255,0.2)',
                     '&:hover': {
                       backgroundColor: "rgba(255,255,255,0.2)",
                     }

@@ -151,6 +151,7 @@ const Pricing = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
+                  overflow: 'hidden', // Prevent card overflow
                   border: plan.popular ? 2 : 0,
                   borderColor: 'secondary.main',
                   transform: plan.popular ? 'scale(1.05)' : 'scale(1)',

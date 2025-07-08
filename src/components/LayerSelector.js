@@ -35,8 +35,8 @@ function LayerSelector({ position = "top-right", showInPublic = true, isAdmin = 
   const positionClasses = {
     "top-right": { top: { xs: 8, md: 16 }, right: { xs: 8, md: 16 } },
     "top-left": { top: { xs: 8, md: 16 }, left: { xs: 8, md: 16 } },
-    "bottom-right": { bottom: { xs: 8, md: 16 }, right: { xs: 8, md: 16 } },
-    "bottom-left": { bottom: { xs: 8, md: 16 }, left: { xs: 8, md: 16 } },
+    "bottom-right": { bottom: { xs: 80, md: 16 }, right: { xs: 8, md: 16 } }, // Increased bottom margin
+    "bottom-left": { bottom: { xs: 80, md: 16 }, left: { xs: 8, md: 16 } }, // Increased bottom margin
   };
 
   const handleClick = (event) => {
@@ -58,7 +58,8 @@ function LayerSelector({ position = "top-right", showInPublic = true, isAdmin = 
         position: 'absolute',
         ...positionClasses[position],
         zIndex: 1000,
-        minWidth: { xs: 140, md: 200 }
+        minWidth: { xs: 140, md: 200 },
+        maxWidth: { xs: 200, md: 250 } // Prevent excessive width
       }}
     >
       <Paper elevation={3} sx={{ borderRadius: 2 }}>

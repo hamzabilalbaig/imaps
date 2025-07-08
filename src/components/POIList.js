@@ -27,7 +27,8 @@ import {
   Clear as ClearIcon,
   Search as SearchIcon
 } from "@mui/icons-material";
-import { POI_CATEGORIES, generateShareableLink } from "../utils/mapUtils";
+import { generateShareableLink } from "../utils/mapUtils";
+import { useCategories } from '../contexts/CategoriesContext';
 
 /**
  * Component for listing and managing POIs in admin panel
@@ -35,6 +36,7 @@ import { POI_CATEGORIES, generateShareableLink } from "../utils/mapUtils";
 function POIList({ markers, onEdit, onRemove, onClearAll }) {
   const [filterCategory, setFilterCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const { getCategoryNames } = useCategories();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
@@ -188,7 +190,7 @@ function POIList({ markers, onEdit, onRemove, onClearAll }) {
             }}
           >
             <MenuItem value="All">All Categories</MenuItem>
-            {POI_CATEGORIES.map((category) => (
+            {getCategoryNames().map((category) => (
               <MenuItem key={category} value={category}>
                 {category}
               </MenuItem>
@@ -197,7 +199,12 @@ function POIList({ markers, onEdit, onRemove, onClearAll }) {
         </FormControl>
       </Box>
 
-      <Box sx={{ flex: 1, overflow: 'auto', p: { xs: 1, md: 2 } }}>
+      <Box sx={{ 
+        flex: 1, 
+        overflow: 'auto', 
+        p: { xs: 1, md: 2 },
+        minHeight: 0 // Allow flex shrinking
+      }}>
         {filteredMarkers.length === 0 ? (
           <Paper
             sx={{

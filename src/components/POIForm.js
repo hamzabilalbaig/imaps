@@ -17,38 +17,29 @@ import {
   useMediaQuery
 } from "@mui/material";
 import { Save as SaveIcon, Cancel as CancelIcon } from "@mui/icons-material";
-import { POI_CATEGORIES, getCustomIcons } from "../utils/mapUtils";
-import IconSelector from "./IconSelector";
+import { useCategories } from "../contexts/CategoriesContext";
 
 /**
  * Form component for adding or editing POIs
  */
 function POIForm({ poi, onSave, onCancel, isEdit = false }) {
+  const { getCategoryNames, getCategoryByName } = useCategories();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    category: "Other",
-    customIcon: null,
-    selectedIcon: null,
+    category: "",
   });
-  const [customIcons, setCustomIcons] = useState([]);
-
+  
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
 
   useEffect(() => {
-    // Load custom icons from localStorage
-    const savedCustomIcons = getCustomIcons();
-    setCustomIcons(savedCustomIcons);
-
     if (poi && isEdit) {
       setFormData({
         title: poi.title || "",
         description: poi.description || "",
-        category: poi.category || "Other",
-        customIcon: poi.customIcon || null,
-        selectedIcon: poi.selectedIcon || null,
+        category: poi.category || "",
       });
     }
   }, [poi, isEdit]);
@@ -59,7 +50,24 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
       alert("Please enter a title for the POI");
       return;
     }
-    onSave(formData);
+    
+    if (!formData.category) {
+      alert("Please select a category for the POI");
+      return;
+    }
+    
+    // Get category data to include icon and color information
+    const categoryData = getCategoryByName(formData.category);
+    const submissionData = {
+      ...formData,
+      selectedIcon: categoryData?.selectedIcon || null,
+      customIcon: categoryData?.customIcon || null,
+      iconColor: categoryData?.color || "#6b7280"
+    };
+    
+    console.log('POIForm submitting data:', submissionData);
+    console.log('POIForm submitting data:', submissionData);
+    onSave(submissionData);
   };
 
   const handleChange = (e) => {
@@ -68,25 +76,6 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
       ...prev,
       [name]: value,
     }));
-  };
-
-  const handleIconSelect = (iconKey, customIconData = null) => {
-    setFormData((prev) => ({
-      ...prev,
-      selectedIcon: iconKey,
-      customIcon: customIconData,
-    }));
-
-    // If it's a new custom icon, update the custom icons list
-    if (customIconData) {
-      setCustomIcons((prev) => {
-        const exists = prev.find((icon) => icon.id === customIconData.id);
-        if (!exists) {
-          return [...prev, customIconData];
-        }
-        return prev;
-      });
-    }
   };
 
   return (
@@ -142,20 +131,6 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
       
       <DialogContent sx={{ p: { xs: 2, md: 3 } }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, md: 3 }, pt: 1 }}>
-          <Box>
-            <Typography variant="subtitle1" gutterBottom fontWeight={600} sx={{ 
-              mb: 2, 
-              fontSize: { xs: '0.875rem', md: '1rem' }
-            }}>
-              Choose Icon
-            </Typography>
-            <IconSelector
-              selectedIcon={formData.selectedIcon}
-              onIconSelect={handleIconSelect}
-              customIcons={customIcons}
-            />
-          </Box>
-
           <TextField
             name="title"
             label="Location Name"
@@ -206,11 +181,17 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
                 fontSize: { xs: '0.875rem', md: '1rem' }
               }}
             >
-              {POI_CATEGORIES.map((category) => (
-                <MenuItem key={category} value={category}>
-                  {category}
+              {getCategoryNames().length === 0 ? (
+                <MenuItem disabled>
+                  No categories available. Admin needs to create categories first.
                 </MenuItem>
-              ))}
+              ) : (
+                getCategoryNames().map((category) => (
+                  <MenuItem key={category} value={category}>
+                    {category}
+                  </MenuItem>
+                ))
+              )}
             </Select>
           </FormControl>
 
