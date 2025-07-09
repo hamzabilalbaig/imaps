@@ -22,7 +22,7 @@ import { useCategories } from "../contexts/CategoriesContext";
 /**
  * Form component for adding or editing POIs
  */
-function POIForm({ poi, onSave, onCancel, isEdit = false }) {
+function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
   const { getCategoryNames, getCategoryByName } = useCategories();
   const [formData, setFormData] = useState({
     title: "",
@@ -124,7 +124,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
             <SaveIcon sx={{ color: 'white', fontSize: { xs: 16, md: 20 } }} />
           </Box>
           <Typography variant="h5" component="h2" fontWeight={600} sx={{ fontSize: { xs: '1.125rem', md: '1.5rem' } }}>
-            {isEdit ? "Edit Location" : "Add New Location"}
+            {isEdit ? "Edit Location" : (isAdmin ? "Add New Location" : "Suggest New Location")}
           </Typography>
         </Box>
       </DialogTitle>
@@ -266,7 +266,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false }) {
             }
           }}
         >
-          {isEdit ? "Update Location" : "Add Location"}
+          {isEdit ? "Update Location" : (isAdmin ? "Add Location" : "Suggest Location")}
         </Button>
       </DialogActions>
     </Dialog>

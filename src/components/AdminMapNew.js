@@ -10,7 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
  * Admin Map component with full editing capabilities
  */
 function AdminMap() {
-  const { allMarkers: markers, addMarker, updateMarker, removeMarker, clearAllMarkers } = useMapMarkers();
+  const { allMarkers: markers, addMarker, updateMarker, removeMarker, clearAllMarkers, userMarkerCount } = useMapMarkers();
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingPOI, setEditingPOI] = useState(null);
@@ -99,7 +99,7 @@ function AdminMap() {
         onCancelForm={handleCancelForm}
         user={user}
         isAdmin={true}
-        userMarkerCount={markers.length}
+        userMarkerCount={userMarkerCount}
         maxMarkers={Infinity}
         canCreateMore={true}
         onSuggestLocation={handleSuggestLocation}

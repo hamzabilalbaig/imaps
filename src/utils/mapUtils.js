@@ -35,7 +35,7 @@ export const MAP_CONFIG = {
 };
 
 export const createMarker = (latlng, poiData = {}) => ({
-  id: Date.now(),
+  id: `poi-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
   position: [latlng.lat, latlng.lng],
   coords: `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,
   title: poiData.title || "New POI",
@@ -44,6 +44,9 @@ export const createMarker = (latlng, poiData = {}) => ({
   selectedIcon: poiData.selectedIcon || null,
   customIcon: poiData.customIcon || null,
   iconColor: poiData.iconColor || "#6b7280",
+  userId: poiData.userId || null,
+  userName: poiData.userName || null,
+  userEmail: poiData.userEmail || null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });

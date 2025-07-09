@@ -38,7 +38,8 @@ function ProgressTracker({
   onToggleMinimize,
   onSuggestLocation,
   isSuggestMode = false,
-  canCreateMore = true
+  canCreateMore = true,
+  isAdmin = false
 }) {
   const theme = useTheme();
   
@@ -143,7 +144,10 @@ function ProgressTracker({
               }
             }}
           >
-            {isSuggestMode ? 'Cancel Suggest' : 'Suggest Location'}
+            {isSuggestMode 
+              ? (isAdmin ? 'Cancel Add' : 'Cancel Suggest') 
+              : (isAdmin ? 'Add Location' : 'Suggest Location')
+            }
           </Button>
           
           {!canCreateMore && (
@@ -189,9 +193,11 @@ function ProgressTracker({
               fontSize: '0.8rem',
               textAlign: 'center',
               py: 2
-            }}>
+            }}            >
               {isSuggestMode 
-                ? "Click anywhere on the map to suggest a new location."
+                ? (isAdmin 
+                    ? "Click anywhere on the map to add a new location." 
+                    : "Click anywhere on the map to suggest a new location.")
                 : "Right-click a location to mark it found."
               }
             </Typography>

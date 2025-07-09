@@ -15,7 +15,7 @@ function PublicMap() {
     addMarker, 
     updateMarker, 
     removeMarker, 
-    getUserMarkerCount,
+    userMarkerCount,
     canCreateMore,
     remainingPOIs
   } = useMapMarkers();
@@ -36,7 +36,7 @@ function PublicMap() {
     if (!canCreateMore) {
       setSnackbar({
         open: true,
-        message: `You've reached your POI limit (${getUserMarkerCount()}). Upgrade your plan to create more.`,
+        message: `You've reached your POI limit (${userMarkerCount}). Upgrade your plan to create more.`,
         severity: 'warning'
       });
       setIsSuggestMode(false); // Exit suggest mode
@@ -53,7 +53,7 @@ function PublicMap() {
     if (!canCreateMore) {
       setSnackbar({
         open: true,
-        message: `You've reached your POI limit (${getUserMarkerCount()}). Upgrade your plan to create more.`,
+        message: `You've reached your POI limit (${userMarkerCount}). Upgrade your plan to create more.`,
         severity: 'warning'
       });
       return;
@@ -129,8 +129,8 @@ function PublicMap() {
         onCancelForm={handleCancelForm}
         user={user}
         isAdmin={isAdmin}
-        userMarkerCount={getUserMarkerCount()}
-        maxMarkers={user?.plan === 'free' ? 5 : user?.plan === 'pro' ? 50 : Infinity}
+        userMarkerCount={userMarkerCount}
+        maxMarkers={user?.plan === 'free' ? 3 : user?.plan === 'basic' ? 10 : user?.plan === 'premium' ? 50 : Infinity}
         canCreateMore={canCreateMore}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}

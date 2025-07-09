@@ -131,6 +131,7 @@ function InteractiveMapLayout({
       onSuggestLocation={onSuggestLocation}
       isSuggestMode={isSuggestMode}
       canCreateMore={canCreateMore}
+      isAdmin={isAdmin}
     />
   );
 
@@ -310,6 +311,7 @@ function InteractiveMapLayout({
             onSave={onSavePOI}
             onCancel={onCancelForm}
             isEdit={!!editingPOI}
+            isAdmin={isAdmin}
           />
         )}
       </Box>
