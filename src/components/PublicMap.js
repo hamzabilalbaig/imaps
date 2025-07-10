@@ -26,9 +26,10 @@ function PublicMap() {
   const [pendingLocation, setPendingLocation] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [isSuggestMode, setIsSuggestMode] = useState(false);
+  const [isNoteMode, setIsNoteMode] = useState(false);
 
   const handleMapClick = (latlng) => {
-    // Only allow map clicks when in suggest mode
+    // Only allow map clicks when in suggest mode (not note mode, as that's handled separately)
     if (!isSuggestMode) {
       return;
     }
@@ -59,6 +60,18 @@ function PublicMap() {
       return;
     }
     setIsSuggestMode(!isSuggestMode);
+    // Exit note mode if it's active
+    if (isNoteMode) {
+      setIsNoteMode(false);
+    }
+  };
+
+  const handleAddNote = () => {
+    setIsNoteMode(!isNoteMode);
+    // Exit suggest mode if it's active
+    if (isSuggestMode) {
+      setIsSuggestMode(false);
+    }
   };
 
   const handleEditPOI = (poi) => {
@@ -134,6 +147,8 @@ function PublicMap() {
         canCreateMore={canCreateMore}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}
+        onAddNote={handleAddNote}
+        isNoteMode={isNoteMode}
       />
 
       {/* Snackbar for notifications */}

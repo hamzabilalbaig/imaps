@@ -17,10 +17,12 @@ import {
 import MapWithLayers from './MapWithLayers';
 import MapClickHandler from './MapClickHandler';
 import MapMarker from './MapMarker';
+import MapNote from './MapNote';
 import Sidebar from './Sidebar';
 import AdSection from './AdSection';
 import ProgressTracker from './ProgressTracker';
 import POIForm from './POIForm';
+import NoteForm from './NoteForm';
 import { MAP_CONFIG } from '../utils/mapUtils';
 
 function InteractiveMapLayout({
@@ -40,7 +42,9 @@ function InteractiveMapLayout({
   maxMarkers = 5,
   canCreateMore = true,
   onSuggestLocation,
-  isSuggestMode = false
+  isSuggestMode = false,
+  onAddNote,
+  isNoteMode = false
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
@@ -53,6 +57,9 @@ function InteractiveMapLayout({
   const [notes, setNotes] = useState([]);
   const [progressTrackerMinimized, setProgressTrackerMinimized] = useState(false);
   const [streetsVisible, setStreetsVisible] = useState(true);
+  const [showNoteForm, setShowNoteForm] = useState(false);
+  const [editingNote, setEditingNote] = useState(null);
+  const [pendingNoteLocation, setPendingNoteLocation] = useState(null);
 
   // Filter markers based on visible categories and search
   const filteredMarkers = markers.filter(marker => {
@@ -90,13 +97,58 @@ function InteractiveMapLayout({
   };
 
   const handleAddNote = () => {
-    const newNote = {
-      id: Date.now(),
-      title: `Note ${notes.length + 1}`,
-      description: 'New note description',
-      createdAt: new Date().toISOString()
-    };
-    setNotes(prev => [...prev, newNote]);
+    setShowNoteForm(false);
+    setEditingNote(null);
+    setPendingNoteLocation(null);
+    // Trigger note mode instead of directly adding a note
+    if (onAddNote) {
+      onAddNote();
+    }
+  };
+
+  const handleNoteMapClick = (latlng) => {
+    setPendingNoteLocation(latlng);
+    setEditingNote(null);
+    setShowNoteForm(true);
+  };
+
+  const handleSaveNote = (formData) => {
+    if (editingNote) {
+      // Update existing note
+      setNotes(prev => prev.map(note => 
+        note.id === editingNote.id 
+          ? { ...note, ...formData, updatedAt: new Date().toISOString() }
+          : note
+      ));
+    } else if (pendingNoteLocation) {
+      // Create new note
+      const newNote = {
+        id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        position: [pendingNoteLocation.lat, pendingNoteLocation.lng],
+        coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}`,
+        ...formData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setNotes(prev => [...prev, newNote]);
+    }
+    handleCancelNoteForm();
+  };
+
+  const handleCancelNoteForm = () => {
+    setShowNoteForm(false);
+    setEditingNote(null);
+    setPendingNoteLocation(null);
+  };
+
+  const handleEditNote = (note) => {
+    setEditingNote(note);
+    setPendingNoteLocation(null);
+    setShowNoteForm(true);
+  };
+
+  const handleRemoveNote = (noteId) => {
+    setNotes(prev => prev.filter(note => note.id !== noteId));
   };
 
   const handleStreetsToggle = () => {
@@ -125,11 +177,14 @@ function InteractiveMapLayout({
       maxMarkers={maxMarkers}
       notes={notes}
       onAddNote={handleAddNote}
+      onEditNote={handleEditNote}
+      onRemoveNote={handleRemoveNote}
       isMinimized={progressTrackerMinimized}
       onToggleMinimize={() => setProgressTrackerMinimized(!progressTrackerMinimized)}
       onClose={() => setRightSidebarOpen(false)}
       onSuggestLocation={onSuggestLocation}
       isSuggestMode={isSuggestMode}
+      isNoteMode={isNoteMode}
       canCreateMore={canCreateMore}
       isAdmin={isAdmin}
     />
@@ -217,8 +272,8 @@ function InteractiveMapLayout({
           streetsVisible={streetsVisible}
         >
           {/* Map Click Handler */}
-          {canCreateMore && (isAdmin || isSuggestMode) && (
-            <MapClickHandler onMapClick={onMapClick} />
+          {((canCreateMore && (isAdmin || isSuggestMode)) || isNoteMode) && (
+            <MapClickHandler onMapClick={isNoteMode ? handleNoteMapClick : onMapClick} />
           )}
           
           {/* Markers */}
@@ -294,6 +349,66 @@ function InteractiveMapLayout({
           </Box>
         )}
 
+        {/* Note Mode Indicator */}
+        {isNoteMode && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              pointerEvents: 'none',
+              zIndex: 999,
+              background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)',
+              border: '3px solid',
+              borderColor: 'secondary.main',
+              borderStyle: 'dashed',
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Paper
+              elevation={8}
+              sx={{
+                p: 2,
+                backgroundColor: 'secondary.main',
+                color: 'white',
+                borderRadius: 3,
+                pointerEvents: 'auto',
+                '@keyframes pulse': {
+                  '0%': {
+                    transform: 'scale(1)',
+                    opacity: 1,
+                  },
+                  '50%': {
+                    transform: 'scale(1.05)',
+                    opacity: 0.8,
+                  },
+                  '100%': {
+                    transform: 'scale(1)',
+                    opacity: 1,
+                  },
+                },
+                animation: 'pulse 2s ease-in-out infinite'
+              }}
+            >
+              <Typography variant="h6" fontWeight="bold" align="center" sx={{ 
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+                fontSize: '1rem'
+              }}>
+                📝 Note Mode Active
+              </Typography>
+              <Typography variant="body2" align="center" sx={{ mt: 1, opacity: 0.9 }}>
+                Click anywhere on the map to add a new note
+              </Typography>
+            </Paper>
+          </Box>
+        )}
+
         {/* Ad Section - Bottom Left */}
         {showAd && (
           <AdSection 
@@ -314,23 +429,53 @@ function InteractiveMapLayout({
             isAdmin={isAdmin}
           />
         )}
-      </Box>
 
-      {/* Desktop Right Sidebar */}
-      {!isMobile && rightSidebarOpen && (
-        <Box sx={{ 
-          width: { lg: 320, xl: 350 }, 
-          minWidth: 280,
-          maxWidth: 400,
-          height: '100%', 
-          flexShrink: 0,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          {rightSidebarContent}
-        </Box>
-      )}
+        {/* Note Form */}
+        {showNoteForm && (
+          <NoteForm
+            note={editingNote || (pendingNoteLocation ? { 
+              coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}` 
+            } : null)}
+            onSave={handleSaveNote}
+            onCancel={handleCancelNoteForm}
+            isEdit={!!editingNote}
+          />
+        )}
+
+        {/* Progress Tracker Overlay - Desktop */}
+        {!isMobile && rightSidebarOpen && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: { lg: 320, xl: 350 },
+            maxWidth: 400,
+            maxHeight: '100%',
+            zIndex: 1000,
+            pointerEvents: 'auto',
+            height: '100%',
+          }}>
+            {rightSidebarContent}
+          </Box>
+        )}
+
+        {/* Desktop Progress Tracker Toggle Button */}
+        {!isMobile && !rightSidebarOpen && (
+          <Fab
+            color="secondary"
+            size="medium"
+            onClick={() => setRightSidebarOpen(true)}
+            sx={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              zIndex: 1000
+            }}
+          >
+            <NotesIcon />
+          </Fab>
+        )}
+      </Box>
 
       {/* Mobile Right Drawer */}
       {isMobile && (

@@ -33,11 +33,14 @@ function ProgressTracker({
   foundLocations = [], 
   onClose,
   onAddNote,
+  onEditNote,
+  onRemoveNote,
   notes = [],
   isMinimized = false,
   onToggleMinimize,
   onSuggestLocation,
   isSuggestMode = false,
+  isNoteMode = false,
   canCreateMore = true,
   isAdmin = false
 }) {
@@ -51,14 +54,15 @@ function ProgressTracker({
       <Paper
         elevation={3}
         sx={{
-          position: 'absolute',
-          top: { xs: 8, md: 20 }, // Responsive top margin
-          right: { xs: 8, md: 20 }, // Responsive right margin
           p: 1,
           backgroundColor: alpha(theme.palette.background.paper, 0.95),
           backdropFilter: 'blur(10px)',
           borderRadius: 2,
-          zIndex: 1000
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 48,
+          width: '100%'
         }}
       >
         <IconButton size="small" onClick={onToggleMinimize}>
@@ -69,16 +73,19 @@ function ProgressTracker({
   }
 
   return (
-    <Box
+    <Paper
+      elevation={8}
       sx={{
         width: '100%',
         height: '100%',
-        backgroundColor: alpha(theme.palette.background.paper, 0.95),
-        borderLeft: `1px solid ${theme.palette.divider}`,
+        backgroundColor: alpha(theme.palette.background.paper, 0.98),
+        backdropFilter: 'blur(12px)',
+        borderRadius: 3,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        minHeight: 0
+        minHeight: 0,
+        border: `1px solid ${alpha(theme.palette.divider, 0.2)}`
       }}
     >
       {/* Header */}
@@ -97,8 +104,11 @@ function ProgressTracker({
           PROGRESS TRACKER
         </Typography>
         <Box>
-          <IconButton size="small" onClick={onToggleMinimize}>
+          {/* <IconButton size="small" onClick={onToggleMinimize}>
             <MinimizeIcon />
+          </IconButton> */}
+          <IconButton size="small" onClick={onClose}>
+            <CloseIcon />
           </IconButton>
         </Box>
       </Box>
@@ -163,7 +173,7 @@ function ProgressTracker({
           )}
           
           <Button
-            variant="outlined"
+            variant={isNoteMode ? "contained" : "outlined"}
             startIcon={<AddIcon />}
             onClick={onAddNote}
             fullWidth
@@ -171,10 +181,17 @@ function ProgressTracker({
               mb: 2,
               textTransform: 'uppercase',
               fontSize: '0.75rem',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              backgroundColor: isNoteMode ? theme.palette.secondary.main : 'transparent',
+              color: isNoteMode ? 'white' : theme.palette.secondary.main,
+              borderColor: theme.palette.secondary.main,
+              '&:hover': {
+                backgroundColor: isNoteMode ? theme.palette.secondary.dark : alpha(theme.palette.secondary.main, 0.1),
+                borderColor: theme.palette.secondary.main
+              }
             }}
           >
-            Add Note
+            {isNoteMode ? 'Cancel Note' : 'Add Note'}
           </Button>
 
           <Typography variant="subtitle2" sx={{ 
@@ -193,12 +210,15 @@ function ProgressTracker({
               fontSize: '0.8rem',
               textAlign: 'center',
               py: 2
-            }}            >
-              {isSuggestMode 
-                ? (isAdmin 
-                    ? "Click anywhere on the map to add a new location." 
-                    : "Click anywhere on the map to suggest a new location.")
-                : "Right-click a location to mark it found."
+            }}>
+              {isNoteMode 
+                ? "Click anywhere on the map to add a new note."
+                : (isSuggestMode 
+                    ? (isAdmin 
+                        ? "Click anywhere on the map to add a new location." 
+                        : "Click anywhere on the map to suggest a new location.")
+                    : "No notes yet. Click 'Add Note' to get started."
+                  )
               }
             </Typography>
           ) : (
@@ -209,17 +229,20 @@ function ProgressTracker({
                   sx={{ 
                     px: 0,
                     py: 0.5,
+                    cursor: 'pointer',
+                    borderRadius: 1,
                     '&:hover': {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.05)
+                      backgroundColor: alpha(theme.palette.secondary.main, 0.05)
                     }
                   }}
+                  onClick={() => onEditNote && onEditNote(note)}
                 >
                   <ListItemIcon sx={{ minWidth: 32 }}>
-                    <NotesIcon sx={{ fontSize: '1rem', color: theme.palette.primary.main }} />
+                    <NotesIcon sx={{ fontSize: '1rem', color: theme.palette.secondary.main }} />
                   </ListItemIcon>
                   <ListItemText
                     primary={note.title}
-                    secondary={note.description}
+                    secondary={note.description || note.coords}
                     primaryTypographyProps={{
                       fontSize: '0.8rem',
                       fontWeight: 500
@@ -369,7 +392,7 @@ function ProgressTracker({
 
         
       </Box>
-    </Box>
+    </Paper>
   );
 }
 
