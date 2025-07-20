@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { localDB } from "../utils/localStorage";
 
 const LAYERS_STORAGE_KEY = "map-layers";
 const LAYERS_VERSION_KEY = "map-layers-version";

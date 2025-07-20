@@ -102,12 +102,13 @@ export const CATEGORY_COLORS = {
   "Other": "#6b7280"           // Gray
 };
 
-// Utility function to get custom icons from localStorage
+// Utility function to get custom icons from localStorage database
 export const getCustomIcons = () => {
   try {
-    return JSON.parse(localStorage.getItem('customIcons') || '[]');
+    const { localDB } = require('./localStorage');
+    return localDB.getUserCustomIcons();
   } catch (error) {
-    console.error('Error loading custom icons from localStorage:', error);
+    console.error('Error loading custom icons from localStorage database:', error);
     return [];
   }
 };

@@ -12,6 +12,7 @@ import Navigation from './components/Navigation';
 import PublicMap from './components/PublicMap';
 import AdminMap from './components/AdminMap';
 import Login from './components/Login';
+import Register from './components/Register';
 import Pricing from './components/Pricing';
 
 function App() {

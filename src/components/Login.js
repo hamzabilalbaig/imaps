@@ -84,10 +84,10 @@ const Login = () => {
     setLoginType(type);
     if (type === 'admin') {
       setEmail('admin@admin.com');
-      setPassword('12345678');
+      setPassword('admin');
     } else {
-      setEmail('user@user.com');
-      setPassword('12345678');
+      setEmail('');
+      setPassword('');
     }
   };
 

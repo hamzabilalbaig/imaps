@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react";
 import { createMarker } from "../utils/mapUtils";
 import { useAuth } from "../contexts/AuthContext";
-
-const STORAGE_KEY = "map-markers";
-
-// Default POIs for initial demonstration
-const DEFAULT_POIS = []
+import { localDB } from "../utils/localStorage";
 
 /**
  * Custom hook for managing map markers with localStorage persistence and auth integration
@@ -13,38 +9,19 @@ const DEFAULT_POIS = []
 export function useMapMarkers() {
   const { user, canCreatePOI, getRemainingPOIs } = useAuth();
   
-  // Initialize state with data from localStorage or default POIs
-  const [markers, setMarkers] = useState(() => {
-    try {
-      const savedMarkers = localStorage.getItem(STORAGE_KEY);
-      if (savedMarkers) {
-        const parsed = JSON.parse(savedMarkers);
-        return parsed.length > 0 ? parsed : DEFAULT_POIS;
-      }
-      return DEFAULT_POIS;
-    } catch (error) {
-      console.error("Error loading markers from localStorage:", error);
-      return DEFAULT_POIS;
-    }
-  });
+  // Initialize state with data from localStorage
+  const [markers, setMarkers] = useState([]);
   const [clickedCoords, setClickedCoords] = useState(null);
 
-  // Filter markers based on user permissions
-  const filteredMarkers = user ? markers.filter(marker => {
-    // Admins can see all markers
-    if (user.role === 'admin') return true;
-    // Regular users can only see their own markers or public ones
-    return !marker.userId || marker.userId === user.id;
-  }) : [];
-
-  // Save markers to localStorage whenever markers change
+  // Load markers when user changes or component mounts
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(markers));
-    } catch (error) {
-      console.error("Error saving markers to localStorage:", error);
+    if (user) {
+      const userMarkers = localDB.getUserPOIs();
+      setMarkers(userMarkers);
+    } else {
+      setMarkers([]);
     }
-  }, [markers]);
+  }, [user]);
 
   const addMarker = (latlng, poiData) => {
     if (!user) return { success: false, error: 'You must be logged in to create POIs' };
@@ -59,32 +36,43 @@ export function useMapMarkers() {
       };
     }
 
-    const newMarker = createMarker(latlng, { 
-      ...poiData, 
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email
-    });
-    setMarkers((prev) => [...prev, newMarker]);
-    setClickedCoords(newMarker.coords);
-    return { success: true, marker: newMarker };
+    const markerData = createMarker(latlng, poiData);
+    const result = localDB.addPOI(markerData);
+    
+    if (result.success) {
+      // Reload markers from localStorage
+      const updatedMarkers = localDB.getUserPOIs();
+      setMarkers(updatedMarkers);
+      setClickedCoords(result.poi.coords);
+      return { success: true, marker: result.poi };
+    }
+    
+    return result;
   };
 
   const updateMarker = (markerId, updatedData) => {
-    setMarkers((prev) => 
-      prev.map((marker) => 
-        marker.id === markerId 
-          ? { ...marker, ...updatedData, updatedAt: new Date().toISOString() }
-          : marker
-      )
-    );
+    const result = localDB.updatePOI(markerId, updatedData);
+    if (result.success) {
+      // Reload markers from localStorage
+      const updatedMarkers = localDB.getUserPOIs();
+      setMarkers(updatedMarkers);
+    }
+    return result;
   };
 
   const removeMarker = (markerId) => {
-    setMarkers((prev) => prev.filter((marker) => marker.id !== markerId));
+    const result = localDB.deletePOI(markerId);
+    if (result.success) {
+      // Reload markers from localStorage
+      const updatedMarkers = localDB.getUserPOIs();
+      setMarkers(updatedMarkers);
+    }
+    return result;
   };
 
   const clearAllMarkers = () => {
+    // For admin, this would need special handling
+    // For now, just clear the current view
     setMarkers([]);
     setClickedCoords(null);
   };
@@ -95,8 +83,7 @@ export function useMapMarkers() {
   };
 
   return {
-    markers: filteredMarkers, // Return filtered markers based on user permissions
-    allMarkers: markers, // Admin might need access to all markers
+    markers, // Return user-specific markers
     clickedCoords,
     addMarker,
     updateMarker,

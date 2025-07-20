@@ -19,6 +19,7 @@ import {
   CloudUpload as CloudUploadIcon
 } from "@mui/icons-material";
 import { CATEGORY_ICONS, getCustomIcons } from "../utils/mapUtils";
+import { localDB } from '../utils/localStorage';
 
 /**
  * Icon selector component for POI forms
@@ -65,12 +66,13 @@ function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
         type: file.type
       };
       
-      // Save to localStorage for persistence
-      const savedCustomIcons = JSON.parse(localStorage.getItem('customIcons') || '[]');
-      savedCustomIcons.push(customIcon);
-      localStorage.setItem('customIcons', JSON.stringify(savedCustomIcons));
-      
-      onIconSelect(customIcon.id, customIcon);
+      // Save to localStorage for persistence using the database
+      const result = localDB.addCustomIcon(customIcon);
+      if (result.success) {
+        onIconSelect(result.icon.id, result.icon);
+      } else {
+        alert('Error saving custom icon: ' + result.message);
+      }
       setIsOpen(false);
       setShowUpload(false);
     };

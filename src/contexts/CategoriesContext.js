@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CATEGORY_COLORS } from '../utils/mapUtils';
+import { localDB } from '../utils/localStorage';
 
 const CategoriesContext = createContext();
 
@@ -16,73 +17,39 @@ export const CategoriesProvider = ({ children }) => {
 
   // Load categories from localStorage on mount
   useEffect(() => {
-    const savedCategories = localStorage.getItem('customCategories');
-    if (savedCategories) {
-      try {
-        const parsedCategories = JSON.parse(savedCategories);
-        setCategories(parsedCategories);
-      } catch (error) {
-        console.error('Error loading categories from localStorage:', error);
-        // Fallback to default categories
-        initializeDefaultCategories();
-      }
-    } else {
-      // Initialize with default categories if none exist
-      initializeDefaultCategories();
-    }
+    loadCategories();
   }, []);
 
-  const initializeDefaultCategories = () => {
-    // Start with empty categories - admin will create all categories
-    const emptyCategories = [];
-    
-    setCategories(emptyCategories);
-    localStorage.setItem('customCategories', JSON.stringify(emptyCategories));
-  };
-
-  const saveCategoriesToStorage = (updatedCategories) => {
-    localStorage.setItem('customCategories', JSON.stringify(updatedCategories));
+  const loadCategories = () => {
+    const userCategories = localDB.getUserCategories();
+    setCategories(userCategories);
   };
 
   const addCategory = (categoryData) => {
-    const newCategory = {
-      id: `category-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: categoryData.name,
-      color: categoryData.color || CATEGORY_COLORS['Other'],
-      selectedIcon: categoryData.selectedIcon || null,
-      customIcon: categoryData.customIcon || null,
-      description: categoryData.description || '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    const updatedCategories = [...categories, newCategory];
-    setCategories(updatedCategories);
-    saveCategoriesToStorage(updatedCategories);
-    return newCategory;
+    const result = localDB.addCategory(categoryData);
+    if (result.success) {
+      loadCategories(); // Reload categories from localStorage
+      return result.category;
+    }
+    throw new Error(result.message);
   };
 
   const updateCategory = (categoryId, updates) => {
-    const updatedCategories = categories.map(category => 
-      category.id === categoryId 
-        ? { 
-            ...category, 
-            ...updates, 
-            updatedAt: new Date().toISOString() 
-          }
-        : category
-    );
-    
-    setCategories(updatedCategories);
-    saveCategoriesToStorage(updatedCategories);
-    return updatedCategories.find(cat => cat.id === categoryId);
+    const result = localDB.updateCategory(categoryId, updates);
+    if (result.success) {
+      loadCategories(); // Reload categories from localStorage
+      return result.category;
+    }
+    throw new Error(result.message);
   };
 
   const deleteCategory = (categoryId) => {
-    const updatedCategories = categories.filter(category => category.id !== categoryId);
-    setCategories(updatedCategories);
-    saveCategoriesToStorage(updatedCategories);
-    return categories.find(cat => cat.id === categoryId);
+    const result = localDB.deleteCategory(categoryId);
+    if (result.success) {
+      loadCategories(); // Reload categories from localStorage
+      return true;
+    }
+    throw new Error(result.message);
   };
 
   const getCategoryById = (categoryId) => {
@@ -113,7 +80,8 @@ export const CategoriesProvider = ({ children }) => {
     getCategoryById,
     getCategoryByName,
     getCategoryNames,
-    getCategoryColors
+    getCategoryColors,
+    loadCategories
   };
 
   return (

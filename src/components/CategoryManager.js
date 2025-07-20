@@ -34,6 +34,7 @@ import { CATEGORY_ICONS, CATEGORY_COLORS } from '../utils/mapUtils';
 import { useCategories } from '../contexts/CategoriesContext';
 import IconSelector from './IconSelector';
 import ColorPicker from './ColorPicker';
+import { localDB } from '../utils/localStorage';
 
 // Storage key for custom categories
 const CATEGORIES_STORAGE_KEY = 'customCategories';
@@ -68,10 +69,8 @@ function CategoryManager() {
 
   const loadCustomIcons = () => {
     try {
-      const saved = localStorage.getItem('customIcons');
-      if (saved) {
-        setCustomIcons(JSON.parse(saved));
-      }
+      const saved = localDB.getUserCustomIcons();
+      setCustomIcons(saved);
     } catch (error) {
       console.error('Error loading custom icons:', error);
     }
@@ -177,17 +176,12 @@ function CategoryManager() {
       customIcon: customIconData
     }));
 
-    // If it's a new custom icon, update the custom icons list
+    // If it's a new custom icon, save it to the database and update the custom icons list
     if (customIconData) {
-      setCustomIcons((prev) => {
-        const exists = prev.find((icon) => icon.id === customIconData.id);
-        if (!exists) {
-          const updatedIcons = [...prev, customIconData];
-          localStorage.setItem('customIcons', JSON.stringify(updatedIcons));
-          return updatedIcons;
-        }
-        return prev;
-      });
+      const result = localDB.addCustomIcon(customIconData);
+      if (result.success) {
+        loadCustomIcons(); // Reload custom icons
+      }
     }
   };
 
