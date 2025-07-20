@@ -25,6 +25,7 @@ import {
   Upgrade as UpgradeIcon,
   LocationSearching as LocationSearchingIcon
 } from '@mui/icons-material';
+import { useAuth } from '../contexts/AuthContext';
 
 function ProgressTracker({ 
   user, 

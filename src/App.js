@@ -38,7 +38,7 @@ function App() {
               <Box sx={{ 
                 flex: 1, 
                 minHeight: 0,
-                overflow: 'hidden',
+                overflow: 'auto',
                 position: 'relative'
               }}>
                 <Routes>
