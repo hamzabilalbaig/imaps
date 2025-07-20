@@ -23,8 +23,10 @@ import {
 import {
   Check as CheckIcon,
   Star as StarIcon,
+  Category as CategoryIcon,
   LocationOn as LocationIcon,
-  WorkspacePremium as PremiumIcon
+  WorkspacePremium as PremiumIcon,
+  Palette as PaletteIcon
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -34,9 +36,13 @@ const PLANS = [
     name: 'Free',
     price: '$0',
     period: 'forever',
-    maxPOIs: 3,
+    maxCustomCategories: 10,
+    maxPOIsPerCategory: 10,
+    totalPOILimit: 100, // 10 categories × 10 POIs each
+    allowCustomIcons: false,
     features: [
-      '3 Points of Interest',
+      '10 Custom Categories',
+      '10 POIs per Category (100 total)',
       'View public maps',
       'Basic map layers',
       'Community support'
@@ -45,46 +51,38 @@ const PLANS = [
     color: 'grey'
   },
   {
-    id: 'basic',
-    name: 'Basic',
-    price: '$9',
-    period: 'month',
-    maxPOIs: 10,
-    features: [
-      '10 Points of Interest',
-      'Custom map markers',
-      'Export map data',
-      'Email support',
-      'Priority loading'
-    ],
-    popular: false,
-    color: 'primary'
-  },
-  {
     id: 'premium',
     name: 'Premium',
     price: '$19',
     period: 'month',
-    maxPOIs: 50,
+    maxCustomCategories: 20,
+    maxPOIsPerCategory: 20,
+    totalPOILimit: 400, // 20 categories × 20 POIs each
+    allowCustomIcons: false,
     features: [
-      '50 Points of Interest',
+      '20 Custom Categories',
+      '20 POIs per Category (400 total)',
       'Advanced map layers',
-      'Bulk import/export',
+      'Export map data',
       'Priority support',
-      'Custom categories',
       'Analytics dashboard'
     ],
     popular: true,
-    color: 'secondary'
+    color: 'primary'
   },
   {
     id: 'unlimited',
     name: 'Unlimited',
     price: '$39',
     period: 'month',
-    maxPOIs: 'Unlimited',
+    maxCustomCategories: 'Unlimited',
+    maxPOIsPerCategory: 'Unlimited',
+    totalPOILimit: Infinity,
+    allowCustomIcons: true,
     features: [
-      'Unlimited Points of Interest',
+      'Unlimited Custom Categories',
+      'Unlimited POIs per Category',
+      'Custom Icon Upload',
       'All premium features',
       'API access',
       'White-label options',
@@ -92,7 +90,7 @@ const PLANS = [
       'Custom integrations'
     ],
     popular: false,
-    color: 'warning'
+    color: 'secondary'
   }
 ];
 
@@ -131,7 +129,7 @@ const Pricing = () => {
             Choose Your Plan
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-            Create more Points of Interest with our flexible pricing plans
+            Create custom categories and organize your Points of Interest
           </Typography>
           {user && (
             <Alert severity="info" sx={{ maxWidth: 600, mx: 'auto' }}>
@@ -143,7 +141,7 @@ const Pricing = () => {
         {/* Pricing Cards */}
         <Grid container spacing={3} justifyContent="center">
           {PLANS.map((plan) => (
-            <Grid item xs={12} sm={6} md={3} key={plan.id}>
+            <Grid item xs={12} sm={6} md={4} key={plan.id}>
               <Card
                 elevation={plan.popular ? 8 : 2}
                 sx={{
@@ -151,9 +149,9 @@ const Pricing = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
-                  overflow: 'hidden', // Prevent card overflow
+                  overflow: 'hidden',
                   border: plan.popular ? 2 : 0,
-                  borderColor: 'secondary.main',
+                  borderColor: 'primary.main',
                   transform: plan.popular ? 'scale(1.05)' : 'scale(1)',
                   transition: 'transform 0.2s ease-in-out',
                   '&:hover': {
@@ -165,7 +163,7 @@ const Pricing = () => {
                   <Chip
                     icon={<StarIcon />}
                     label="Most Popular"
-                    color="secondary"
+                    color="primary"
                     sx={{
                       position: 'absolute',
                       top: -10,
@@ -190,11 +188,28 @@ const Pricing = () => {
                     </Typography>
                   </Box>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}>
-                    <LocationIcon color="primary" sx={{ mr: 1 }} />
-                    <Typography variant="h6" fontWeight="bold">
-                      {plan.maxPOIs} POIs
-                    </Typography>
+                  {/* Key Metrics */}
+                  <Box sx={{ mb: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                      <CategoryIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6" fontWeight="bold">
+                        {plan.maxCustomCategories} Categories
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                      <LocationIcon color="secondary" sx={{ mr: 1 }} />
+                      <Typography variant="body1" fontWeight="medium">
+                        {plan.maxPOIsPerCategory} POIs per Category
+                      </Typography>
+                    </Box>
+                    {plan.allowCustomIcons && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <PaletteIcon color="warning" sx={{ mr: 1 }} />
+                        <Typography variant="body2" fontWeight="medium">
+                          Custom Icons
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
 
                   <List dense>
@@ -239,7 +254,7 @@ const Pricing = () => {
         {/* FAQ or Additional Info */}
         <Box sx={{ mt: 6, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            All plans include access to basic map features. Upgrade anytime to increase your POI limit.
+            All plans include category management and basic map features. Upgrade anytime to increase your limits.
           </Typography>
         </Box>
       </Container>
@@ -256,7 +271,7 @@ const Pricing = () => {
           </Typography>
           {isDowngrade(confirmDialog.plan?.id) && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              Downgrading may limit your existing POIs if you exceed the new limit.
+              Downgrading may limit your existing categories and POIs if you exceed the new limits.
             </Alert>
           )}
         </DialogContent>

@@ -35,12 +35,13 @@ class LocalStorageDB {
       email,
       password, // In production, hash this
       name,
-      plan: 'Free',
+      plan: 'free',
       role: 'user',
       createdAt: new Date().toISOString(),
       pois: [],
       notes: [],
-      customIcons: []
+      customIcons: [],
+      userCategories: [] // This array will store categories specific to this user
     };
 
     users[email] = userData;
@@ -57,7 +58,7 @@ class LocalStorageDB {
         email: 'admin@admin.com',
         name: 'Administrator',
         role: 'admin',
-        plan: 'Premium',
+        plan: 'unlimited',
         pois: this.getAllPOIs(),
         notes: this.getAllNotes(),
         customIcons: this.getAllCustomIcons()
@@ -119,7 +120,8 @@ class LocalStorageDB {
       createdAt: new Date().toISOString(),
       userId: currentUser.id,
       userEmail: currentUser.email,
-      userName: currentUser.name
+      userName: currentUser.name,
+      categoryId: poi.categoryId || null // Store the category ID for per-category limits
     };
 
     const users = this.getUsers();
@@ -342,37 +344,58 @@ class LocalStorageDB {
   // Categories Management (Admin Only)
   addCategory(category) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser || currentUser.role !== 'admin') {
-      return { success: false, message: 'Only admin can create categories' };
+    if (!currentUser) {
+      return { success: false, message: 'No user logged in' };
     }
 
     const categoryData = {
       id: `category-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ...category,
       createdAt: new Date().toISOString(),
-      userId: currentUser.id
+      userId: currentUser.id // Associate category with user/admin
     };
 
-    const adminCategories = this.getAdminCategories();
-    adminCategories.push(categoryData);
-    localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
+    if (currentUser.role === 'admin') {
+      // Admin categories are stored globally
+      const adminCategories = this.getAdminCategories();
+      adminCategories.push(categoryData);
+      localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
+    } else {
+      // For regular users, add to their specific userCategories array
+      const users = this.getUsers();
+      if (users[currentUser.email]) {
+        users[currentUser.email].userCategories.push(categoryData); // Add to user's categories
+        localStorage.setItem('imaps_users', JSON.stringify(users));
+
+        // IMPORTANT: Update current user in localStorage to reflect changes
+        const updatedUser = users[currentUser.email];
+        localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+      } else {
+        return { success: false, message: 'User not found' };
+      }
+    }
     
     return { success: true, category: categoryData };
   }
 
-  // Get categories available to all users (admin-created only)
+  // Get categories available to the current user (admin-created or user-specific)
   getAvailableCategories() {
-    return this.getAdminCategories();
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) return []; // No user logged in, return empty array
+
+    if (currentUser.role === 'admin') {
+      return this.getAdminCategories(); // Admin sees global categories
+    } else {
+      // Regular user sees their own categories
+      return currentUser.userCategories || [];
+    }
   }
 
-  // For backward compatibility - same as getAvailableCategories
+  // For backward compatibility - now same as getAvailableCategories
   getUserCategories() {
     return this.getAvailableCategories();
   }
 
-  getAllCategories() {
-    return this.getAdminCategories();
-  }
 
   getAdminCategories() {
     return JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]');
@@ -380,20 +403,43 @@ class LocalStorageDB {
 
   updateCategory(categoryId, updates) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser || currentUser.role !== 'admin') {
-      return { success: false, message: 'Only admin can update categories' };
+    if (!currentUser) {
+      return { success: false, message: 'No user logged in' };
     }
 
-    const adminCategories = this.getAdminCategories();
-    const categoryIndex = adminCategories.findIndex(cat => cat.id === categoryId);
-    if (categoryIndex !== -1) {
-      adminCategories[categoryIndex] = {
-        ...adminCategories[categoryIndex],
-        ...updates,
-        updatedAt: new Date().toISOString()
-      };
-      localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
-      return { success: true, category: adminCategories[categoryIndex] };
+    if (currentUser.role === 'admin') {
+      const adminCategories = this.getAdminCategories();
+      const categoryIndex = adminCategories.findIndex(cat => cat.id === categoryId);
+      if (categoryIndex !== -1) {
+        adminCategories[categoryIndex] = {
+          ...adminCategories[categoryIndex],
+          ...updates,
+          updatedAt: new Date().toISOString()
+        };
+        localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
+        return { success: true, category: adminCategories[categoryIndex] };
+      }
+    } else {
+      // For regular users, update their specific userCategories array
+      const users = this.getUsers();
+      if (users[currentUser.email]) {
+        const categoryIndex = users[currentUser.email].userCategories.findIndex(cat => cat.id === categoryId);
+        if (categoryIndex !== -1) {
+          users[currentUser.email].userCategories[categoryIndex] = {
+            ...users[currentUser.email].userCategories[categoryIndex],
+            ...updates,
+            updatedAt: new Date().toISOString()
+          };
+          localStorage.setItem('imaps_users', JSON.stringify(users));
+
+          // IMPORTANT: Update current user in localStorage
+          const updatedUser = users[currentUser.email];
+          localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+          return { success: true, category: users[currentUser.email].userCategories[categoryIndex] };
+        }
+      } else {
+        return { success: false, message: 'User not found' };
+      }
     }
     
     return { success: false, message: 'Category not found' };
@@ -401,19 +447,60 @@ class LocalStorageDB {
 
   deleteCategory(categoryId) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser || currentUser.role !== 'admin') {
-      return { success: false, message: 'Only admin can delete categories' };
+    if (!currentUser) {
+      return { success: false, message: 'No user logged in' };
     }
 
-    const adminCategories = this.getAdminCategories();
-    const filteredAdminCategories = adminCategories.filter(cat => cat.id !== categoryId);
-    if (filteredAdminCategories.length !== adminCategories.length) {
-      localStorage.setItem('imaps_admin_categories', JSON.stringify(filteredAdminCategories));
-      return { success: true };
+    if (currentUser.role === 'admin') {
+      const adminCategories = this.getAdminCategories();
+      const filteredAdminCategories = adminCategories.filter(cat => cat.id !== categoryId);
+      if (filteredAdminCategories.length !== adminCategories.length) {
+        localStorage.setItem('imaps_admin_categories', JSON.stringify(filteredAdminCategories));
+        return { success: true };
+      }
+    } else {
+      // For regular users, delete from their specific userCategories array
+      const users = this.getUsers();
+      if (users[currentUser.email]) {
+        const originalLength = users[currentUser.email].userCategories.length;
+        users[currentUser.email].userCategories = users[currentUser.email].userCategories.filter(cat => cat.id !== categoryId);
+
+        if (users[currentUser.email].userCategories.length !== originalLength) {
+          localStorage.setItem('imaps_users', JSON.stringify(users));
+
+          // IMPORTANT: Update current user in localStorage
+          const updatedUser = users[currentUser.email];
+          localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+          return { success: true };
+        }
+      } else {
+        return { success: false, message: 'User not found' };
+      }
     }
     
     return { success: false, message: 'Category not found' };
   }
+
+  // Get count of POIs in a specific category for the current user
+  getPOICountInCategory(categoryId) {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) return 0;
+
+    const userPOIs = this.getUserPOIs();
+    return userPOIs.filter(poi => poi.categoryId === categoryId).length;
+  };
+
+  // Get count of user's custom categories
+  getUserCategoryCount() {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) return 0;
+
+    if (currentUser.role === 'admin') {
+      return this.getAdminCategories().length;
+    } else {
+      return (currentUser.userCategories || []).length;
+    }
+  };
 
   // Custom Icons Management
   addCustomIcon(iconData) {

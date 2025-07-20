@@ -18,17 +18,21 @@ import {
 } from "@mui/material";
 import { Save as SaveIcon, Cancel as CancelIcon } from "@mui/icons-material";
 import { useCategories } from "../contexts/CategoriesContext";
+import { useAuth } from "../contexts/AuthContext";
+import { localDB } from "../utils/localStorage";
 
 /**
  * Form component for adding or editing POIs
  */
 function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
   const { getCategoryNames, getCategoryByName } = useCategories();
+  const { canAddPOItoCategory, getRemainingPOIsForCategory } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
   });
+  const [categoryLimitWarning, setCategoryLimitWarning] = useState("");
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -58,8 +62,19 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
     
     // Get category data to include icon and color information
     const categoryData = getCategoryByName(formData.category);
+    
+    // Check category limits before saving (for new POIs)
+    if (!isEdit && categoryData) {
+      const poisInCategory = localDB.getPOICountInCategory(categoryData.id);
+      if (!canAddPOItoCategory(categoryData.id, poisInCategory)) {
+        alert("This category has reached its POI limit. Please upgrade your plan or choose a different category.");
+        return;
+      }
+    }
+    
     const submissionData = {
       ...formData,
+      categoryId: categoryData?.id || null,
       selectedIcon: categoryData?.selectedIcon || null,
       customIcon: categoryData?.customIcon || null,
       iconColor: categoryData?.color || "#6b7280"
@@ -76,6 +91,24 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
       ...prev,
       [name]: value,
     }));
+
+    // Check category limits when category is selected
+    if (name === 'category' && value) {
+      const categoryData = getCategoryByName(value);
+      if (categoryData) {
+        const poisInCategory = localDB.getPOICountInCategory(categoryData.id);
+        const canAdd = canAddPOItoCategory(categoryData.id, poisInCategory);
+        const remaining = getRemainingPOIsForCategory(poisInCategory);
+        
+        if (!canAdd) {
+          setCategoryLimitWarning(`This category has reached its POI limit. Upgrade your plan or choose a different category.`);
+        } else if (remaining !== Infinity && remaining <= 2) {
+          setCategoryLimitWarning(`Only ${remaining} POI${remaining !== 1 ? 's' : ''} remaining in this category.`);
+        } else {
+          setCategoryLimitWarning("");
+        }
+      }
+    }
   };
 
   return (
@@ -183,7 +216,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
             >
               {getCategoryNames().length === 0 ? (
                 <MenuItem disabled>
-                  No categories available. Admin needs to create categories first.
+                  No categories available. Create categories first.
                 </MenuItem>
               ) : (
                 getCategoryNames().map((category) => (
@@ -194,6 +227,18 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
               )}
             </Select>
           </FormControl>
+
+          {categoryLimitWarning && (
+            <Alert 
+              severity={categoryLimitWarning.includes('reached') ? 'error' : 'warning'} 
+              sx={{ 
+                borderRadius: 2,
+                fontSize: { xs: '0.75rem', md: '0.875rem' }
+              }}
+            >
+              {categoryLimitWarning}
+            </Alert>
+          )}
 
           {poi && (
             <Alert 

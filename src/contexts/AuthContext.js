@@ -13,10 +13,24 @@ export const useAuth = () => {
 
 // Plan limits
 export const PLAN_LIMITS = {
-  Free: { maxPOIs: 3 },
-  Basic: { maxPOIs: 10 },
-  Premium: { maxPOIs: 50 },
-  Unlimited: { maxPOIs: Infinity }
+  free: { 
+    maxCustomCategories: 10,
+    maxPOIsPerCategory: 10,
+    totalPOILimit: 100,
+    allowCustomIcons: false
+  },
+  premium: { 
+    maxCustomCategories: 20,
+    maxPOIsPerCategory: 20,
+    totalPOILimit: 400,
+    allowCustomIcons: false
+  },
+  unlimited: { 
+    maxCustomCategories: Infinity,
+    maxPOIsPerCategory: Infinity,
+    totalPOILimit: Infinity,
+    allowCustomIcons: true
+  }
 };
 
 export const AuthProvider = ({ children }) => {
@@ -80,16 +94,44 @@ export const AuthProvider = ({ children }) => {
 
   const canCreatePOI = (currentPOICount) => {
     if (!user) return false;
-    const limit = PLAN_LIMITS[user.plan]?.maxPOIs || 0;
+    const limit = PLAN_LIMITS[user.plan]?.totalPOILimit || 0;
     return currentPOICount < limit;
   };
 
   const getRemainingPOIs = (currentPOICount) => {
     if (!user) return 0;
-    const limit = PLAN_LIMITS[user.plan]?.maxPOIs || 0;
+    const limit = PLAN_LIMITS[user.plan]?.totalPOILimit || 0;
     return limit === Infinity ? Infinity : Math.max(0, limit - currentPOICount);
   };
 
+  const canCreateCategory = (currentCategoryCount) => {
+    if (!user) return false;
+    const limit = PLAN_LIMITS[user.plan]?.maxCustomCategories || 0;
+    return limit === Infinity || currentCategoryCount < limit;
+  };
+
+  const canAddPOItoCategory = (categoryId, currentPOICountInCategory) => {
+    if (!user) return false;
+    const limit = PLAN_LIMITS[user.plan]?.maxPOIsPerCategory || 0;
+    return limit === Infinity || currentPOICountInCategory < limit;
+  };
+
+  const canUseCustomIcons = () => {
+    if (!user) return false;
+    return PLAN_LIMITS[user.plan]?.allowCustomIcons || false;
+  };
+
+  const getRemainingCategories = (currentCategoryCount) => {
+    if (!user) return 0;
+    const limit = PLAN_LIMITS[user.plan]?.maxCustomCategories || 0;
+    return limit === Infinity ? Infinity : Math.max(0, limit - currentCategoryCount);
+  };
+
+  const getRemainingPOIsForCategory = (currentPOICountInCategory) => {
+    if (!user) return 0;
+    const limit = PLAN_LIMITS[user.plan]?.maxPOIsPerCategory || 0;
+    return limit === Infinity ? Infinity : Math.max(0, limit - currentPOICountInCategory);
+  };
   const value = {
     user,
     login,
@@ -99,6 +141,11 @@ export const AuthProvider = ({ children }) => {
     upgradePlan,
     canCreatePOI,
     getRemainingPOIs,
+    canCreateCategory,
+    canAddPOItoCategory,
+    canUseCustomIcons,
+    getRemainingCategories,
+    getRemainingPOIsForCategory,
     isAdmin: user?.role === 'admin',
     isAuthenticated: !!user
   };

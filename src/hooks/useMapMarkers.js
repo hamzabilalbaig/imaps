@@ -7,7 +7,7 @@ import { localDB } from "../utils/localStorage";
  * Custom hook for managing map markers with localStorage persistence and auth integration
  */
 export function useMapMarkers() {
-  const { user, canCreatePOI, getRemainingPOIs } = useAuth();
+  const { user, canCreatePOI, getRemainingPOIs, canAddPOItoCategory } = useAuth();
   
   // Initialize state with data from localStorage
   const [markers, setMarkers] = useState([]);
@@ -27,6 +27,8 @@ export function useMapMarkers() {
     if (!user) return { success: false, error: 'You must be logged in to create POIs' };
     
     const userMarkers = markers.filter(m => m.userId === user.id);
+    
+    // Check total POI limit
     if (!canCreatePOI(userMarkers.length)) {
       return { 
         success: false, 
@@ -34,6 +36,18 @@ export function useMapMarkers() {
         currentCount: userMarkers.length,
         remaining: getRemainingPOIs(userMarkers.length)
       };
+    }
+
+    // Check per-category limit if a category is selected
+    if (poiData.categoryId) {
+      const poisInCategory = localDB.getPOICountInCategory(poiData.categoryId);
+      if (!canAddPOItoCategory(poiData.categoryId, poisInCategory)) {
+        return {
+          success: false,
+          error: `You have reached the POI limit for this category. Upgrade your plan or choose a different category.`,
+          categoryLimit: true
+        };
+      }
     }
 
     const markerData = createMarker(latlng, poiData);
@@ -94,5 +108,7 @@ export function useMapMarkers() {
     remainingPOIs: user ? getRemainingPOIs(getUserMarkerCount()) : 0,
     // Add a reactive user marker count that updates with markers state
     userMarkerCount: user ? markers.filter(m => m.userId === user.id).length : 0,
+    // Add all markers for admin view
+    allMarkers: markers,
   };
 }

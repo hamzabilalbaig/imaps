@@ -20,11 +20,13 @@ import {
 } from "@mui/icons-material";
 import { CATEGORY_ICONS, getCustomIcons } from "../utils/mapUtils";
 import { localDB } from '../utils/localStorage';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Icon selector component for POI forms
  */
 function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
+  const { canUseCustomIcons } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const fileInputRef = useRef(null);
@@ -165,15 +167,22 @@ function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
           <Box sx={{ mb: 3 }}>
             <Button
               onClick={() => setShowUpload(!showUpload)}
+              disabled={!canUseCustomIcons()}
               variant="outlined"
               startIcon={<AddIcon />}
               fullWidth
-              sx={{ mb: 2 }}
+              sx={{ 
+                mb: 2,
+                '&:disabled': {
+                  backgroundColor: 'grey.100',
+                  color: 'grey.400'
+                }
+              }}
             >
-              Add Custom Icon
+              {canUseCustomIcons() ? 'Add Custom Icon' : 'Custom Icons (Upgrade Required)'}
             </Button>
 
-            {showUpload && (
+            {showUpload && canUseCustomIcons() && (
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Upload custom icon (PNG, SVG, JPG, JPEG - max 2MB)
@@ -202,6 +211,12 @@ function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
                   </IconButton>
                 </Box>
               </Paper>
+            )}
+
+            {!canUseCustomIcons() && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Custom icon upload is available with the Unlimited plan. Upgrade to unlock this feature.
+              </Alert>
             )}
           </Box>
 

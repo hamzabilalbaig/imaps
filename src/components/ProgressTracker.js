@@ -29,7 +29,7 @@ import {
 function ProgressTracker({ 
   user, 
   userMarkerCount, 
-  maxMarkers, 
+  maxMarkers,
   foundLocations = [], 
   onClose,
   onAddNote,
@@ -45,6 +45,11 @@ function ProgressTracker({
   isAdmin = false
 }) {
   const theme = useTheme();
+  const { getRemainingCategories, canUseCustomIcons } = useAuth();
+  
+  // Get current category count from localStorage
+  const currentCategoryCount = user ? (user.userCategories?.length || 0) : 0;
+  const remainingCategories = user ? getRemainingCategories(currentCategoryCount) : 0;
   
   const progress = maxMarkers === Infinity ? 100 : (userMarkerCount / maxMarkers) * 100;
   const remainingPOIs = maxMarkers === Infinity ? '∞' : Math.max(0, maxMarkers - userMarkerCount);
@@ -324,13 +329,41 @@ function ProgressTracker({
             color: theme.palette.text.secondary,
             letterSpacing: 1
           }}>
-            YOUR POI USAGE
+            YOUR USAGE STATS
           </Typography>
           
+          {/* Category Usage */}
           <Box sx={{ mb: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-                Created POIs
+                Custom Categories
+              </Typography>
+              <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
+                {currentCategoryCount} / {remainingCategories === Infinity ? '∞' : (currentCategoryCount + remainingCategories)}
+              </Typography>
+            </Box>
+            {remainingCategories !== Infinity && (
+              <LinearProgress 
+                variant="determinate" 
+                value={remainingCategories === 0 ? 100 : (currentCategoryCount / (currentCategoryCount + remainingCategories)) * 100} 
+                sx={{ 
+                  height: 6, 
+                  borderRadius: 3,
+                  backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                  '& .MuiLinearProgress-bar': {
+                    borderRadius: 3,
+                    backgroundColor: theme.palette.secondary.main
+                  }
+                }}
+              />
+            )}
+          </Box>
+
+          {/* POI Usage */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                Total POIs
               </Typography>
               <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
                 {userMarkerCount} / {maxMarkers === Infinity ? '∞' : maxMarkers}
@@ -341,11 +374,11 @@ function ProgressTracker({
                 variant="determinate" 
                 value={progress} 
                 sx={{ 
-                  height: 8, 
-                  borderRadius: 4,
+                  height: 6, 
+                  borderRadius: 3,
                   backgroundColor: alpha(theme.palette.primary.main, 0.1),
                   '& .MuiLinearProgress-bar': {
-                    borderRadius: 4,
+                    borderRadius: 3,
                     backgroundColor: progress >= 80 ? 
                       theme.palette.warning.main : 
                       theme.palette.primary.main
@@ -357,17 +390,34 @@ function ProgressTracker({
 
           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
             <Chip 
+              label={`${remainingCategories === Infinity ? '∞' : remainingCategories} categories left`}
+              size="small"
+              color={remainingCategories === 0 ? "error" : "secondary"}
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
               label={`${remainingPOIs} remaining`}
               size="small"
               color={remainingPOIs === 0 ? "error" : "primary"}
               sx={{ fontSize: '0.7rem' }}
             />
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
             <Chip 
               label={user?.plan?.toUpperCase() || 'FREE'}
               size="small"
-              color="secondary"
+              color="info"
               sx={{ fontSize: '0.7rem' }}
             />
+            {canUseCustomIcons() && (
+              <Chip 
+                label="CUSTOM ICONS"
+                size="small"
+                color="warning"
+                sx={{ fontSize: '0.7rem' }}
+              />
+            )}
           </Box>
 
           {user?.plan !== 'unlimited' && (

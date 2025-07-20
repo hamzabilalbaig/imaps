@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CATEGORY_COLORS } from '../utils/mapUtils';
 import { localDB } from '../utils/localStorage';
+import { useAuth } from './AuthContext';
 
 const CategoriesContext = createContext();
 
@@ -14,18 +15,31 @@ export const useCategories = () => {
 
 export const CategoriesProvider = ({ children }) => {
   const [categories, setCategories] = useState([]);
+  const { user, canCreateCategory } = useAuth();
 
   // Load categories from localStorage on mount
   useEffect(() => {
-    loadCategories();
-  }, []);
+    if (user) { // Only load categories if a user is logged in
+      loadCategories();
+    } else {
+      setCategories([]); // Clear categories if no user is logged in
+    }
+  }, [user]); // Add user to dependency array
 
   const loadCategories = () => {
-    const userCategories = localDB.getUserCategories();
+    // This method already calls localDB.getAvailableCategories(),
+    // which now correctly returns categories based on user role.
+    const userCategories = localDB.getAvailableCategories();
     setCategories(userCategories);
   };
 
   const addCategory = (categoryData) => {
+    // Check if user can create more categories
+    const currentCategoryCount = localDB.getUserCategoryCount();
+    if (!canCreateCategory(currentCategoryCount)) {
+      throw new Error('You have reached your category limit. Upgrade your plan to create more categories.');
+    }
+
     const result = localDB.addCategory(categoryData);
     if (result.success) {
       loadCategories(); // Reload categories from localStorage
@@ -72,6 +86,9 @@ export const CategoriesProvider = ({ children }) => {
     return colorMap;
   };
 
+  const getUserCategoryCount = () => {
+    return localDB.getUserCategoryCount();
+  };
   const value = {
     categories,
     addCategory,
@@ -81,7 +98,8 @@ export const CategoriesProvider = ({ children }) => {
     getCategoryByName,
     getCategoryNames,
     getCategoryColors,
-    loadCategories
+    loadCategories,
+    getUserCategoryCount
   };
 
   return (

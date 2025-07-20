@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { CATEGORY_ICONS, CATEGORY_COLORS } from '../utils/mapUtils';
 import { useCategories } from '../contexts/CategoriesContext';
+import { useAuth } from '../contexts/AuthContext';
 import IconSelector from './IconSelector';
 import ColorPicker from './ColorPicker';
 import { localDB } from '../utils/localStorage';
@@ -50,6 +51,7 @@ function CategoryManager() {
     updateCategory,
     deleteCategory
   } = useCategories();
+  const { user, canCreateCategory, getRemainingCategories } = useAuth();
   
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -77,6 +79,12 @@ function CategoryManager() {
   };
 
   const handleAddCategory = () => {
+    const currentCategoryCount = categories.length;
+    if (!canCreateCategory(currentCategoryCount)) {
+      alert('You have reached your category limit. Upgrade your plan to create more categories.');
+      return;
+    }
+
     setEditingCategory(null);
     setFormData({
       name: '',
@@ -259,12 +267,13 @@ function CategoryManager() {
           mb: 1
         }}>
           <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: '0.8rem' }}>
-            {categories.length} categor{categories.length !== 1 ? 'ies' : 'y'}
+            {categories.length} / {getRemainingCategories(categories.length) === Infinity ? '∞' : (categories.length + getRemainingCategories(categories.length))} categor{categories.length !== 1 ? 'ies' : 'y'}
           </Typography>
           
           <Box sx={{ display: 'flex', gap: 0.5 }}>
             <Button
               onClick={handleAddCategory}
+              disabled={!canCreateCategory(categories.length)}
               variant="contained"
               size="small"
               startIcon={<AddIcon sx={{ fontSize: '0.875rem' }} />}
@@ -274,7 +283,11 @@ function CategoryManager() {
                 fontSize: '0.65rem',
                 fontWeight: 500,
                 textTransform: 'uppercase',
-                letterSpacing: 0.5
+                letterSpacing: 0.5,
+                '&:disabled': {
+                  backgroundColor: 'grey.300',
+                  color: 'grey.500'
+                }
               }}
             >
               Add
@@ -283,7 +296,10 @@ function CategoryManager() {
         </Box>
 
         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.3 }}>
-          Manage categories that users select when creating locations.
+          {user?.role === 'admin' 
+            ? 'Manage global categories visible to all users.' 
+            : `Create your own categories. ${getRemainingCategories(categories.length) === Infinity ? 'Unlimited' : getRemainingCategories(categories.length)} remaining.`
+          }
         </Typography>
       </Box>
 
