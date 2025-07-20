@@ -54,7 +54,7 @@ function Sidebar({
   onStreetsToggle
 }) {
   const theme = useTheme();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { categories, getCategoryNames, getCategoryColors } = useCategories();
   const [expandedCategories, setExpandedCategories] = useState({});
   const [activeTab, setActiveTab] = useState(0); // 0 = Interactive Map, 1 = Categories
