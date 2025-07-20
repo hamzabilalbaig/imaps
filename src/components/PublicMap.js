@@ -143,7 +143,7 @@ function PublicMap() {
         user={user}
         isAdmin={isAdmin}
         userMarkerCount={userMarkerCount}
-        maxMarkers={user?.plan === 'free' ? 3 : user?.plan === 'basic' ? 10 : user?.plan === 'premium' ? 50 : Infinity}
+        maxMarkers={user?.plan === 'free' ? 10 * user?.userCategories?.length : user?.plan === 'premium' ? 50 * user?.userCategories?.length : Infinity}
         canCreateMore={canCreateMore}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}

@@ -28,7 +28,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 
 function ProgressTracker({ 
-  user, 
+  // user, 
   userMarkerCount, 
   maxMarkers,
   foundLocations = [], 
@@ -46,7 +46,7 @@ function ProgressTracker({
   isAdmin = false
 }) {
   const theme = useTheme();
-  const { getRemainingCategories, canUseCustomIcons } = useAuth();
+  const { getRemainingCategories, canUseCustomIcons, user } = useAuth();
   
   // Get current category count from localStorage
   const currentCategoryCount = user ? (user.userCategories?.length || 0) : 0;
