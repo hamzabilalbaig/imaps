@@ -112,8 +112,8 @@ function Sidebar({
     >
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-        {/* Tabs for admin users */}
-        {isAdmin ? (
+        {/* Tabs for all authenticated users */}
+        {user ? (
           <Box sx={{ mb: 2 }}>
             <Tabs 
               value={activeTab} 
@@ -151,7 +151,7 @@ function Sidebar({
         )}
         
         {/* Interactive Map Content */}
-        {(!isAdmin || activeTab === 0) && (
+        {(!user || activeTab === 0) && (
           <>
             {/* Search */}
             <TextField
@@ -258,7 +258,7 @@ function Sidebar({
         flexDirection: 'column'
       }}>
         {/* Interactive Map Content */}
-        {(!isAdmin || activeTab === 0) && (
+        {(!user || activeTab === 0) && (
           <>
             {/* Admin-Defined Categories */}
             <Box sx={{ px: 2, py: 1 }}>
@@ -268,12 +268,12 @@ function Sidebar({
                     No Categories Available
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 2 }}>
-                    {isAdmin 
+                    {user 
                       ? "Create categories in the Categories tab to organize your locations."
                       : "No location categories have been created yet. Please contact the administrator."
                     }
                   </Typography>
-                  {isAdmin && (
+                  {user && (
                     <Button
                       variant="outlined"
                       size="small"
@@ -426,7 +426,7 @@ function Sidebar({
         )}
 
         {/* Category Manager for Admins */}
-        {isAdmin && activeTab === 1 && (
+        {user && activeTab === 1 && (
           <CategoryManager />
         )}
       </Box>
