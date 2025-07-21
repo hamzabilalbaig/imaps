@@ -41,15 +41,13 @@ function LayerSelector({ position = "bottom-center", showInPublic = true, isAdmi
   };
 
   const handleLayerChange = (layerId) => {
-    // Force a small delay to ensure state updates properly
+    // Set the new layer
+    setActiveLayer(layerId);
+    
+    // Reload the page to ensure the new image loads properly
     setTimeout(() => {
-      setActiveLayer(layerId);
-      
-      // Force window resize event to trigger map refresh
-      setTimeout(() => {
-        window.dispatchEvent(new Event('resize'));
-      }, 100);
-    }, 50);
+      window.location.reload();
+    }, 100);
   };
 
   return (
