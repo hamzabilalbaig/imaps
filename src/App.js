@@ -39,7 +39,7 @@ function App() {
                 flex: 1, 
                 minHeight: 0,
                 overflow: 'auto',
-                position: 'relative'
+                position: 'relative',
               }}>
                 <Routes>
                   <Route path="/login" element={<Login />} />

@@ -13,11 +13,11 @@ function InteractiveMap() {
     <div className="w-full h-full flex flex-col">
       <MapControls markers={markers} onClearAll={clearAllMarkers} />
 
-      <div className="flex-1 relative">
+      <div className="flex-1 relative ">
         <MapContainer
           center={MAP_CONFIG.defaultCenter}
           zoom={MAP_CONFIG.defaultZoom}
-          className="w-full h-full z-10"
+          className="w-full h-full z-10 "
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

@@ -197,7 +197,7 @@ function InteractiveMapLayout({
       display: 'flex', 
       position: 'relative',
       overflow: 'hidden',
-      minHeight: 0
+      minHeight: 0,
     }}>
       {/* Desktop Left Sidebar */}
       {!isMobile && (
@@ -209,7 +209,7 @@ function InteractiveMapLayout({
           flexShrink: 0,
           overflow: 'hidden',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
         }}>
           {leftSidebarContent}
         </Box>
@@ -261,7 +261,8 @@ function InteractiveMapLayout({
         minWidth: 0,
         minHeight: 0,
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+
       }}>
         <MapWithLayers
           center={MAP_CONFIG.defaultCenter}
@@ -271,6 +272,7 @@ function InteractiveMapLayout({
           layerSelectorPosition="bottom-center"
           isAdmin={isAdmin}
           streetsVisible={streetsVisible}
+          className={JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'atlas' ? 'atlas-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'road' ? 'road-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'satellite' ? 'satellite-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'uv' ? 'uv-image' : 'default-image'}
         >
           {/* Map Click Handler */}
           {((canCreateMore && (isAdmin || isSuggestMode)) || isNoteMode) && (

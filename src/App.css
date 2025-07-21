@@ -42,3 +42,19 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.atlas-image {
+  background: #12a7d2 !important;
+}
+
+.road-image {
+  background: #1961ac !important;
+}
+
+.satellite-image {
+  background: #153d6a !important;
+}
+
+.uv-image {
+  background: #faf3cd !important;
+}
