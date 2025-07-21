@@ -267,7 +267,7 @@ function InteractiveMapLayout({
           center={MAP_CONFIG.defaultCenter}
           zoom={MAP_CONFIG.defaultZoom}
           showLayerSelector={true}
-          layerSelectorPosition="bottom-right"
+          layerSelectorPosition="bottom-center"
           isAdmin={isAdmin}
           streetsVisible={streetsVisible}
         >

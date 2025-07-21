@@ -1,11 +1,12 @@
 import React from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, ImageOverlay } from "react-leaflet";
 import { Box, Typography, Alert } from "@mui/material";
 import { useMapLayers } from "../hooks/useMapLayers";
 import LayerSelector from "./LayerSelector";
+import L from "leaflet";
 
 /**
- * Map component with dynamic layer support
+ * Map component with local image layers
  */
 function MapWithLayers({ 
   children, 
@@ -13,11 +14,17 @@ function MapWithLayers({
   zoom, 
   className = "w-full h-full",
   showLayerSelector = true,
-  layerSelectorPosition = "top-right",
+  layerSelectorPosition = "bottom-center",
   isAdmin = false,
   streetsVisible = true
 }) {
   const { activeLayer } = useMapLayers();
+
+  // Define bounds for the image overlay (adjust these coordinates as needed)
+  const imageBounds = [
+    [24.8, 67.0], // Southwest corner
+    [25.0, 67.3]  // Northeast corner
+  ];
 
   if (!activeLayer) {
     return (
@@ -36,7 +43,7 @@ function MapWithLayers({
             No map layer available
           </Typography>
           <Typography variant="body2">
-            Please configure map layers in admin panel
+            Please select a map layer
           </Typography>
         </Alert>
       </Box>
@@ -48,30 +55,24 @@ function MapWithLayers({
       position: 'relative', 
       width: '100%', 
       height: '100%',
-      overflow: 'hidden' // Prevent map overflow
+      overflow: 'hidden'
     }}>
       <MapContainer
         center={center}
         zoom={zoom}
         className={className}
-        key={activeLayer.id} // Force re-render when layer changes
+        key={activeLayer.id}
+        crs={L.CRS.Simple} // Use simple CRS for local images
+        minZoom={10}
+        maxZoom={15}
+        zoomControl={true}
+        attributionControl={false}
       >
-        <TileLayer
-          url={activeLayer.url}
-          attribution={activeLayer.attribution}
-          maxZoom={activeLayer.maxZoom}
+        <ImageOverlay
+          url={activeLayer.imageUrl}
+          bounds={imageBounds}
+          opacity={1}
         />
-        
-        {/* Street Labels Overlay - Comprehensive street names and labels */}
-        {streetsVisible && (
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            zIndex={1000}
-            pane="overlayPane"
-            opacity={0.8}
-          />
-        )}
         
         {children}
       </MapContainer>

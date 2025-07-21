@@ -58,11 +58,9 @@ function LayerManager() {
   });
 
   const handleAddLayer = () => {
-    setEditingLayer(null);
-    setFormData({ name: "", url: "", attribution: "", maxZoom: 18 });
-    setShowAddForm(true);
-  };
-
+    // Disabled for local map system
+    alert('Custom layers are not available with local map images. Use the built-in Atlas, Road, Satellite, and UV layers.');
+    return;
   const handleEditLayer = (layer) => {
     setEditingLayer(layer);
     setFormData({
@@ -148,15 +146,20 @@ function LayerManager() {
           <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
             <Button
               onClick={handleAddLayer}
+              disabled={true}
               variant="contained"
               size="small"
               startIcon={<AddIcon />}
               sx={{ 
                 flex: { xs: 1, sm: 'none' },
-                fontSize: { xs: '0.75rem', md: '0.875rem' }
+                fontSize: { xs: '0.75rem', md: '0.875rem' },
+                '&:disabled': {
+                  backgroundColor: 'grey.300',
+                  color: 'grey.500'
+                }
               }}
             >
-              Add Layer
+              Add Layer (Disabled)
             </Button>
             <Button
               onClick={handleResetLayers}

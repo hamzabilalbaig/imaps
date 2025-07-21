@@ -1,66 +1,47 @@
 import { useState, useEffect } from "react";
-import { localDB } from "../utils/localStorage";
 
 const LAYERS_STORAGE_KEY = "map-layers";
 const LAYERS_VERSION_KEY = "map-layers-version";
-const CURRENT_VERSION = "2.0"; // Updated version to force reset
+const CURRENT_VERSION = "3.0"; // Updated version for local maps
 
-// Default built-in layers
+// Custom local layers using images from public/maps
 const DEFAULT_LAYERS = [
   {
-    id: "base",
-    name: "Base Map (No Labels)",
-    type: "builtin",
-    url: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    id: "atlas",
+    name: "Atlas",
+    type: "local",
+    imageUrl: "/maps/atlas.png",
     isActive: true,
     isDefault: true,
-    maxZoom: 19,
   },
   {
-    id: "osm",
-    name: "OpenStreetMap (No Labels)",
-    type: "builtin",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    id: "road",
+    name: "Road",
+    type: "local", 
+    imageUrl: "/maps/road.png",
     isActive: false,
-    isDefault: false,
-    maxZoom: 19,
+    isDefault: true,
   },
   {
     id: "satellite",
-    name: "Satellite View",
-    type: "builtin",
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UER, and the GIS User Community',
+    name: "Satellite",
+    type: "local",
+    imageUrl: "/maps/satallite.png",
     isActive: false,
-    isDefault: false,
-    maxZoom: 18,
+    isDefault: true,
   },
   {
-    id: "topo",
-    name: "Topographic (No Labels)",
-    type: "builtin",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    id: "uv",
+    name: "UV",
+    type: "local",
+    imageUrl: "/maps/UV.png",
     isActive: false,
-    isDefault: false,
-    maxZoom: 19,
-  },
-  {
-    id: "dark",
-    name: "Dark Theme (No Labels)",
-    type: "builtin",
-    url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    isActive: false,
-    isDefault: false,
-    maxZoom: 19,
+    isDefault: true,
   }
 ];
 
 /**
- * Custom hook for managing map layers with localStorage persistence
+ * Custom hook for managing local map layers with localStorage persistence
  */
 export function useMapLayers() {
   const [layers, setLayers] = useState(() => {
@@ -99,47 +80,6 @@ export function useMapLayers() {
     }
   }, [layers]);
 
-  const addLayer = (layerData) => {
-    const newLayer = {
-      id: `custom_${Date.now()}`,
-      name: layerData.name,
-      type: "custom",
-      url: layerData.url,
-      attribution: layerData.attribution || "",
-      isActive: false,
-      isDefault: false,
-      maxZoom: layerData.maxZoom || 18,
-      createdAt: new Date().toISOString(),
-    };
-
-    setLayers(prev => [...prev, newLayer]);
-    return newLayer;
-  };
-
-  const updateLayer = (layerId, updates) => {
-    setLayers(prev =>
-      prev.map(layer =>
-        layer.id === layerId
-          ? { ...layer, ...updates, updatedAt: new Date().toISOString() }
-          : layer
-      )
-    );
-  };
-
-  const removeLayer = (layerId) => {
-    setLayers(prev => {
-      const filtered = prev.filter(layer => layer.id !== layerId);
-      
-      // If we removed the active layer, activate the first remaining layer
-      const hasActive = filtered.some(layer => layer.isActive);
-      if (!hasActive && filtered.length > 0) {
-        filtered[0].isActive = true;
-      }
-      
-      return filtered;
-    });
-  };
-
   const setActiveLayer = (layerId) => {
     setLayers(prev =>
       prev.map(layer => ({
@@ -147,7 +87,6 @@ export function useMapLayers() {
         isActive: layer.id === layerId
       }))
     );
-    window.location.reload(); // Force reload to apply new active layer
   };
 
   const resetToDefaults = () => {
@@ -159,11 +98,11 @@ export function useMapLayers() {
   };
 
   const getBuiltinLayers = () => {
-    return layers.filter(layer => layer.type === "builtin");
+    return layers.filter(layer => layer.type === "local");
   };
 
   const getCustomLayers = () => {
-    return layers.filter(layer => layer.type === "custom");
+    return []; // No custom layers for local maps
   };
 
   return {
@@ -171,9 +110,6 @@ export function useMapLayers() {
     activeLayer: getActiveLayer(),
     builtinLayers: getBuiltinLayers(),
     customLayers: getCustomLayers(),
-    addLayer,
-    updateLayer,
-    removeLayer,
     setActiveLayer,
     resetToDefaults,
   };
