@@ -41,7 +41,15 @@ function LayerSelector({ position = "bottom-center", showInPublic = true, isAdmi
   };
 
   const handleLayerChange = (layerId) => {
-    setActiveLayer(layerId);
+    // Force a small delay to ensure state updates properly
+    setTimeout(() => {
+      setActiveLayer(layerId);
+      
+      // Force window resize event to trigger map refresh
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+    }, 50);
   };
 
   return (

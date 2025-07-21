@@ -32,6 +32,10 @@ L.Icon.Default.mergeOptions({
 export const MAP_CONFIG = {
   defaultCenter: [24.9, 67.15], // Centered on the image bounds
   defaultZoom: 12,
+  imageBounds: [
+    [24.8, 67.0], // Southwest corner
+    [25.0, 67.3]  // Northeast corner
+  ],
 };
 
 export const createMarker = (latlng, poiData = {}) => ({
