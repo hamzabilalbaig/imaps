@@ -61,6 +61,7 @@ function LayerManager() {
     // Disabled for local map system
     alert('Custom layers are not available with local map images. Use the built-in Atlas, Road, Satellite, and UV layers.');
     return;
+  }
   const handleEditLayer = (layer) => {
     setEditingLayer(layer);
     setFormData({
