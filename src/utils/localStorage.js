@@ -585,11 +585,25 @@ class LocalStorageDB {
   }
 
   // Plan Management
-  updateUserPlan(plan) {
+  async updateUserPlan(plan) {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return { success: false, message: 'No user logged in' };
 
-    return this.updateUser(currentUser.email, { plan });
+    try {
+      // Call changeUserPlan API
+      const updatedUser = await import('../api/hooks/useAPI').then(mod => mod.changeUserPlan(currentUser.id, plan));
+      // Update local storage
+      const users = await this.getUsers();
+      if (users[currentUser.email]) {
+        users[currentUser.email] = { ...users[currentUser.email], ...updatedUser };
+        localStorage.setItem('imaps_users', JSON.stringify(users));
+        localStorage.setItem('imaps_current_user', JSON.stringify(users[currentUser.email]));
+        return { success: true, user: users[currentUser.email] };
+      }
+      return { success: false, message: 'User not found' };
+    } catch (error) {
+      return { success: false, message: error?.message || 'Failed to update plan' };
+    }
   }
 
   // Utility Methods
