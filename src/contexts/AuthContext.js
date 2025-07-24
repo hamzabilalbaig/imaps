@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password, expectedRole = null) => {
-    const result = localDB.loginUser(email, password);
+    const result = await localDB.loginUser(email, password);
     if (result.success) {
       // If expectedRole is specified, validate it matches the user's role
       if (expectedRole && result.user.role !== expectedRole) {
@@ -64,13 +64,16 @@ export const AuthProvider = ({ children }) => {
     return { success: false, error: result.message };
   };
 
-  const register = async (email, password, name, role = 'user') => {
-    const result = localDB.registerUser(email, password, name);
+  const register = async (email, password, name, role = 'user', navigate) => {
+    const result = await localDB.registerUser(email, password, name);
     if (result.success) {
       // Auto-login after registration
-      const loginResult = localDB.loginUser(email, password);
+      const loginResult = await localDB.loginUser(email, password);
       if (loginResult.success) {
         setUser(loginResult.user);
+        if (navigate) {
+          navigate('/maps', { replace: true });
+        }
       }
     }
     return result;

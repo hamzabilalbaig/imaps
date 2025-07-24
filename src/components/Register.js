@@ -79,12 +79,11 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const result = await register(formData.email, formData.password, formData.name);
-      if (result.success) {
-        navigate(from, { replace: true });
-      } else {
+      const result = await register(formData.email, formData.password, formData.name, 'user', navigate);
+      if (!result.success) {
         setError(result.message || 'Registration failed. Please try again.');
       }
+      // Navigation now handled inside register
     } catch (err) {
       console.error('Registration error:', err);
       setError('Registration failed. Please try again.');

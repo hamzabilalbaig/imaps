@@ -3,6 +3,8 @@
  * Handles user registration, authentication, POIs, notes, and categories
  */
 
+import { getAllUsers } from "../api/hooks/useAPI";
+
 class LocalStorageDB {
   constructor() {
     this.initializeDB();
@@ -23,34 +25,44 @@ class LocalStorageDB {
   }
 
   // User Management
-  registerUser(email, password, name = '') {
-    const users = this.getUsers();
-    
-    if (users[email]) {
-      return { success: false, message: 'User already exists' };
+  async registerUser(email, password, name = '') {
+    // Use createUser API for registration
+    try {
+      // Check if user already exists (API call)
+      const users = await this.getUsers();
+      if (users[email]) {
+        return { success: false, message: 'User already exists' };
+      }
+
+      // Prepare user data for API
+      const userData = {
+        email,
+        password,
+        name,
+        plan: 'free',
+        role: 'user',
+      };
+
+      // Call createUser API
+      const createdUser = await import('../api/hooks/useAPI').then(mod => mod.createUser(userData));
+
+      // Update local storage after successful registration
+      const updatedUsers = { ...users, [email]: {
+        ...createdUser,
+        pois: [],
+        notes: [],
+        customIcons: [],
+        userCategories: [],
+      }};
+      localStorage.setItem('imaps_users', JSON.stringify(updatedUsers));
+
+      return { success: true, message: 'User registered successfully', user: updatedUsers[email] };
+    } catch (error) {
+      return { success: false, message: error?.message || 'Registration failed' };
     }
-
-    const userData = {
-      id: Date.now().toString(),
-      email,
-      password, // In production, hash this
-      name,
-      plan: 'free',
-      role: 'user',
-      createdAt: new Date().toISOString(),
-      pois: [],
-      notes: [],
-      customIcons: [],
-      userCategories: [] // This array will store categories specific to this user
-    };
-
-    users[email] = userData;
-    localStorage.setItem('imaps_users', JSON.stringify(users));
-    
-    return { success: true, message: 'User registered successfully', user: userData };
   }
 
-  loginUser(email, password) {
+  async loginUser(email, password) {
     // Admin login
     if (email === 'admin@admin.com' && password === 'admin') {
       const adminUser = {
@@ -68,15 +80,17 @@ class LocalStorageDB {
     }
 
     // Regular user login
-    const users = this.getUsers();
+    const users = await this.getUsers();
     const user = users[email];
+
+    console.log('user password:', user ? user.password : 'not found', 'input password:', password);
 
     if (!user || user.password !== password) {
       return { success: false, message: 'Invalid email or password' };
+    } else {
+      localStorage.setItem('imaps_current_user', JSON.stringify(user));
+      return { success: true, user, isAdmin: false };
     }
-
-    localStorage.setItem('imaps_current_user', JSON.stringify(user));
-    return { success: true, user, isAdmin: false };
   }
 
   getCurrentUser() {
@@ -88,9 +102,15 @@ class LocalStorageDB {
     localStorage.removeItem('imaps_current_user');
   }
 
-  getUsers() {
-    return JSON.parse(localStorage.getItem('imaps_users')) || {};
-  }
+  async getUsers() {
+  const result = await getAllUsers();
+  const data = result.reduce((acc, user) => {
+    acc[user.email] = { ...user };
+    return acc;
+  }, {});
+  console.log('Fetched users:', data);
+  return data;
+}
 
   updateUser(email, updates) {
     const users = this.getUsers();

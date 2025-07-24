@@ -1,49 +1,76 @@
-import { useCallback } from 'react';
-import api from '../api'; // Adjust the import path if needed
+import apiClient from '../config';
+// Create a new user
+export async function createUser(userData) {
+    const { data } = await apiClient.post('/users', userData);
+    return data;
+}
+
+// Change user plan
+export async function changeUserPlan(id, plan) {
+    const { data } = await apiClient.put(`/users/${id}/plan`, { plan });
+    return data;
+}
+
+// Add POI to user
+export async function addUserPOI(id, poi) {
+    const { data } = await apiClient.post(`/users/${id}/pois`, { poi });
+    return data;
+}
+
+// Add note to user
+export async function addUserNote(id, note) {
+    const { data } = await apiClient.post(`/users/${id}/notes`, { note });
+    return data;
+}
+
+// Authenticate user
+export async function getAllUsers() {
+    const { data } = await apiClient.get('/users/');
+    return data;
+}
+
+// Register user
+export async function registerUser(userData) {
+    const { data } = await apiClient.post('/users/register', userData);
+    return data;
+}
+
+// Create POI
+export async function createPoi(poiData) {
+    const { data } = await apiClient.post('/admin-pois', poiData);
+    return data;
+}
+
+// Get POIs
+export async function getPois() {
+    const { data } = await apiClient.get('/admin-pois');
+    return data;
+}
+
+// Get admin categories
+export async function getAdminCategories() {
+    const { data } = await apiClient.get('/admin-categories');
+    return data;
+}
+
+// Create admin category
+export async function createAdminCategory(categoryData) {
+    const { data } = await apiClient.post('/admin-categories', categoryData);
+    return data;
+}
+
 
 export default function useAPI() {
-    // Authenticate user
-    const authenticateUser = useCallback(async (credentials) => {
-        const { data } = await api.post('/users/authenticate', credentials);
-        return data;
-    }, []);
-
-    // Register user
-    const registerUser = useCallback(async (userData) => {
-        const { data } = await api.post('/users/register', userData);
-        return data;
-    }, []);
-
-    // Create POI
-    const createPoi = useCallback(async (poiData) => {
-        const { data } = await api.post('/admin-pois', poiData);
-        return data;
-    }, []);
-
-    // Get POIs
-    const getPois = useCallback(async () => {
-        const { data } = await api.get('/admin-pois');
-        return data;
-    }, []);
-
-    // Get admin categories
-    const getAdminCategories = useCallback(async () => {
-        const { data } = await api.get('/admin-categories');
-        return data;
-    }, []);
-
-    // Create admin category
-    const createAdminCategory = useCallback(async (categoryData) => {
-        const { data } = await api.post('/admin-categories', categoryData);
-        return data;
-    }, []);
-
-    return {
-        authenticateUser,
-        registerUser,
-        createPoi,
-        getPois,
-        getAdminCategories,
-        createAdminCategory,
-    };
+  return {
+    getAllUsers,
+    registerUser,
+    createPoi,
+    getPois,
+    getAdminCategories,
+    createAdminCategory,
+    createUser,
+    changeUserPlan,
+    addUserPOI,
+    addUserNote
+  };
 }

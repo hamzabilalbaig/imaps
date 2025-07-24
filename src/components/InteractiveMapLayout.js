@@ -12,7 +12,9 @@ import {
 import { 
   Menu as MenuIcon,
   Close as CloseIcon,
-  Notes as NotesIcon
+  Notes as NotesIcon,
+  ChevronRight,
+  ChevronLeft
 } from '@mui/icons-material';
 import MapWithLayers from './MapWithLayers';
 import MapClickHandler from './MapClickHandler';
@@ -201,18 +203,49 @@ function InteractiveMapLayout({
     }}>
       {/* Desktop Left Sidebar */}
       {!isMobile && (
+        <>
         <Box sx={{ 
           width: { lg: 320, xl: 350 }, 
           minWidth: 280,
           maxWidth: 400,
           height: '100%', 
           flexShrink: 0,
-          overflow: 'hidden',
+          overflow: 'visible',
           display: 'flex',
           flexDirection: 'column',
+          position: 'relative',
+          display: leftSidebarOpen ? 'block' : 'none'
+          
         }}>
+          <IconButton
+            onClick={() => setLeftSidebarOpen(false)}
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: -20,
+              zIndex: 1000,
+              display: leftSidebarOpen ? 'block' : 'none',
+              backgroundColor: 'background.paper',
+            }}
+          >
+            <ChevronLeft />
+          </IconButton>
           {leftSidebarContent}
         </Box>
+        <IconButton
+          onClick={() => setLeftSidebarOpen(true)}
+          sx={{ 
+            position: 'absolute',
+            top: 100,
+            left: -15,
+            zIndex: 1000,
+            display: leftSidebarOpen ? 'none' : 'block',
+            backgroundColor: 'background.paper',
+          }}
+        >
+          <ChevronRight />
+        </IconButton>
+        </>
       )}
 
       {/* Mobile Left Drawer */}

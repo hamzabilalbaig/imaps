@@ -110,6 +110,7 @@ function Sidebar({
         minHeight: 0
       }}
     >
+      
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
         {/* Tabs for all authenticated users */}
