@@ -130,36 +130,35 @@ class LocalStorageDB {
   }
 
   // Points of Interest Management
-  addPOI(poi) {
+  async addPOI(poi) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return { success: false, message: 'No user logged in' };
-
-    const poiData = {
-      id: Date.now().toString(),
-      ...poi,
-      createdAt: new Date().toISOString(),
-      userId: currentUser.id,
-      userEmail: currentUser.email,
-      userName: currentUser.name,
-      categoryId: poi.categoryId || null // Store the category ID for per-category limits
-    };
-
-    const users = this.getUsers();
-    if (currentUser.role === 'admin') {
-      // Admin POIs are stored separately and visible to all
-      const adminPOIs = this.getAdminPOIs();
-      adminPOIs.push(poiData);
-      localStorage.setItem('imaps_admin_pois', JSON.stringify(adminPOIs));
-    } else if (users[currentUser.email]) {
-      users[currentUser.email].pois.push(poiData);
-      localStorage.setItem('imaps_users', JSON.stringify(users));
-      
-      // Update current user
-      const updatedUser = users[currentUser.email];
-      localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+    if (!currentUser) {
+      return { success: false, message: 'No user logged in' };
     }
-    
-    return { success: true, poi: poiData };
+
+    try {
+      // Use addUserPOI API for user POIs
+      const { addUserPOI } = await import('../api/hooks/useAPI');
+      // Call API to add POI and get updated user from backend
+      const updatedUser = await addUserPOI(currentUser.id, poi);
+      if (!updatedUser) {
+        return { success: false, message: 'Failed to add POI' };
+      }
+      // Update local storage with latest user data
+      const users = await this.getUsers();
+      if (users[currentUser.email]) {
+        users[currentUser.email] = { ...users[currentUser.email], ...updatedUser };
+        localStorage.setItem('imaps_users', JSON.stringify(users));
+        localStorage.setItem('imaps_current_user', JSON.stringify(users[currentUser.email]));
+        // Return the last added POI
+        const lastPOI = updatedUser.pois[updatedUser.pois.length - 1];
+        return { success: true, poi: lastPOI };
+      }
+      return { success: false, message: 'User not found' };
+    } catch (error) {
+      console.error('Error adding POI:', error);
+      return { success: false, message: error.message || 'Failed to add POI' };
+    }
   }
 
   getUserPOIs() {
