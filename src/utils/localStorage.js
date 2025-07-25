@@ -3,7 +3,7 @@
  * Handles user registration, authentication, POIs, notes, and categories
  */
 
-import { getAllUsers } from "../api/hooks/useAPI";
+import { addUserCategory, getAllUsers } from "../api/hooks/useAPI";
 
 class LocalStorageDB {
   constructor() {
@@ -362,40 +362,61 @@ class LocalStorageDB {
   }
 
   // Categories Management (Admin Only)
-  addCategory(category) {
+  async addCategory(category) {
     const currentUser = this.getCurrentUser();
+    
     if (!currentUser) {
       return { success: false, message: 'No user logged in' };
     }
 
-    const categoryData = {
-      id: `category-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      ...category,
-      createdAt: new Date().toISOString(),
-      userId: currentUser.id // Associate category with user/admin
-    };
-
     if (currentUser.role === 'admin') {
       // Admin categories are stored globally
+      const categoryData = {
+        id: `category-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        ...category,
+        createdAt: new Date().toISOString(),
+        userId: currentUser.id
+      };
       const adminCategories = this.getAdminCategories();
       adminCategories.push(categoryData);
       localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
+      return { success: true, category: categoryData };
     } else {
-      // For regular users, add to their specific userCategories array
-      const users = this.getUsers();
-      if (users[currentUser.email]) {
-        users[currentUser.email].userCategories.push(categoryData); // Add to user's categories
-        localStorage.setItem('imaps_users', JSON.stringify(users));
-
-        // IMPORTANT: Update current user in localStorage to reflect changes
-        const updatedUser = users[currentUser.email];
+      // For regular users, use addUserCategory API
+      // try {
+      //   // Add category via API and get updated user from backend
+      //   const updatedUser = await addUserCategory(currentUser.id, category);
+      //   if (!updatedUser) {
+      //     return { success: false, message: 'Failed to add category' };
+      //   }
+      //   // Update local storage with latest user data
+      //   const users = await this.getUsers();
+      //   if (users[currentUser.email]) {
+      //     users[currentUser.email] = { ...users[currentUser.email], ...updatedUser };
+      //     localStorage.setItem('imaps_users', JSON.stringify(users));
+      //     localStorage.setItem('imaps_current_user', JSON.stringify(users[currentUser.email]));
+      //     // Return the last added category
+      //     // const lastCategory = users[currentUser.email].userCategories[users[currentUser.email].userCategories.length - 1];
+      //     const lastCategory = updatedUser.userCategories[updatedUser.userCategories.length - 1];
+      //     localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+      //     return { success: true, category: lastCategory };
+      //   } else {
+      //     return { success: false, message: 'User not found' };
+      //   }
+      // } catch (error) {
+      //   console.error('Error adding category:', error);
+      //   return { success: false, message: error?.message || 'Failed to add category' };
+      // }
+      try {
+        const updatedUser = await addUserCategory(currentUser.id, category);
+        console.log('Updated user after adding category:', updatedUser);
         localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
-      } else {
-        return { success: false, message: 'User not found' };
+        return { success: true, category: updatedUser?.usercategories[updatedUser?.usercategories?.length - 1] };
+      } catch (error) {
+        console.error('Error adding category:', error);
+        return { success: false, message: error?.message || 'Failed to add category' };
       }
     }
-    
-    return { success: true, category: categoryData };
   }
 
   // Get categories available to the current user (admin-created or user-specific)
@@ -407,7 +428,7 @@ class LocalStorageDB {
       return this.getAdminCategories(); // Admin sees global categories
     } else {
       // Regular user sees their own categories
-      return currentUser.userCategories || [];
+      return currentUser.usercategories || [];
     }
   }
 
@@ -507,7 +528,7 @@ class LocalStorageDB {
     if (!currentUser) return 0;
 
     const userPOIs = this.getUserPOIs();
-    return userPOIs.filter(poi => poi.categoryId === categoryId).length;
+    return userPOIs.filter(poi => poi.categoryId === categoryId)?.length;
   };
 
   // Get count of user's custom categories
@@ -516,9 +537,9 @@ class LocalStorageDB {
     if (!currentUser) return 0;
 
     if (currentUser.role === 'admin') {
-      return this.getAdminCategories().length;
+      return this.getAdminCategories()?.length;
     } else {
-      return (currentUser.userCategories || []).length;
+      return (currentUser?.usercategories || [])?.length;
     }
   };
 

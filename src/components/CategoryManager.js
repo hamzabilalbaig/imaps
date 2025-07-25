@@ -79,7 +79,7 @@ function CategoryManager() {
   };
 
   const handleAddCategory = () => {
-    const currentCategoryCount = categories.length;
+    const currentCategoryCount = categories?.length;
     if (!canCreateCategory(currentCategoryCount)) {
       alert('You have reached your category limit. Upgrade your plan to create more categories.');
       return;
@@ -118,18 +118,17 @@ function CategoryManager() {
     }
   };
 
-  const handleSaveCategory = (e) => {
-    e.preventDefault();
+  const handleSaveCategory = async () => {
     
-    if (!formData.name.trim()) {
+    if (!formData?.name?.trim()) {
       alert('Please enter a category name');
       return;
     }
 
     // Check for duplicate names (excluding current edit)
-    const isDuplicate = categories.some(cat => 
-      cat.name.toLowerCase() === formData.name.trim().toLowerCase() && 
-      cat.id !== editingCategory?.id
+    const isDuplicate = categories?.some(cat => 
+      cat?.name?.toLowerCase() === formData?.name?.trim()?.toLowerCase() && 
+      cat?.id !== editingCategory?.id
     );
 
     if (isDuplicate) {
@@ -140,28 +139,29 @@ function CategoryManager() {
     try {
       if (editingCategory) {
         // Update existing category
-        updateCategory(editingCategory.id, {
-          name: formData.name.trim(),
-          selectedIcon: formData.selectedIcon,
-          customIcon: formData.customIcon,
-          color: formData.color,
-          description: formData.description.trim()
+        updateCategory(editingCategory?.id, {
+          name: formData?.name?.trim(),
+          selectedIcon: formData?.selectedIcon,
+          customIcon: formData?.customIcon,
+          color: formData?.color,
+          description: formData?.description?.trim()
         });
       } else {
         // Add new category
-        addCategory({
-          name: formData.name.trim(),
-          selectedIcon: formData.selectedIcon,
-          customIcon: formData.customIcon,
-          color: formData.color,
-          description: formData.description.trim()
+        await addCategory({
+          name: formData?.name?.trim(),
+          selectedIcon: formData?.selectedIcon,
+          customIcon: formData?.customIcon,
+          color: formData?.color,
+          description: formData?.description?.trim()
         });
       }
 
       setShowForm(false);
       setEditingCategory(null);
     } catch (error) {
-      alert('Error saving category: ' + error.message);
+      console.error('Error saving category:', error);
+      alert('Error saving category: ' + error?.message);
     }
   };
 
@@ -480,7 +480,10 @@ function CategoryManager() {
         fullWidth
         PaperProps={{
           component: 'form',
-          onSubmit: handleSaveCategory
+          onSubmit: async (e) => {
+            e.preventDefault();
+            await handleSaveCategory();
+          }
         }}
       >
         <DialogTitle sx={{ 

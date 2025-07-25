@@ -59,6 +59,11 @@ export async function createAdminCategory(categoryData) {
     return data;
 }
 
+export async function addUserCategory(id, category) {
+    const { data } = await apiClient.post(`/users/${id}/categories`, { category });
+    return data;
+}
+
 
 export default function useAPI() {
   return {

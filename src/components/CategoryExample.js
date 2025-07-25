@@ -29,7 +29,7 @@ const CategoryExample = () => {
       return;
     }
 
-    const result = localDB.addCategory(newCategory);
+    const result = await localDB.addCategory(newCategory);
     
     if (result.success) {
       setMessage('Category created successfully!');
