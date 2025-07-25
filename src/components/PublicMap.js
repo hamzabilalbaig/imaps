@@ -80,7 +80,7 @@ function PublicMap() {
     setShowForm(true);
   };
 
-  const handleSavePOI = (formData) => {
+  const handleSavePOI = async (formData) => {
     if (editingPOI) {
       updateMarker(editingPOI.id, formData);
       setSnackbar({
@@ -89,13 +89,15 @@ function PublicMap() {
         severity: 'success'
       });
     } else if (pendingLocation) {
-      const result = addMarker(pendingLocation, formData);
-      if (result.success) {
+      const result = await addMarker(pendingLocation, formData);
+      console.log('Add POI result:', result);
+      if (result?.success) {
         setSnackbar({
           open: true,
           message: 'POI created successfully!',
           severity: 'success'
         });
+        window?.location.reload(); // Reload to get latest user data
       } else {
         setSnackbar({
           open: true,
@@ -143,7 +145,7 @@ function PublicMap() {
         user={user}
         isAdmin={isAdmin}
         userMarkerCount={userMarkerCount}
-        maxMarkers={user?.plan === 'free' ? 10 * user?.userCategories?.length : user?.plan === 'premium' ? 50 * user?.userCategories?.length : Infinity}
+        maxMarkers={user?.plan === 'free' ? 10 * user?.usercategories?.length : user?.plan === 'premium' ? 50 * user?.usercategories?.length : Infinity}
         canCreateMore={canCreateMore}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}

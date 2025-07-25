@@ -463,10 +463,10 @@ class LocalStorageDB {
       // For regular users, update their specific userCategories array
       const users = this.getUsers();
       if (users[currentUser.email]) {
-        const categoryIndex = users[currentUser.email].userCategories.findIndex(cat => cat.id === categoryId);
+        const categoryIndex = users[currentUser.email].usercategories.findIndex(cat => cat.id === categoryId);
         if (categoryIndex !== -1) {
-          users[currentUser.email].userCategories[categoryIndex] = {
-            ...users[currentUser.email].userCategories[categoryIndex],
+          users[currentUser.email].usercategories[categoryIndex] = {
+            ...users[currentUser.email].usercategories[categoryIndex],
             ...updates,
             updatedAt: new Date().toISOString()
           };
@@ -475,7 +475,7 @@ class LocalStorageDB {
           // IMPORTANT: Update current user in localStorage
           const updatedUser = users[currentUser.email];
           localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
-          return { success: true, category: users[currentUser.email].userCategories[categoryIndex] };
+          return { success: true, category: users[currentUser.email].usercategories[categoryIndex] };
         }
       } else {
         return { success: false, message: 'User not found' };
@@ -502,10 +502,10 @@ class LocalStorageDB {
       // For regular users, delete from their specific userCategories array
       const users = this.getUsers();
       if (users[currentUser.email]) {
-        const originalLength = users[currentUser.email].userCategories.length;
-        users[currentUser.email].userCategories = users[currentUser.email].userCategories.filter(cat => cat.id !== categoryId);
+        const originalLength = users[currentUser.email].usercategories.length;
+        users[currentUser.email].usercategories = users[currentUser.email].usercategories.filter(cat => cat.id !== categoryId);
 
-        if (users[currentUser.email].userCategories.length !== originalLength) {
+        if (users[currentUser.email].usercategories.length !== originalLength) {
           localStorage.setItem('imaps_users', JSON.stringify(users));
 
           // IMPORTANT: Update current user in localStorage

@@ -107,7 +107,8 @@ export function useMapMarkers() {
     canCreateMore: user ? canCreatePOI(getUserMarkerCount()) : false,
     remainingPOIs: user ? getRemainingPOIs(getUserMarkerCount()) : 0,
     // Add a reactive user marker count that updates with markers state
-    userMarkerCount: user ? markers.filter(m => m.userId === user.id).length : 0,
+    // userMarkerCount: user ? markers.filter(m => m.userId === user.id).length : 0,
+    userMarkerCount: JSON.parse(localStorage.getItem('imaps_current_user'))?.pois?.length || 0,
     // Add all markers for admin view
     allMarkers: markers,
   };
