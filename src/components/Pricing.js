@@ -29,6 +29,7 @@ import {
   Palette as PaletteIcon
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { handleCheckout } from '../stripe/handleCheckout';
 
 const PLANS = [
   {
@@ -96,15 +97,23 @@ const PLANS = [
 
 const Pricing = () => {
   const { user, upgradePlan } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, plan: null });
 
   const handleUpgrade = (planId) => {
     setConfirmDialog({ open: true, plan: PLANS.find(p => p.id === planId) });
   };
 
-  const confirmUpgrade = () => {
+  const confirmUpgrade = async () => {
     if (confirmDialog.plan) {
-      upgradePlan(confirmDialog.plan.id);
+      // upgradePlan(confirmDialog.plan.id);
+      const stripeResult = await handleCheckout(confirmDialog.plan.id, setLoading);
+      if (stripeResult.url) {
+        setConfirmDialog({ open: false, plan: null });
+        window.location.href = stripeResult.url; // Redirect to Stripe checkout
+      } else {
+        alert('Failed to initiate checkout. Please try again.');
+      }
       setConfirmDialog({ open: false, plan: null });
     }
   };
@@ -236,7 +245,7 @@ const Pricing = () => {
                     disabled={isCurrentPlan(plan.id)}
                     onClick={() => handleUpgrade(plan.id)}
                     startIcon={isCurrentPlan(plan.id) ? <CheckIcon /> : <PremiumIcon />}
-                    sx={{ borderRadius: 2, fontWeight: 'bold' }}
+                    sx={{ borderRadius: 2, fontWeight: 'bold', display: isDowngrade(plan.id) ? 'none' : 'flex' }}
                   >
                     {isCurrentPlan(plan.id) 
                       ? 'Current Plan' 

@@ -14,6 +14,7 @@ import AdminMap from './components/AdminMap';
 import Login from './components/Login';
 import Register from './components/Register';
 import Pricing from './components/Pricing';
+import SuccessPage from './components/SuccessPage';
 
 function App() {
   return (
@@ -66,6 +67,14 @@ function App() {
                         <AdminMap />
                       </ProtectedRoute>
                     } 
+                  />
+                  <Route
+                    path="/success/:session_id"
+                    element={
+                      <ProtectedRoute>
+                        <SuccessPage />
+                      </ProtectedRoute>
+                    }
                   />
                 </Routes>
               </Box>
