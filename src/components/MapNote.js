@@ -159,7 +159,7 @@ function MapNote({
                 color: 'text.secondary'
               }}
             >
-              Created: {new Date(note.createdat).toLocaleDateString()}
+              Created: {new Date(note.createdat || note.createdAt).toLocaleDateString()}
             </Typography>
 
             <Typography 
@@ -169,7 +169,7 @@ function MapNote({
                 color: 'text.secondary'
               }}
             >
-              Updated: {new Date(note.updatedat).toLocaleDateString()}
+              Updated: {new Date(note.updatedat || note.updatedAt).toLocaleDateString()}
             </Typography>
             
             <Typography 

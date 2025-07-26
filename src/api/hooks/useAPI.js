@@ -29,6 +29,13 @@ export async function addUserNote(id, note) {
     return data;
 }
 
+// Get user notes
+export async function getUserNotes(id) {
+    const { data } = await apiClient.get(`/users/${id}/notes`);
+    await localDB?.initializeDB();
+    return data;
+}
+
 // Authenticate user
 export async function getAllUsers() {
     const { data } = await apiClient.get('/users/');
@@ -108,6 +115,9 @@ export default function useAPI() {
     addUserPOI,
     addUserNote,
     getAdminNotes,
-    createAdminNote
+    createAdminNote,
+    deleteAdminNote,
+    addUserCategory,
+    getUserNotes
   };
 }

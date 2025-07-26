@@ -26,7 +26,7 @@ import ProgressTracker from './ProgressTracker';
 import POIForm from './POIForm';
 import NoteForm from './NoteForm';
 import { MAP_CONFIG } from '../utils/mapUtils';
-import { createAdminNote } from '../api/hooks/useAPI';
+import { addUserNote, createAdminNote, getUserNotes } from '../api/hooks/useAPI';
 import localDB from '../utils/localStorage';
 
 function InteractiveMapLayout({
@@ -136,6 +136,9 @@ function InteractiveMapLayout({
           updatedAt: new Date().toISOString()
         };
         setNotes(prev => [...prev, newNote]);
+        const data = await addUserNote(user.id, newNote);
+        console.log('Added user note:', data);
+
       } else {
         // Invalid location, do not create note
         console.error('Cannot create note: pendingNoteLocation is missing or invalid.');
@@ -193,7 +196,13 @@ function InteractiveMapLayout({
 
   useEffect(() => {
     localDB?.initializeDB();
-  }, [])
+    getUserNotes(user?.id)?.then(data => {
+      setNotes(data || []);
+    }).catch(err => {
+      console.error('Failed to fetch user notes:', err);
+    });
+  }, [user?.id]);
+  
 
   const leftSidebarContent = (
     <Sidebar
@@ -362,7 +371,7 @@ function InteractiveMapLayout({
             />
           ))}
           {
-            user?.role === 'admin' &&
+            user?.role === 'admin' ?
             JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]').map(note => (
               <MapNote
                 key={note.id}
@@ -371,8 +380,17 @@ function InteractiveMapLayout({
                 onRemove={handleRemoveNote}
                 canEdit={isAdmin || note.userId === user?.id}
               />
-            ))}
-          
+            ))
+            : notes.map(note => (
+              <MapNote
+                key={note.id}
+                note={note}
+                onEdit={handleEditNote}
+                onRemove={handleRemoveNote}
+                canEdit={isAdmin || note.userId === user?.id}
+              />
+            ))
+          }
         </MapWithLayers>
 
         {/* Suggest Mode Indicator */}
