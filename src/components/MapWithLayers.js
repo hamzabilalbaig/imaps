@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MapContainer, ImageOverlay, useMap } from "react-leaflet";
 import { Box, Typography, Alert } from "@mui/material";
 import { useMapLayers } from "../hooks/useMapLayers";
@@ -64,7 +64,7 @@ function MapRefresher({ layerId }) {
       map._onResize();
       
       // Method 4: Pan slightly and back
-      const center = map.getCenter();
+      const center = map?.getCenter();
       const tempCenter = L.latLng(center.lat + 0.0001, center.lng + 0.0001);
       map.panTo(tempCenter, { animate: false });
       setTimeout(() => {
@@ -97,7 +97,16 @@ function MapWithLayers({
 }) {
   const { activeLayer } = useMapLayers();
   const mapRef = useRef(null);
-
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setTimeout(() => {
+      setIsMounted(true);
+    }, 100);
+    return () => setIsMounted(false);
+  }, []);
+  if (!isMounted) {
+    return null; // Prevent rendering during initial mount
+  }
   // Define bounds for the image overlay (adjust these coordinates as needed)
   const imageBounds = [
     [24.8, 67.0], // Southwest corner
@@ -127,8 +136,10 @@ function MapWithLayers({
       </Box>
     );
   }
+  
 
-  return (
+
+  return isMounted && (
     <Box sx={{ 
       position: 'relative', 
       width: '100%', 

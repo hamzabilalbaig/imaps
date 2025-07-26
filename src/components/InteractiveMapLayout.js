@@ -201,7 +201,7 @@ function InteractiveMapLayout({
     }).catch(err => {
       console.error('Failed to fetch user notes:', err);
     });
-  }, [user?.id]);
+  }, []);
   
 
   const leftSidebarContent = (
@@ -345,8 +345,8 @@ function InteractiveMapLayout({
 
       }}>
         <MapWithLayers
-          center={MAP_CONFIG.defaultCenter}
-          zoom={MAP_CONFIG.defaultZoom}
+          center={MAP_CONFIG?.defaultCenter}
+          zoom={MAP_CONFIG?.defaultZoom}
           key={`map-layout-${Date.now()}`}
           showLayerSelector={true}
           layerSelectorPosition="bottom-center"
