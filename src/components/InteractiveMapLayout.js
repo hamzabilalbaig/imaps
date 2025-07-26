@@ -64,7 +64,7 @@ function InteractiveMapLayout({
   const [pendingNoteLocation, setPendingNoteLocation] = useState(null);
 
   // Filter markers based on visible categories and search
-  const filteredMarkers = markers.filter(marker => {
+  const filteredMarkers = markers?.filter(marker => {
     const categoryVisible = visibleCategories[marker.category] !== false;
     const matchesSearch = !searchTerm || 
       marker.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

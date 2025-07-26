@@ -214,12 +214,12 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
                 fontSize: { xs: '0.875rem', md: '1rem' }
               }}
             >
-              {getCategoryNames().length === 0 ? (
+              {getCategoryNames()?.length === 0 ? (
                 <MenuItem disabled>
                   No categories available. Create categories first.
                 </MenuItem>
               ) : (
-                getCategoryNames().map((category) => (
+                getCategoryNames()?.map((category) => (
                   <MenuItem key={category} value={category}>
                     {category}
                   </MenuItem>

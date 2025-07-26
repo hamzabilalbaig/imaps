@@ -49,7 +49,8 @@ function ProgressTracker({
   const { getRemainingCategories, canUseCustomIcons, user } = useAuth();
   
   // Get current category count from localStorage
-  const currentCategoryCount = user ? (user.usercategories?.length || 0) : 0;
+  // const currentCategoryCount = user ? (user.usercategories?.length || 0) : 0;
+  const currentCategoryCount = user?.role === 'admin' ? JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]').length : user?.role === 'user' ? (user.usercategories?.length || 0) : 0;
   const remainingCategories = user ? getRemainingCategories(currentCategoryCount) : 0;
   
   const progress = maxMarkers === Infinity ? 100 : (userMarkerCount / maxMarkers) * 100;

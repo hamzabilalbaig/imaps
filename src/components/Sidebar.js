@@ -72,7 +72,7 @@ function Sidebar({
   }, {});
 
   // Filter markers based on search term
-  const filteredMarkers = markers.filter(marker => 
+  const filteredMarkers = markers?.filter(marker => 
     marker.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     marker.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -263,7 +263,7 @@ function Sidebar({
           <>
             {/* Admin-Defined Categories */}
             <Box sx={{ px: 2, py: 1 }}>
-              {getCategoryNames().length === 0 ? (
+              {getCategoryNames()?.length === 0 ? (
                 <Box sx={{ py: 4, textAlign: 'center' }}>
                   <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontSize: '1rem' }}>
                     No Categories Available
@@ -287,7 +287,7 @@ function Sidebar({
                   )}
                 </Box>
               ) : (
-                getCategoryNames().map((category) => {
+                getCategoryNames()?.map((category) => {
                   const count = getCategoryCount(category);
                   const visibleCount = getVisibleCount(category);
                   const isVisible = visibleCategories[category];

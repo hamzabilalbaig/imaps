@@ -26,10 +26,10 @@ export const CategoriesProvider = ({ children }) => {
     }
   }, [user]); // Add user to dependency array
 
-  const loadCategories = () => {
+  const loadCategories = async () => {
     // This method already calls localDB.getAvailableCategories(),
     // which now correctly returns categories based on user role.
-    const userCategories = localDB.getAvailableCategories();
+    const userCategories = await localDB.getAvailableCategories();
     setCategories(userCategories);
   };
 
@@ -68,15 +68,15 @@ export const CategoriesProvider = ({ children }) => {
   };
 
   const getCategoryById = (categoryId) => {
-    return categories.find(category => category.id === categoryId);
+    return categories?.find(category => category.id === categoryId);
   };
 
   const getCategoryByName = (categoryName) => {
-    return categories.find(category => category.name === categoryName);
+    return categories?.find(category => category.name === categoryName);
   };
 
   const getCategoryNames = () => {
-    return categories.map(category => category.name);
+     return categories.map(category => category.name);
   };
 
   const getCategoryColors = () => {

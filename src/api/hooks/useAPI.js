@@ -37,25 +37,25 @@ export async function registerUser(userData) {
 
 // Create POI
 export async function createPoi(poiData) {
-    const { data } = await apiClient.post('/admin-pois', poiData);
+    const { data } = await apiClient.post('/admin/pois', poiData);
     return data;
 }
 
 // Get POIs
-export async function getPois() {
-    const { data } = await apiClient.get('/admin-pois');
+export async function getAdminPois() {
+    const { data } = await apiClient.get('/admin/pois');
     return data;
 }
 
 // Get admin categories
 export async function getAdminCategories() {
-    const { data } = await apiClient.get('/admin-categories');
+    const { data } = await apiClient.get('/admin/categories');
     return data;
 }
 
 // Create admin category
 export async function createAdminCategory(categoryData) {
-    const { data } = await apiClient.post('/admin-categories', categoryData);
+    const { data } = await apiClient.post('/admin/categories', categoryData);
     return data;
 }
 
@@ -70,7 +70,7 @@ export default function useAPI() {
     getAllUsers,
     registerUser,
     createPoi,
-    getPois,
+    getAdminPois,
     getAdminCategories,
     createAdminCategory,
     createUser,

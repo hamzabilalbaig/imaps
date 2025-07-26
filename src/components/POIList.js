@@ -41,7 +41,7 @@ function POIList({ markers, onEdit, onRemove, onClearAll }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
 
-  const filteredMarkers = markers.filter(marker => {
+  const filteredMarkers = markers?.filter(marker => {
     const matchesCategory = filterCategory === "All" || marker.category === filterCategory;
     const matchesSearch = !searchTerm || 
       marker.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||

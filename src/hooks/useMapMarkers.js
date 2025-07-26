@@ -13,11 +13,24 @@ export function useMapMarkers() {
   const [markers, setMarkers] = useState([]);
   const [clickedCoords, setClickedCoords] = useState(null);
 
+  const loadAdminPois = async () => {
+    const adminMarkers = await localDB?.getAdminPOIs()
+        setMarkers(adminMarkers);
+  };
+
+  const loadUserPois = async () => {
+    const userMarkers = await localDB?.getUserPOIs();
+    setMarkers(userMarkers);
+  };
+
   // Load markers when user changes or component mounts
   useEffect(() => {
     if (user) {
-      const userMarkers = localDB.getUserPOIs();
-      setMarkers(userMarkers);
+      if (user.role === 'admin') {
+        loadAdminPois();
+      } else {
+        loadUserPois();
+      }
     } else {
       setMarkers([]);
     }
@@ -26,7 +39,7 @@ export function useMapMarkers() {
   const addMarker = (latlng, poiData) => {
     if (!user) return { success: false, error: 'You must be logged in to create POIs' };
     
-    const userMarkers = markers.filter(m => m.userId === user.id);
+    const userMarkers = markers?.filter(m => m.userId === user.id);
     
     // Check total POI limit
     if (!canCreatePOI(userMarkers.length)) {
@@ -93,7 +106,7 @@ export function useMapMarkers() {
 
   const getUserMarkerCount = () => {
     if (!user) return 0;
-    return markers.filter(m => m.userId === user.id).length;
+    return markers?.filter(m => m.userId === user.id).length;
   };
 
   return {
@@ -108,7 +121,7 @@ export function useMapMarkers() {
     remainingPOIs: user ? getRemainingPOIs(getUserMarkerCount()) : 0,
     // Add a reactive user marker count that updates with markers state
     // userMarkerCount: user ? markers.filter(m => m.userId === user.id).length : 0,
-    userMarkerCount: JSON.parse(localStorage.getItem('imaps_current_user'))?.pois?.length || 0,
+    userMarkerCount: user?.role === 'admin' ? JSON.parse(localStorage.getItem('imaps_admin_pois') || '[]').length : JSON.parse(localStorage.getItem('imaps_current_user'))?.pois?.length || 0,
     // Add all markers for admin view
     allMarkers: markers,
   };

@@ -3,14 +3,14 @@
  * Handles user registration, authentication, POIs, notes, and categories
  */
 
-import { addUserCategory, getAllUsers } from "../api/hooks/useAPI";
+import { addUserCategory, createAdminCategory, createPoi, getAdminCategories as getAdminCategoriesApi, getAdminPois, getAllUsers } from "../api/hooks/useAPI";
 
 class LocalStorageDB {
   constructor() {
     this.initializeDB();
   }
 
-  initializeDB() {
+  async initializeDB() {
     if (!localStorage.getItem('imaps_users')) {
       localStorage.setItem('imaps_users', JSON.stringify({}));
     }
@@ -20,7 +20,13 @@ class LocalStorageDB {
     
     // Initialize empty categories - only admin can create them
     if (!localStorage.getItem('imaps_admin_categories')) {
-      localStorage.setItem('imaps_admin_categories', JSON.stringify([]));
+      // localStorage.setItem('imaps_admin_categories', JSON.stringify([]));
+      const adminCategories = await getAdminCategoriesApi();
+      console.log('Fetched admin categories:', adminCategories);
+      localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
+    }
+    if (!localStorage.getItem('imaps_admin_pois')) {
+      localStorage.setItem('imaps_admin_pois', JSON.stringify([]));
     }
   }
 
@@ -136,6 +142,15 @@ class LocalStorageDB {
       return { success: false, message: 'No user logged in' };
     }
 
+    if (currentUser.role === 'admin') {
+      // Admins can add POIs without restrictions
+      const data = await createPoi(poi);
+      const adminPOIs = await getAdminPois();
+      adminPOIs.push(data);
+      localStorage.setItem('imaps_admin_pois', JSON.stringify(adminPOIs));
+      return { success: true, poi: data };
+    }
+
     try {
       // Use addUserPOI API for user POIs
       const { addUserPOI } = await import('../api/hooks/useAPI');
@@ -161,20 +176,20 @@ class LocalStorageDB {
     }
   }
 
-  getUserPOIs() {
+  async getUserPOIs() {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return [];
     
     if (currentUser.role === 'admin') {
-      return this.getAllPOIs();
+      return await this.getAllPOIs();
     }
     
     return currentUser.pois || [];
   }
 
-  getAllPOIs() {
-    const users = this.getUsers();
-    const adminPOIs = this.getAdminPOIs();
+  async getAllPOIs() {
+    const users = await this.getUsers();
+    const adminPOIs = await this.getAdminPOIs();
     let allPOIs = [...adminPOIs];
     
     Object.values(users).forEach(user => {
@@ -184,8 +199,10 @@ class LocalStorageDB {
     return allPOIs;
   }
 
-  getAdminPOIs() {
-    return JSON.parse(localStorage.getItem('imaps_admin_pois') || '[]');
+  async getAdminPOIs() {
+    // return JSON.parse(localStorage.getItem('imaps_admin_pois') || '[]');
+    const adminPOIs = await getAdminPois();
+    return adminPOIs;
   }
 
   updatePOI(poiId, updates) {
@@ -376,9 +393,11 @@ class LocalStorageDB {
         createdAt: new Date().toISOString(),
         userId: currentUser.id
       };
-      const adminCategories = this.getAdminCategories();
+      const adminCategories = await this.getAdminCategories();
       adminCategories.push(categoryData);
-      localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
+      const updatedAdminCategories = await createAdminCategory(categoryData);
+      // localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
+      localStorage.setItem('imaps_admin_categories', JSON.stringify(updatedAdminCategories));
       return { success: true, category: categoryData };
     } else {
       // For regular users, use addUserCategory API
@@ -419,12 +438,12 @@ class LocalStorageDB {
   }
 
   // Get categories available to the current user (admin-created or user-specific)
-  getAvailableCategories() {
+  async getAvailableCategories() {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return []; // No user logged in, return empty array
 
     if (currentUser.role === 'admin') {
-      return this.getAdminCategories(); // Admin sees global categories
+      return await this.getAdminCategories(); // Admin sees global categories
     } else {
       // Regular user sees their own categories
       return currentUser.usercategories || [];
@@ -432,23 +451,26 @@ class LocalStorageDB {
   }
 
   // For backward compatibility - now same as getAvailableCategories
-  getUserCategories() {
-    return this.getAvailableCategories();
+  async getUserCategories() {
+    return await this.getAvailableCategories();
   }
 
 
-  getAdminCategories() {
-    return JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]');
+  async getAdminCategories() {
+    // return JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]');
+    const adminCategories = await getAdminCategoriesApi();
+    console.log('Fetched admin categories:', adminCategories);
+    return adminCategories;
   }
 
-  updateCategory(categoryId, updates) {
+  async updateCategory(categoryId, updates) {
     const currentUser = this.getCurrentUser();
     if (!currentUser) {
       return { success: false, message: 'No user logged in' };
     }
 
     if (currentUser.role === 'admin') {
-      const adminCategories = this.getAdminCategories();
+      const adminCategories = await this.getAdminCategories();
       const categoryIndex = adminCategories.findIndex(cat => cat.id === categoryId);
       if (categoryIndex !== -1) {
         adminCategories[categoryIndex] = {
@@ -485,14 +507,14 @@ class LocalStorageDB {
     return { success: false, message: 'Category not found' };
   }
 
-  deleteCategory(categoryId) {
+  async deleteCategory(categoryId) {
     const currentUser = this.getCurrentUser();
     if (!currentUser) {
       return { success: false, message: 'No user logged in' };
     }
 
     if (currentUser.role === 'admin') {
-      const adminCategories = this.getAdminCategories();
+      const adminCategories = await this.getAdminCategories();
       const filteredAdminCategories = adminCategories.filter(cat => cat.id !== categoryId);
       if (filteredAdminCategories.length !== adminCategories.length) {
         localStorage.setItem('imaps_admin_categories', JSON.stringify(filteredAdminCategories));
@@ -522,21 +544,21 @@ class LocalStorageDB {
   }
 
   // Get count of POIs in a specific category for the current user
-  getPOICountInCategory(categoryId) {
+  async getPOICountInCategory(categoryId) {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return 0;
 
-    const userPOIs = this.getUserPOIs();
-    return userPOIs.filter(poi => poi.categoryId === categoryId)?.length;
+    const userPOIs = await this.getUserPOIs();
+    return userPOIs?.filter(poi => poi.categoryId === categoryId)?.length;
   };
 
   // Get count of user's custom categories
-  getUserCategoryCount() {
+  async getUserCategoryCount() {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return 0;
 
     if (currentUser.role === 'admin') {
-      return this.getAdminCategories()?.length;
+      return await this.getAdminCategories()?.length;
     } else {
       return (currentUser?.usercategories || [])?.length;
     }
