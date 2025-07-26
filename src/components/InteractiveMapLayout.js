@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Box, 
   useTheme, 
@@ -26,6 +26,8 @@ import ProgressTracker from './ProgressTracker';
 import POIForm from './POIForm';
 import NoteForm from './NoteForm';
 import { MAP_CONFIG } from '../utils/mapUtils';
+import { createAdminNote } from '../api/hooks/useAPI';
+import localDB from '../utils/localStorage';
 
 function InteractiveMapLayout({
   markers = [],
@@ -114,25 +116,57 @@ function InteractiveMapLayout({
     setShowNoteForm(true);
   };
 
-  const handleSaveNote = (formData) => {
-    if (editingNote) {
-      // Update existing note
-      setNotes(prev => prev.map(note => 
-        note.id === editingNote.id 
-          ? { ...note, ...formData, updatedAt: new Date().toISOString() }
-          : note
-      ));
-    } else if (pendingNoteLocation) {
-      // Create new note
-      const newNote = {
-        id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        position: [pendingNoteLocation.lat, pendingNoteLocation.lng],
-        coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}`,
-        ...formData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      setNotes(prev => [...prev, newNote]);
+  const handleSaveNote = async (formData) => {
+    if (user.role !== 'admin') {
+      if (editingNote) {
+        // Update existing note
+        setNotes(prev => prev.map(note => 
+          note.id === editingNote.id 
+            ? { ...note, ...formData, updatedAt: new Date().toISOString() }
+            : note
+        ));
+      } else if (pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation.lng === 'number') {
+        // Create new note only if location is valid
+        const newNote = {
+          id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          position: [pendingNoteLocation.lat, pendingNoteLocation.lng],
+          coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}`,
+          ...formData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setNotes(prev => [...prev, newNote]);
+      } else {
+        // Invalid location, do not create note
+        console.error('Cannot create note: pendingNoteLocation is missing or invalid.');
+        handleCancelNoteForm();
+        return;
+      }
+    } else {
+      // For admin, ensure position and coords are present in formData
+      let { id, title, content, tags, position, coords, color, userId } = formData;
+      if ((!position || !coords) && pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation.lng === 'number') {
+        position = [pendingNoteLocation.lat, pendingNoteLocation.lng];
+        coords = `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}`;
+      }
+      if (!position || !coords) {
+        console.error('Cannot create admin note: position or coords missing.');
+        handleCancelNoteForm();
+        return;
+      }
+      const data = await createAdminNote({
+        id,
+        title,
+        content,
+        tags,
+        position,
+        coords,
+        color,
+        userId
+      });
+      console.log('Created admin note:', data);
+      localStorage.setItem('imaps_admin_notes', JSON.stringify([...JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]'), data]));
+      setNotes(prev => [...prev, data]);
     }
     handleCancelNoteForm();
   };
@@ -156,6 +190,10 @@ function InteractiveMapLayout({
   const handleStreetsToggle = () => {
     setStreetsVisible(prev => !prev);
   };
+
+  useEffect(() => {
+    localDB?.initializeDB();
+  }, [])
 
   const leftSidebarContent = (
     <Sidebar
@@ -323,6 +361,18 @@ function InteractiveMapLayout({
               canEdit={isAdmin || marker.userId === user?.id}
             />
           ))}
+          {
+            user?.role === 'admin' &&
+            JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]').map(note => (
+              <MapNote
+                key={note.id}
+                note={note}
+                onEdit={handleEditNote}
+                onRemove={handleRemoveNote}
+                canEdit={isAdmin || note.userId === user?.id}
+              />
+            ))}
+          
         </MapWithLayers>
 
         {/* Suggest Mode Indicator */}

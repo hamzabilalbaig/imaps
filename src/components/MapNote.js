@@ -159,7 +159,17 @@ function MapNote({
                 color: 'text.secondary'
               }}
             >
-              Created: {new Date(note.createdAt).toLocaleDateString()}
+              Created: {new Date(note.createdat).toLocaleDateString()}
+            </Typography>
+
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                fontSize: '0.75rem',
+                color: 'text.secondary'
+              }}
+            >
+              Updated: {new Date(note.updatedat).toLocaleDateString()}
             </Typography>
             
             <Typography 

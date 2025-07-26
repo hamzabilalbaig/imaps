@@ -3,7 +3,7 @@
  * Handles user registration, authentication, POIs, notes, and categories
  */
 
-import { addUserCategory, createAdminCategory, createPoi, getAdminCategories as getAdminCategoriesApi, getAdminPois, getAllUsers } from "../api/hooks/useAPI";
+import { addUserCategory, createAdminCategory, createPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers } from "../api/hooks/useAPI";
 
 class LocalStorageDB {
   constructor() {
@@ -24,6 +24,11 @@ class LocalStorageDB {
       const adminCategories = await getAdminCategoriesApi();
       console.log('Fetched admin categories:', adminCategories);
       localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
+    }
+    if (!localStorage.getItem('imaps_admin_notes')) {
+      const adminNotes = await getAdminNotes();
+      console.log('Fetched admin notes:', adminNotes);
+      localStorage.setItem('imaps_admin_notes', JSON.stringify(adminNotes));
     }
     if (!localStorage.getItem('imaps_admin_pois')) {
       localStorage.setItem('imaps_admin_pois', JSON.stringify([]));
@@ -283,10 +288,10 @@ class LocalStorageDB {
   }
 
   // Notes Management
-  addNote(note) {
+  async addNote(note) {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return { success: false, message: 'No user logged in' };
-
+    if (currentUser.role !== 'admin') {
     const noteData = {
       id: Date.now().toString(),
       ...note,
@@ -307,7 +312,8 @@ class LocalStorageDB {
     }
     
     return { success: false, message: 'User not found' };
-  }
+  } 
+}
 
   getUserNotes() {
     const currentUser = this.getCurrentUser();
@@ -358,7 +364,7 @@ class LocalStorageDB {
     return { success: false, message: 'Note not found' };
   }
 
-  deleteNote(noteId) {
+  async deleteNote(noteId) {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return { success: false, message: 'No user logged in' };
 
