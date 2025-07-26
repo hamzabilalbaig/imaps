@@ -35,7 +35,8 @@ export const CategoriesProvider = ({ children }) => {
 
   const addCategory = async (categoryData) => {
     // Check if user can create more categories
-    const currentCategoryCount = localDB?.getUserCategoryCount();
+    // const currentCategoryCount = localDB?.getUserCategoryCount();
+    const currentCategoryCount = categories.length; // Use the length of the current categories array
     if (!canCreateCategory(currentCategoryCount)) {
       throw new Error('You have reached your category limit. Upgrade your plan to create more categories.');
     }
@@ -51,7 +52,7 @@ export const CategoriesProvider = ({ children }) => {
 
   const updateCategory = (categoryId, updates) => {
     const result = localDB.updateCategory(categoryId, updates);
-    if (result.success) {
+    if (result) {
       loadCategories(); // Reload categories from localStorage
       return result.category;
     }
@@ -60,7 +61,7 @@ export const CategoriesProvider = ({ children }) => {
 
   const deleteCategory = (categoryId) => {
     const result = localDB.deleteCategory(categoryId);
-    if (result.success) {
+    if (result) {
       loadCategories(); // Reload categories from localStorage
       return true;
     }

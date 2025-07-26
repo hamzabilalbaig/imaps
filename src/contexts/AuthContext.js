@@ -113,10 +113,19 @@ export const AuthProvider = ({ children }) => {
     return limit === Infinity || currentCategoryCount < limit;
   };
 
-  const canAddPOItoCategory = (categoryId, currentPOICountInCategory) => {
-    if (!user) return false;
+  const canAddPOItoCategory = async (categoryName, currentPOICountInCategory) => {
+    // if (!user) return false;
     const limit = PLAN_LIMITS[user.plan]?.maxPOIsPerCategory || 0;
-    return limit === Infinity || currentPOICountInCategory < limit;
+    // return limit === Infinity || currentPOICountInCategory < limit;
+    // const userCategories = await localDB.getUserCategories()
+    const userPois = await localDB.getUserPOIs()
+    const userPoisLength = userPois?.length
+    const lengthOfPoisBelongingToCategoryName = userPois?.filter(poi => poi.category === categoryName)?.length || 0;
+    if (limit === Infinity) {
+      return true;
+    }
+    return lengthOfPoisBelongingToCategoryName < limit && userPoisLength < PLAN_LIMITS[user.plan]?.totalPOILimit;
+
   };
 
   const canUseCustomIcons = () => {

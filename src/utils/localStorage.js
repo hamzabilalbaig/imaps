@@ -3,7 +3,7 @@
  * Handles user registration, authentication, POIs, notes, and categories
  */
 
-import { addUserCategory, createAdminCategory, createPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers } from "../api/hooks/useAPI";
+import { addUserCategory, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminPoi, deleteUserCategory, deleteUserPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateCategory } from "../api/hooks/useAPI";
 
 class LocalStorageDB {
   constructor() {
@@ -253,36 +253,47 @@ class LocalStorageDB {
     return { success: false, message: 'POI not found' };
   }
 
-  deletePOI(poiId) {
+  async deletePOI(poiId) {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return { success: false, message: 'No user logged in' };
 
     // Check admin POIs first
     if (currentUser.role === 'admin') {
-      const adminPOIs = this.getAdminPOIs();
-      const filteredAdminPOIs = adminPOIs.filter(poi => poi.id !== poiId);
-      if (filteredAdminPOIs.length !== adminPOIs.length) {
-        localStorage.setItem('imaps_admin_pois', JSON.stringify(filteredAdminPOIs));
-        return { success: true };
+      // const adminPOIs = this.getAdminPOIs();
+      // const filteredAdminPOIs = adminPOIs.filter(poi => poi.id !== poiId);
+      // if (filteredAdminPOIs.length !== adminPOIs.length) {
+      //   localStorage.setItem('imaps_admin_pois', JSON.stringify(filteredAdminPOIs));
+      //   return { success: true };
+      // }
+      const response = await deleteAdminPoi(poiId);
+      if (response) {
+        window?.location.reload();
+        return response;
+      }
+    } else {
+      const response = await deleteUserPoi(currentUser.id, poiId);
+      if (response) {
+        window.location.reload(); // Reload to reflect changes
+        return { success: true, message: 'POI deleted successfully' };
       }
     }
 
     // Check user POIs
-    const users = this.getUsers();
-    if (users[currentUser.email]) {
-      const originalLength = users[currentUser.email].pois.length;
-      users[currentUser.email].pois = users[currentUser.email].pois.filter(poi => poi.id !== poiId);
+    // const users = this.getUsers();
+    // if (users[currentUser.email]) {
+    //   const originalLength = users[currentUser.email].pois.length;
+    //   users[currentUser.email].pois = users[currentUser.email].pois.filter(poi => poi.id !== poiId);
       
-      if (users[currentUser.email].pois.length !== originalLength) {
-        localStorage.setItem('imaps_users', JSON.stringify(users));
+    //   if (users[currentUser.email].pois.length !== originalLength) {
+    //     localStorage.setItem('imaps_users', JSON.stringify(users));
         
-        // Update current user
-        const updatedUser = users[currentUser.email];
-        localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+    //     // Update current user
+    //     const updatedUser = users[currentUser.email];
+    //     localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
         
-        return { success: true };
-      }
-    }
+    //     return { success: true };
+    //   }
+    // }
     
     return { success: false, message: 'POI not found' };
   }
@@ -469,83 +480,102 @@ class LocalStorageDB {
     return adminCategories;
   }
 
-  async updateCategory(categoryId, updates) {
-    const currentUser = this.getCurrentUser();
-    if (!currentUser) {
-      return { success: false, message: 'No user logged in' };
-    }
-
-    if (currentUser.role === 'admin') {
-      const adminCategories = await this.getAdminCategories();
-      const categoryIndex = adminCategories.findIndex(cat => cat.id === categoryId);
-      if (categoryIndex !== -1) {
-        adminCategories[categoryIndex] = {
-          ...adminCategories[categoryIndex],
-          ...updates,
-          updatedAt: new Date().toISOString()
-        };
-        localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
-        return { success: true, category: adminCategories[categoryIndex] };
-      }
-    } else {
-      // For regular users, update their specific userCategories array
-      const users = this.getUsers();
-      if (users[currentUser.email]) {
-        const categoryIndex = users[currentUser.email].usercategories.findIndex(cat => cat.id === categoryId);
-        if (categoryIndex !== -1) {
-          users[currentUser.email].usercategories[categoryIndex] = {
-            ...users[currentUser.email].usercategories[categoryIndex],
-            ...updates,
-            updatedAt: new Date().toISOString()
-          };
-          localStorage.setItem('imaps_users', JSON.stringify(users));
-
-          // IMPORTANT: Update current user in localStorage
-          const updatedUser = users[currentUser.email];
-          localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
-          return { success: true, category: users[currentUser.email].usercategories[categoryIndex] };
-        }
-      } else {
-        return { success: false, message: 'User not found' };
-      }
-    }
+  async updateCategory(categoryIdOrName, updates) {
+    const user = this.getCurrentUser();
     
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (user.role === 'admin') {
+    } else {
+      const updatedUser = await updateCategory(user.id, categoryIdOrName, updates);
+      console.log('Updated user after updating category:', updatedUser);
+      localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+      window.location.reload(); // Reload to reflect changes
+      return { success: true, category: updatedUser?.usercategories?.find(cat => cat.id === categoryIdOrName) };
+    }
     return { success: false, message: 'Category not found' };
   }
 
-  async deleteCategory(categoryId) {
-    const currentUser = this.getCurrentUser();
-    if (!currentUser) {
-      return { success: false, message: 'No user logged in' };
-    }
+  async deleteCategory(categoryNameOrId) {
+    const user = this.getCurrentUser();
+    // const currentUser = this.getCurrentUser();
+    // if (!currentUser) {
+    //   return { success: false, message: 'No user logged in' };
+    // }
 
-    if (currentUser.role === 'admin') {
-      const adminCategories = await this.getAdminCategories();
-      const filteredAdminCategories = adminCategories.filter(cat => cat.id !== categoryId);
-      if (filteredAdminCategories.length !== adminCategories.length) {
-        localStorage.setItem('imaps_admin_categories', JSON.stringify(filteredAdminCategories));
-        return { success: true };
-      }
+    // if (currentUser.role === 'admin') {
+    //   const adminCategories = await this.getAdminCategories();
+    //   const filteredAdminCategories = adminCategories.filter(cat => cat.id !== categoryId);
+    //   if (filteredAdminCategories.length !== adminCategories.length) {
+    //     localStorage.setItem('imaps_admin_categories', JSON.stringify(filteredAdminCategories));
+    //     return { success: true };
+    //   }
+    // } else {
+    //   // For regular users, delete from their specific userCategories array
+    //   const users = this.getUsers();
+    //   if (users[currentUser.email]) {
+    //     const originalLength = users[currentUser.email].usercategories.length;
+    //     users[currentUser.email].usercategories = users[currentUser.email].usercategories.filter(cat => cat.id !== categoryId);
+
+    //     if (users[currentUser.email].usercategories.length !== originalLength) {
+    //       localStorage.setItem('imaps_users', JSON.stringify(users));
+
+    //       // IMPORTANT: Update current user in localStorage
+    //       const updatedUser = users[currentUser.email];
+    //       localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+    //       return { success: true };
+    //     }
+    //   } else {
+    //     return { success: false, message: 'User not found' };
+    //   }
+    if (user.role === 'admin') {
+      const adminCategories = await deleteAdminCategory(categoryNameOrId);
+      console.log('response:::', adminCategories);
+
     } else {
-      // For regular users, delete from their specific userCategories array
-      const users = this.getUsers();
-      if (users[currentUser.email]) {
-        const originalLength = users[currentUser.email].usercategories.length;
-        users[currentUser.email].usercategories = users[currentUser.email].usercategories.filter(cat => cat.id !== categoryId);
-
-        if (users[currentUser.email].usercategories.length !== originalLength) {
-          localStorage.setItem('imaps_users', JSON.stringify(users));
-
-          // IMPORTANT: Update current user in localStorage
-          const updatedUser = users[currentUser.email];
-          localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
-          return { success: true };
-        }
-      } else {
-        return { success: false, message: 'User not found' };
+      const response = await deleteUserCategory(user.id, categoryNameOrId);
+      localStorage.setItem('imaps_current_user', JSON.stringify(response));
+      if (response) {
+        window.location.reload(); // Reload to reflect changes
+        return { success: true, message: 'Category deleted successfully' };
       }
     }
-    
     return { success: false, message: 'Category not found' };
   }
 

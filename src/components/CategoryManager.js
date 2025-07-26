@@ -113,7 +113,8 @@ function CategoryManager() {
       try {
         deleteCategory(categoryId);
       } catch (error) {
-        alert(error.message);
+        console.error('Error deleting category:', error);
+        alert(error);
       }
     }
   };
@@ -139,7 +140,8 @@ function CategoryManager() {
     try {
       if (editingCategory) {
         // Update existing category
-        updateCategory(editingCategory?.id, {
+        const identifier = user?.role === 'admin' ? editingCategory.id : editingCategory.name;
+        updateCategory(identifier, {
           name: formData?.name?.trim(),
           selectedIcon: formData?.selectedIcon,
           customIcon: formData?.customIcon,
@@ -392,7 +394,7 @@ function CategoryManager() {
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          {category.name}
+                          {category.name} 
                         </Typography>
                         {category.description && (
                           <Typography 
@@ -443,7 +445,7 @@ function CategoryManager() {
                         Edit
                       </Button>
                       <Button
-                        onClick={() => handleDeleteCategory(category.id)}
+                        onClick={() => handleDeleteCategory(user?.role === 'admin' ? category.id : category.name)}
                         variant="outlined"
                         size="small"
                         startIcon={<DeleteIcon sx={{ fontSize: '0.75rem' }} />}

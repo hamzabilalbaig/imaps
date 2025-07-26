@@ -97,6 +97,31 @@ export async function verifyCheckoutSession(sessionId) {
     return data;
 }
 
+export async function deleteUserPoi(id, poiId) {
+    const { data } = await apiClient.delete(`/users/${id}/pois/${poiId}`);
+    return data;
+}
+
+export async function deleteUserCategory(id, categoryId) {
+    const { data } = await apiClient.delete(`/users/${id}/categories/${categoryId}`);
+    return data;
+}
+
+export async function deleteAdminCategory(categoryId) {
+    const { data } = await apiClient.delete(`/admin/categories/${categoryId}`);
+    return data;
+}
+
+export async function deleteAdminPoi(poiId) {
+    const { data } = await apiClient.delete(`/admin/pois/${poiId}`);
+    return data;
+}
+
+export async function updateCategory(id, categoryName, updates) {
+    const { data } = await apiClient.put(`/users/${id}/categories/${categoryName}`, updates);
+    return data;
+}
+
 export default function useAPI() {
   return {
     getAllUsers,
@@ -114,6 +139,11 @@ export default function useAPI() {
     deleteAdminNote,
     addUserCategory,
     getUserNotes,
-    checkout
+    checkout,
+    verifyCheckoutSession,
+    deleteUserPoi,
+    deleteUserCategory,
+    deleteAdminCategory,
+    deleteAdminPoi
   };
 }
