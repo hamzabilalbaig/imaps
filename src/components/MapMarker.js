@@ -69,6 +69,7 @@ function MapMarker({ marker, onRemove, onEdit, isAdmin = false, canEdit = false 
     <Marker 
       key={marker.id} 
       position={marker.position}
+      // icon={createCategoryIcon(marker.category, marker.customIcon, marker.selectedIcon, marker.iconColor)}
       icon={createCategoryIcon(marker.category, marker.customIcon, marker.selectedIcon, marker.iconColor)}
     >
       <Popup className="custom-popup">

@@ -55,6 +55,7 @@ function CategoryManager() {
   
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     selectedIcon: null,
@@ -188,7 +189,7 @@ function CategoryManager() {
 
     // If it's a new custom icon, save it to the database and update the custom icons list
     if (customIconData) {
-      const result = localDB.addCustomIcon(customIconData);
+      const result = localDB.addCustomIcon(customIconData, setLoading);
       if (result.success) {
         loadCustomIcons(); // Reload custom icons
       }
@@ -229,6 +230,8 @@ function CategoryManager() {
         );
       }
     }
+
+    
     
     // Check if it's a built-in icon
     if (category.selectedIcon && CATEGORY_ICONS[category.selectedIcon]) {

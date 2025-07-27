@@ -46,7 +46,7 @@ export const createMarker = (latlng, poiData = {}) => ({
   description: poiData.description || "",
   category: poiData.category || "Other",
   categoryId: poiData.categoryId || null,
-  selectedIcon: poiData.selectedIcon || null,
+  selectedIcon: poiData.selectedIcon  || null,
   customIcon: poiData.customIcon || null,
   iconColor: poiData.iconColor || "#6b7280",
   userId: poiData.userId || null,

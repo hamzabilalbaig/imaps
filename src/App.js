@@ -69,7 +69,7 @@ function App() {
                     } 
                   />
                   <Route
-                    path="/success/:session_id"
+                    path="/success/:session_id/:plan"
                     element={
                       <ProtectedRoute>
                         <SuccessPage />

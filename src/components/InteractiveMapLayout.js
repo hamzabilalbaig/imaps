@@ -125,12 +125,12 @@ function InteractiveMapLayout({
             ? { ...note, ...formData, updatedAt: new Date().toISOString() }
             : note
         ));
-      } else if (pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation.lng === 'number') {
+      } else if (pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation?.lng === 'number') {
         // Create new note only if location is valid
         const newNote = {
           id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          position: [pendingNoteLocation.lat, pendingNoteLocation.lng],
-          coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}`,
+          position: [pendingNoteLocation.lat, pendingNoteLocation?.lng],
+          coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation?.lng.toFixed(6)}`,
           ...formData,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -148,9 +148,9 @@ function InteractiveMapLayout({
     } else {
       // For admin, ensure position and coords are present in formData
       let { id, title, content, tags, position, coords, color, userId } = formData;
-      if ((!position || !coords) && pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation.lng === 'number') {
-        position = [pendingNoteLocation.lat, pendingNoteLocation.lng];
-        coords = `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}`;
+      if ((!position || !coords) && pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation?.lng === 'number') {
+        position = [pendingNoteLocation.lat, pendingNoteLocation?.lng];
+        coords = `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation?.lng.toFixed(6)}`;
       }
       if (!position || !coords) {
         console.error('Cannot create admin note: position or coords missing.');
@@ -525,7 +525,7 @@ function InteractiveMapLayout({
         {showForm && (
           <POIForm
             poi={editingPOI || (pendingLocation ? { 
-              coords: `${pendingLocation.lat.toFixed(6)}, ${pendingLocation.lng.toFixed(6)}` 
+              coords: `${pendingLocation.lat.toFixed(6)}, ${pendingLocation?.lng.toFixed(6)}` 
             } : null)}
             onSave={onSavePOI}
             onCancel={onCancelForm}
@@ -538,7 +538,7 @@ function InteractiveMapLayout({
         {showNoteForm && (
           <NoteForm
             note={editingNote || (pendingNoteLocation ? { 
-              coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}` 
+              coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation?.lng.toFixed(6)}` 
             } : null)}
             onSave={handleSaveNote}
             onCancel={handleCancelNoteForm}

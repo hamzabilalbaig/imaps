@@ -3,7 +3,8 @@
  * Handles user registration, authentication, POIs, notes, and categories
  */
 
-import { addUserCategory, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminPoi, deleteUserCategory, deleteUserPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateCategory } from "../api/hooks/useAPI";
+import { addUserCategory, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminNote, deleteAdminPoi, deleteUserCategory, deleteUserPoi, editAdminNote, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateAdminCategory, updateCategory } from "../api/hooks/useAPI";
+import uploadFile from "../aws/fileUpload";
 
 class LocalStorageDB {
   constructor() {
@@ -33,6 +34,7 @@ class LocalStorageDB {
     if (!localStorage.getItem('imaps_admin_pois')) {
       localStorage.setItem('imaps_admin_pois', JSON.stringify([]));
     }
+
   }
 
   // User Management
@@ -141,7 +143,7 @@ class LocalStorageDB {
   }
 
   // Points of Interest Management
-  async addPOI(poi) {
+  async addPOI(poi, selectedIcon) {
     const currentUser = this.getCurrentUser();
     if (!currentUser) {
       return { success: false, message: 'No user logged in' };
@@ -149,7 +151,7 @@ class LocalStorageDB {
 
     if (currentUser.role === 'admin') {
       // Admins can add POIs without restrictions
-      const data = await createPoi(poi);
+      const data = await createPoi(poi, selectedIcon);
       const adminPOIs = await getAdminPois();
       adminPOIs.push(data);
       localStorage.setItem('imaps_admin_pois', JSON.stringify(adminPOIs));
@@ -350,25 +352,44 @@ class LocalStorageDB {
 
   updateNote(noteId, updates) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return { success: false, message: 'No user logged in' };
+    // if (!currentUser) return { success: false, message: 'No user logged in' };
 
-    const users = this.getUsers();
-    if (users[currentUser.email]) {
-      const noteIndex = users[currentUser.email].notes.findIndex(note => note.id === noteId);
-      if (noteIndex !== -1) {
-        users[currentUser.email].notes[noteIndex] = {
-          ...users[currentUser.email].notes[noteIndex],
-          ...updates,
-          updatedAt: new Date().toISOString()
-        };
+    // const users = this.getUsers();
+    // if (users[currentUser.email]) {
+    //   const noteIndex = users[currentUser.email].notes.findIndex(note => note.id === noteId);
+    //   if (noteIndex !== -1) {
+    //     users[currentUser.email].notes[noteIndex] = {
+    //       ...users[currentUser.email].notes[noteIndex],
+    //       ...updates,
+    //       updatedAt: new Date().toISOString()
+    //     };
         
-        localStorage.setItem('imaps_users', JSON.stringify(users));
+    //     localStorage.setItem('imaps_users', JSON.stringify(users));
         
-        // Update current user
-        const updatedUser = users[currentUser.email];
-        localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+    //     // Update current user
+    //     const updatedUser = users[currentUser.email];
+    //     localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
         
-        return { success: true, note: users[currentUser.email].notes[noteIndex] };
+    //     return { success: true, note: users[currentUser.email].notes[noteIndex] };
+    //   }
+    // }
+
+    if (currentUser.role === 'admin') {
+      const response = editAdminNote(noteId, updates);
+      console.log('Admin note update response:', response);
+      if (response) {
+        const adminNotes = JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]');
+        const noteIndex = adminNotes.findIndex(note => note.id === noteId);
+        if (noteIndex !== -1) {
+          adminNotes[noteIndex] = {
+            ...adminNotes[noteIndex],
+            ...updates,
+            updatedAt: new Date().toISOString()
+          };
+          localStorage.setItem('imaps_admin_notes', JSON.stringify(adminNotes));
+          window.location.reload(); // Reload to reflect changes
+          return { success: true, note: adminNotes[noteIndex] };
+        }
       }
     }
     
@@ -377,21 +398,34 @@ class LocalStorageDB {
 
   async deleteNote(noteId) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return { success: false, message: 'No user logged in' };
+    // if (!currentUser) return { success: false, message: 'No user logged in' };
 
-    const users = this.getUsers();
-    if (users[currentUser.email]) {
-      users[currentUser.email].notes = users[currentUser.email].notes.filter(note => note.id !== noteId);
-      localStorage.setItem('imaps_users', JSON.stringify(users));
+    // const users = this.getUsers();
+    // if (users[currentUser.email]) {
+    //   users[currentUser.email].notes = users[currentUser.email].notes.filter(note => note.id !== noteId);
+    //   localStorage.setItem('imaps_users', JSON.stringify(users));
       
-      // Update current user
-      const updatedUser = users[currentUser.email];
-      localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+    //   // Update current user
+    //   const updatedUser = users[currentUser.email];
+    //   localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
       
-      return { success: true };
-    }
+    //   return { success: true };
+    // }
     
-    return { success: false, message: 'User not found' };
+    // return { success: false, message: 'User not found' };
+    if (currentUser.role === 'admin') {
+      const response = await deleteAdminNote(noteId);
+      console.log('Admin note delete response:', response);
+      if (response) {
+        const adminNotes = JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]');
+        const filteredNotes = adminNotes.filter(note => note.id !== noteId);
+        localStorage.setItem('imaps_admin_notes', JSON.stringify(filteredNotes));
+        window.location.reload(); // Reload to reflect changes
+        return { success: true, message: 'Note deleted successfully' };
+      }else {
+        // tbi
+      }
+    }
   }
 
   // Categories Management (Admin Only)
@@ -522,6 +556,10 @@ class LocalStorageDB {
     
     
     if (user.role === 'admin') {
+      const adminCategories = await updateAdminCategory(categoryIdOrName, updates);
+      console.log('Updated admin category:', adminCategories);
+      window.location.reload(); // Reload to reflect changes
+      return { success: true, category: adminCategories };
     } else {
       const updatedUser = await updateCategory(user.id, categoryIdOrName, updates);
       console.log('Updated user after updating category:', updatedUser);
@@ -601,35 +639,49 @@ class LocalStorageDB {
   };
 
   // Custom Icons Management
-  addCustomIcon(iconData) {
-    const currentUser = this.getCurrentUser();
-    if (!currentUser) return { success: false, message: 'No user logged in' };
+  async addCustomIcon(iconData, setLoading) {
+    // const currentUser = this.getCurrentUser();
+    // if (!currentUser) return { success: false, message: 'No user logged in' };
 
-    const customIcon = {
-      id: `custom_${Date.now()}`,
-      ...iconData,
-      createdAt: new Date().toISOString(),
-      userId: currentUser.id
-    };
+    // const customIcon = {
+    //   id: `custom_${Date.now()}`,
+    //   ...iconData,
+    //   createdAt: new Date().toISOString(),
+    //   userId: currentUser.id
+    // };
 
-    if (currentUser.role === 'admin') {
-      // Admin icons are global
-      const adminIcons = this.getAdminCustomIcons();
-      adminIcons.push(customIcon);
-      localStorage.setItem('imaps_admin_custom_icons', JSON.stringify(adminIcons));
-    } else {
-      const users = this.getUsers();
-      if (users[currentUser.email]) {
-        users[currentUser.email].customIcons.push(customIcon);
-        localStorage.setItem('imaps_users', JSON.stringify(users));
+    // if (currentUser.role === 'admin') {
+    //   // Admin icons are global
+    //   const adminIcons = this.getAdminCustomIcons();
+    //   adminIcons.push(customIcon);
+    //   localStorage.setItem('imaps_admin_custom_icons', JSON.stringify(adminIcons));
+    // } else {
+    //   const users = this.getUsers();
+    //   if (users[currentUser.email]) {
+    //     users[currentUser.email].customIcons.push(customIcon);
+    //     localStorage.setItem('imaps_users', JSON.stringify(users));
         
-        // Update current user
-        const updatedUser = users[currentUser.email];
-        localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
-      }
-    }
+    //     // Update current user
+    //     const updatedUser = users[currentUser.email];
+    //     localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+    //   }
+    // }
     
-    return { success: true, icon: customIcon };
+    // return { success: true, icon: customIcon };
+    
+    const url = await uploadFile(iconData, setLoading);
+    if (!url) {
+      return { success: false, message: 'Failed to upload icon' };
+    }
+    const iconDataWithUrl = {
+      id: `custom_${Date.now()}`,
+      name: iconData.name || `Custom Icon ${Date.now()}`,
+      url,
+      createdAt: new Date().toISOString(),
+      userId: this.getCurrentUser()?.id || 'admin'
+    };
+    console.log('iconDataWithUrl:', iconDataWithUrl);
+    return { success: true, icon: iconDataWithUrl };
   }
 
   getUserCustomIcons() {

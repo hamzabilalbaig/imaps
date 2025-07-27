@@ -30,6 +30,7 @@ function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const fileInputRef = useRef(null);
+  const [loading, setLoading] = useState(false);
 
   // Get all available icons (built-in + custom)
   const builtInIcons = Object.keys(CATEGORY_ICONS);
@@ -60,7 +61,7 @@ function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const customIcon = {
         id: `custom_${Date.now()}`,
         name: file.name.split('.')[0],
@@ -69,7 +70,7 @@ function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
       };
       
       // Save to localStorage for persistence using the database
-      const result = localDB.addCustomIcon(customIcon);
+      const result = await localDB.addCustomIcon(customIcon, setLoading);
       if (result.success) {
         onIconSelect(result.icon.id, result.icon);
       } else {

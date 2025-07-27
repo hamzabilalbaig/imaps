@@ -36,9 +36,9 @@ export function useMapMarkers() {
     }
   }, [user]);
 
-  const addMarker = (latlng, poiData) => {
+  const addMarker = async (latlng, poiData) => {
     if (!user) return { success: false, error: 'You must be logged in to create POIs' };
-    
+
     const userMarkers = markers?.filter(m => m.userId === user.id);
     
     // Check total POI limit
@@ -64,7 +64,12 @@ export function useMapMarkers() {
     }
 
     const markerData = createMarker(latlng, poiData);
-    const result = localDB.addPOI(markerData);
+    const categoryFetched = await localDB.getUserCategories();
+    const currentCategory = categoryFetched.find(cat => cat.id === markerData.categoryId);
+    console.log('Current category:', currentCategory);
+    const icon = currentCategory?.customIcon || currentCategory?.selectedIcon;
+    // console.log('Icon to use:', icon);
+    const result = localDB.addPOI(markerData, icon);
     
     if (result.success) {
       // Reload markers from localStorage

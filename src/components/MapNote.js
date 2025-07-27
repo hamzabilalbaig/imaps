@@ -13,6 +13,7 @@ import {
   Note as NoteIcon
 } from '@mui/icons-material';
 import L from 'leaflet';
+import localDB from '../utils/localStorage';
 
 /**
  * Component for rendering notes on the map
@@ -53,10 +54,10 @@ function MapNote({
     onEdit(note);
   };
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
     if (window.confirm('Are you sure you want to delete this note?')) {
       setIsPopupOpen(false);
-      onRemove(note.id);
+      await localDB.deleteNote(note.id);
     }
   };
 

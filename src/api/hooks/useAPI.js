@@ -44,8 +44,8 @@ export async function registerUser(userData) {
 }
 
 // Create POI
-export async function createPoi(poiData) {
-    const { data } = await apiClient.post('/admin/pois', poiData);
+export async function createPoi(poiData, selectedIcon) {
+    const { data } = await apiClient.post('/admin/pois', { ...poiData, selectedIcon });
     return data;
 }
 
@@ -119,6 +119,16 @@ export async function deleteAdminPoi(poiId) {
 
 export async function updateCategory(id, categoryName, updates) {
     const { data } = await apiClient.put(`/users/${id}/categories/${categoryName}`, updates);
+    return data;
+}
+
+export async function updateAdminCategory(categoryId, updates) {
+    const { data } = await apiClient.put(`/admin/categories/${categoryId}`, updates);
+    return data;
+}
+
+export async function editAdminNote(id, updates) {
+    const { data } = await apiClient.put(`/admin/notes/${id}`, updates);
     return data;
 }
 

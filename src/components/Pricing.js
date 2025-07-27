@@ -120,9 +120,21 @@ const Pricing = () => {
 
   const isCurrentPlan = (planId) => user?.plan === planId;
   const isDowngrade = (planId) => {
-    const currentPlanIndex = PLANS.findIndex(p => p.id === user?.plan);
-    const targetPlanIndex = PLANS.findIndex(p => p.id === planId);
-    return targetPlanIndex < currentPlanIndex;
+    // const currentPlanIndex = PLANS.findIndex(p => p.id === user?.plan);
+    // const targetPlanIndex = PLANS.findIndex(p => p.id === planId);
+    // console.log('Current Plan Index:', user?.plan, 'Target Plan Index:', planId);
+    // return targetPlanIndex < currentPlanIndex;
+    const currentPlan = user?.plan;
+    const intensities = {
+      free: 0,
+      premium: 1,
+      unlimited: 2
+    };
+    console.log('Current Plan intensities:', intensities, 'Current Plan intensity:', intensities?.[currentPlan], 'Target Plan intensity:', intensities?.[planId]);
+    console.log('Current Plan:', user?.plan, 'Target Plan:', planId);
+    if (intensities?.[currentPlan] > intensities?.[planId]) {
+      return true; 
+    }
   };
 
   return (

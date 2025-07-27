@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { Save as SaveIcon, Cancel as CancelIcon, Note as NoteIcon } from "@mui/icons-material";
 import ColorPicker from "./ColorPicker";
+import localDB from "../utils/localStorage";
 
 /**
  * Form component for adding or editing Notes
@@ -47,7 +48,15 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
     }
     
     console.log('NoteForm submitting data:', formData);
-    onSave(formData);
+    if(isEdit){
+      localDB?.updateNote(note.id, {
+        ...formData,
+        updatedAt: new Date().toISOString()
+      });
+    } else {
+      onSave(formData);
+
+    }
   };
 
   const handleChange = (e) => {

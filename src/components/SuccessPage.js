@@ -4,11 +4,13 @@ import { verifyCheckoutSession } from '../api/hooks/useAPI';
 import { Container, Typography, Box, CircularProgress, Paper, Button } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function SuccessPage() {
-  const { session_id } = useParams();
+  const { session_id, plan } = useParams();
   const [loading, setLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState(null);
+  const { upgradePlan } = useAuth();
 
   const verifySession = async () => {
     setLoading(true);
@@ -21,12 +23,19 @@ export default function SuccessPage() {
       return;
     }
 
-    setPaymentStatus(result);
+    setPaymentStatus(result?.payment_status);
+    if( result?.payment_status === 'paid') {
+      const result = await upgradePlan(plan?.replace('plan=', ''));
+    }
   };
 
   useEffect(() => {
     verifySession();
   }, [session_id]);
+
+  useEffect(() => {
+
+  })
 
   return (
     <Container
