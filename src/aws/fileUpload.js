@@ -17,7 +17,7 @@ const uploadFile = async (file, setLoading) => {
   const params = {
     Bucket: S3_BUCKET,
     Key: file.name,
-    Body: file,
+    Body: file instanceof Blob ? file : new Blob([file]),
   };
 
   const upload = s3

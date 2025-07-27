@@ -132,6 +132,22 @@ export async function editAdminNote(id, updates) {
     return data;
 }
 
+
+export async function editUserNote(id, noteId, updates) {
+    const { data } = await apiClient.put(`/users/${id}/notes/${noteId}`, updates);
+    return data;
+}
+
+export async function editUserPoi(id, poiId, updates) {
+    const { data } = await apiClient.put(`/users/${id}/pois/${poiId}`, updates);
+    return data;
+}
+
+export async function editAdminPoi(poiId, updates) {
+    const { data } = await apiClient.put(`/admin/pois/${poiId}`, updates);
+    return data;
+}
+
 export default function useAPI() {
   return {
     getAllUsers,

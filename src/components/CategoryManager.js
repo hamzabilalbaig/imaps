@@ -181,12 +181,12 @@ function CategoryManager() {
   };
 
   const handleIconSelect = (iconKey, customIconData = null) => {
+    console.log('Selected icon:', iconKey, customIconData);
     setFormData(prev => ({
       ...prev,
       selectedIcon: iconKey,
       customIcon: customIconData
     }));
-
     // If it's a new custom icon, save it to the database and update the custom icons list
     if (customIconData) {
       const result = localDB.addCustomIcon(customIconData, setLoading);
@@ -210,7 +210,8 @@ function CategoryManager() {
     if (category.customIcon) {
       return (
         <img 
-          src={category.customIcon.data} 
+          // src={category.customIcon.data} 
+          src={category.customIcon?.url}
           alt={category.customIcon.name}
           style={{ width: iconSize, height: iconSize, objectFit: 'contain' }}
         />

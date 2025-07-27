@@ -93,7 +93,7 @@ function MapMarker({ marker, onRemove, onEdit, isAdmin = false, canEdit = false 
           
           <Box sx={{ mb: 2 }}>
             <Typography variant="caption" color="text.secondary">
-              <strong>Location:</strong> {marker.coords}
+              <strong>Location:</strong> {marker.coords || marker.position.join(", ")}
             </Typography>
             {marker.createdAt && (
               <Typography variant="caption" color="text.secondary" display="block">

@@ -3,7 +3,7 @@
  * Handles user registration, authentication, POIs, notes, and categories
  */
 
-import { addUserCategory, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminNote, deleteAdminPoi, deleteUserCategory, deleteUserPoi, editAdminNote, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateAdminCategory, updateCategory } from "../api/hooks/useAPI";
+import { addUserCategory, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminNote, deleteAdminPoi, deleteUserCategory, deleteUserPoi, editAdminNote, editAdminPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateAdminCategory, updateCategory } from "../api/hooks/useAPI";
 import uploadFile from "../aws/fileUpload";
 
 class LocalStorageDB {
@@ -212,22 +212,26 @@ class LocalStorageDB {
     return adminPOIs;
   }
 
-  updatePOI(poiId, updates) {
+  async updatePOI(poiId, updates) {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return { success: false, message: 'No user logged in' };
 
     // Check admin POIs first
     if (currentUser.role === 'admin') {
-      const adminPOIs = this.getAdminPOIs();
-      const poiIndex = adminPOIs.findIndex(poi => poi.id === poiId);
-      if (poiIndex !== -1) {
-        adminPOIs[poiIndex] = {
-          ...adminPOIs[poiIndex],
-          ...updates,
-          updatedAt: new Date().toISOString()
-        };
-        localStorage.setItem('imaps_admin_pois', JSON.stringify(adminPOIs));
-        return { success: true, poi: adminPOIs[poiIndex] };
+      // const adminPOIs = this.getAdminPOIs();
+      // const poiIndex = adminPOIs.findIndex(poi => poi.id === poiId);
+      // if (poiIndex !== -1) {
+      //   adminPOIs[poiIndex] = {
+      //     ...adminPOIs[poiIndex],
+      //     ...updates,
+      //     updatedAt: new Date().toISOString()
+      //   };
+      //   localStorage.setItem('imaps_admin_pois', JSON.stringify(adminPOIs));
+      //   return { success: true, poi: adminPOIs[poiIndex] };
+      const updateResponse = await editAdminPoi(poiId, updates);
+      if (updateResponse) {
+        window?.location.reload();
+        return updateResponse;
       }
     }
 

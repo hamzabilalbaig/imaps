@@ -88,7 +88,7 @@ function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
     if (customIcon) {
       return (
         <img 
-          src={customIcon.data} 
+          src={customIcon.data?.url} 
           alt={customIcon.name}
           style={{ width: size, height: size }}
         />
