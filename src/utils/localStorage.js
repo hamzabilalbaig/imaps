@@ -3,7 +3,7 @@
  * Handles user registration, authentication, POIs, notes, and categories
  */
 
-import { addUserCategory, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminNote, deleteAdminPoi, deleteUserCategory, deleteUserPoi, editAdminNote, editAdminPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateAdminCategory, updateCategory } from "../api/hooks/useAPI";
+import { addUserCategory, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminNote, deleteAdminPoi, deleteUserCategory, deleteUserPoi, editAdminNote, editAdminPoi, editUserPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateAdminCategory, updateCategory } from "../api/hooks/useAPI";
 import uploadFile from "../aws/fileUpload";
 
 class LocalStorageDB {
@@ -233,30 +233,44 @@ class LocalStorageDB {
         window?.location.reload();
         return updateResponse;
       }
-    }
+    } 
+    
 
     // Check user POIs
-    const users = this.getUsers();
-    if (users[currentUser.email]) {
-      const poiIndex = users[currentUser.email].pois.findIndex(poi => poi.id === poiId);
-      if (poiIndex !== -1) {
-        users[currentUser.email].pois[poiIndex] = {
-          ...users[currentUser.email].pois[poiIndex],
-          ...updates,
-          updatedAt: new Date().toISOString()
-        };
+    // const users = this.getUsers();
+    // if (users[currentUser.email]) {
+    //   const poiIndex = users[currentUser.email].pois.findIndex(poi => poi.id === poiId);
+    //   if (poiIndex !== -1) {
+    //     users[currentUser.email].pois[poiIndex] = {
+    //       ...users[currentUser.email].pois[poiIndex],
+    //       ...updates,
+    //       updatedAt: new Date().toISOString()
+    //     };
         
-        localStorage.setItem('imaps_users', JSON.stringify(users));
+    //     localStorage.setItem('imaps_users', JSON.stringify(users));
         
-        // Update current user
-        const updatedUser = users[currentUser.email];
-        localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
-        
-        return { success: true, poi: users[currentUser.email].pois[poiIndex] };
-      }
-    }
+    //     // Update current user
+    //     const updatedUser = users[currentUser.email];
+    //     localStorage.setItem('imaps_current_user', JSON.stringify(updatedUser));
+    //     const response = await editUserPoi(currentUser.id, poiId, updates);
+    //     if (response) {
+    //       localStorage.setItem('imaps_current_user', JSON.stringify(response));
+    //       window.location.reload(); // Reload to reflect changes
+    //     }
+    //     return { success: true, poi: users[currentUser.email].pois[poiIndex] };
+    //   }
+    // }
     
-    return { success: false, message: 'POI not found' };
+    // return { success: false, message: 'POI not found' };
+    const editedPoi = {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+    const response = await editUserPoi(currentUser.id, poiId, editedPoi);
+    if (response) {
+      localStorage.setItem('imaps_current_user', JSON.stringify(response));
+      window.location.reload(); // Reload to reflect changes
+    }
   }
 
   async deletePOI(poiId) {
@@ -278,6 +292,7 @@ class LocalStorageDB {
       }
     } else {
       const response = await deleteUserPoi(currentUser.id, poiId);
+      localStorage.setItem('imaps_current_user', JSON.stringify(response));
       if (response) {
         window.location.reload(); // Reload to reflect changes
         return { success: true, message: 'POI deleted successfully' };

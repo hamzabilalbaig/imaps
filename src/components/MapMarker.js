@@ -114,7 +114,7 @@ function MapMarker({ marker, onRemove, onEdit, isAdmin = false, canEdit = false 
               Share Link
             </Button>
             
-            {isAdmin && (
+            
               <Stack direction="row" spacing={1}>
                 {onEdit && (
                   <Button
@@ -141,7 +141,7 @@ function MapMarker({ marker, onRemove, onEdit, isAdmin = false, canEdit = false 
                   </Button>
                 )}
               </Stack>
-            )}
+            
           </Stack>
         </Box>
       </Popup>
