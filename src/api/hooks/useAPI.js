@@ -148,6 +148,16 @@ export async function editAdminPoi(poiId, updates) {
     return data;
 }
 
+export async function deleteUserNote(id, noteId) {
+    const { data } = await apiClient.delete(`/users/${id}/notes/${noteId}`);
+    return data;
+}
+
+export async function authenticateUser(email, password) {
+    const { data } = await apiClient.post('/users/authenticate', { email, password });
+    return data;
+}
+
 export default function useAPI() {
   return {
     getAllUsers,

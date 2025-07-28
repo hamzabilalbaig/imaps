@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { localDB } from '../utils/localStorage';
+import { authenticateUser } from '../api/hooks/useAPI';
 
 const AuthContext = createContext();
 
@@ -68,12 +69,21 @@ export const AuthProvider = ({ children }) => {
     const result = await localDB.registerUser(email, password, name);
     if (result.success) {
       // Auto-login after registration
-      const loginResult = await localDB.loginUser(email, password);
-      if (loginResult.success) {
-        setUser(loginResult.user);
+      // const loginResult = await localDB.loginUser(email, password);
+      // if (loginResult.success) {
+      //   setUser(loginResult.user);
+      //   if (navigate) {
+      //     navigate('/maps', { replace: true });
+      //   }
+      // }
+      const authenticated = await authenticateUser(email, password);
+      if (authenticated.success) {
+        setUser(authenticated.user);
         if (navigate) {
           navigate('/maps', { replace: true });
         }
+      } else {
+        return { success: false, message: authenticated.message };
       }
     }
     return result;

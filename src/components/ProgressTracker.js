@@ -230,7 +230,7 @@ function ProgressTracker({
             </Typography>
           ) : (
             <List dense sx={{ mb: 2 }}>
-              {notes.map((note) => (
+              {notes?.map((note) => (
                 <ListItem 
                   key={note.id} 
                   sx={{ 

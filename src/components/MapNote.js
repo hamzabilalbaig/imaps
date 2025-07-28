@@ -99,7 +99,7 @@ function MapNote({
               </Typography>
             </Box>
             
-            {canEdit && (
+            
               <Box>
                 <IconButton 
                   size="small" 
@@ -117,7 +117,7 @@ function MapNote({
                   <DeleteIcon fontSize="small" />
                 </IconButton>
               </Box>
-            )}
+            
           </Box>
 
           {/* Note Description */}

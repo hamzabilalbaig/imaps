@@ -200,6 +200,7 @@ function InteractiveMapLayout({
       setNotes(data || []);
     }).catch(err => {
       console.error('Failed to fetch user notes:', err);
+      setNotes([]);
     });
   }, []);
   
@@ -381,13 +382,13 @@ function InteractiveMapLayout({
                 canEdit={isAdmin || note.userId === user?.id}
               />
             ))
-            : notes.map(note => (
+            : notes?.map(note => (
               <MapNote
                 key={note.id}
                 note={note}
                 onEdit={handleEditNote}
                 onRemove={handleRemoveNote}
-                canEdit={isAdmin || note.userId === user?.id}
+                canEdit={true}
               />
             ))
           }

@@ -15,6 +15,7 @@ import {
 import { Save as SaveIcon, Cancel as CancelIcon, Note as NoteIcon } from "@mui/icons-material";
 import ColorPicker from "./ColorPicker";
 import localDB from "../utils/localStorage";
+import { editUserNote } from "../api/hooks/useAPI";
 
 /**
  * Form component for adding or editing Notes
@@ -40,7 +41,7 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
     }
   }, [note, isEdit]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) {
       alert("Please enter a title for the note");
@@ -48,6 +49,18 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
     }
     
     console.log('NoteForm submitting data:', formData);
+    const user = JSON.parse(localStorage.getItem('imaps_current_user'));
+    if(user?.role === 'admin') {}
+    else {
+      const data = await editUserNote(user.id, note.id, {
+        ...formData,
+        updatedAt: new Date().toISOString()
+      });
+      if (data) {
+        localStorage.setItem('imaps_current_user', JSON.stringify(data));
+        window.location.reload(); // Reload to reflect changes
+      }
+    }
     if(isEdit){
       localDB?.updateNote(note.id, {
         ...formData,

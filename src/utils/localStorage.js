@@ -3,7 +3,7 @@
  * Handles user registration, authentication, POIs, notes, and categories
  */
 
-import { addUserCategory, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminNote, deleteAdminPoi, deleteUserCategory, deleteUserPoi, editAdminNote, editAdminPoi, editUserPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateAdminCategory, updateCategory } from "../api/hooks/useAPI";
+import { addUserCategory, authenticateUser, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminNote, deleteAdminPoi, deleteUserCategory, deleteUserNote, deleteUserPoi, editAdminNote, editAdminPoi, editUserPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateAdminCategory, updateCategory } from "../api/hooks/useAPI";
 import uploadFile from "../aws/fileUpload";
 
 class LocalStorageDB {
@@ -93,16 +93,26 @@ class LocalStorageDB {
     }
 
     // Regular user login
-    const users = await this.getUsers();
-    const user = users[email];
+    // const users = await this.getUsers();
+    // const user = users[email];
 
-    console.log('user password:', user ? user.password : 'not found', 'input password:', password);
+    // console.log('user password:', user ? user.password : 'not found', 'input password:', password);
 
-    if (!user || user.password !== password) {
-      return { success: false, message: 'Invalid email or password' };
-    } else {
+    // if (!user || user.password !== password) {
+    //   return { success: false, message: 'Invalid email or password' };
+    // } else {
+    //   localStorage.setItem('imaps_current_user', JSON.stringify(user));
+    //   return { success: true, user, isAdmin: false };
+    // }
+    try {
+      const user = await authenticateUser(email, password);
+      if (!user) {
+        return { success: false, message: 'Invalid email or password' };
+      }
       localStorage.setItem('imaps_current_user', JSON.stringify(user));
-      return { success: true, user, isAdmin: false };
+      return { success: true, user, isAdmin: user.role === 'admin' };
+    } catch (error) {
+      return { success: false, message: error?.message || 'Login failed' };
     }
   }
 
@@ -432,6 +442,7 @@ class LocalStorageDB {
     // }
     
     // return { success: false, message: 'User not found' };
+    console.log('user role:', currentUser.role);
     if (currentUser.role === 'admin') {
       const response = await deleteAdminNote(noteId);
       console.log('Admin note delete response:', response);
@@ -441,10 +452,15 @@ class LocalStorageDB {
         localStorage.setItem('imaps_admin_notes', JSON.stringify(filteredNotes));
         window.location.reload(); // Reload to reflect changes
         return { success: true, message: 'Note deleted successfully' };
-      }else {
-        // tbi
+      } 
+    } else {
+        const data = await deleteUserNote(currentUser.id, noteId);
+        localStorage.setItem('imaps_current_user', JSON.stringify(data));
+        if (data) {
+          window.location.reload(); // Reload to reflect changes
+          return { success: true, message: 'Note deleted successfully' };
+        }
       }
-    }
   }
 
   // Categories Management (Admin Only)
