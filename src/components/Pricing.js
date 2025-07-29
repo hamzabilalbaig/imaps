@@ -54,7 +54,7 @@ const PLANS = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '$19',
+    price: '$5',
     period: 'month',
     maxCustomCategories: 20,
     maxPOIsPerCategory: 20,
@@ -74,7 +74,7 @@ const PLANS = [
   {
     id: 'unlimited',
     name: 'Unlimited',
-    price: '$39',
+    price: '$10',
     period: 'month',
     maxCustomCategories: 'Unlimited',
     maxPOIsPerCategory: 'Unlimited',
