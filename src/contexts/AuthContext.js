@@ -81,6 +81,7 @@ export const AuthProvider = ({ children }) => {
         setUser(authenticated.user);
         if (navigate) {
           navigate('/maps', { replace: true });
+          window.location.reload(); // Reload to reflect changes
         }
       } else {
         return { success: false, message: authenticated.message };

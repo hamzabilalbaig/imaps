@@ -44,6 +44,7 @@ class LocalStorageDB {
       // Check if user already exists (API call)
       const users = await this.getUsers();
       if (users[email]) {
+        alert('User already exists');
         return { success: false, message: 'User already exists' };
       }
 
@@ -106,10 +107,12 @@ class LocalStorageDB {
     // }
     try {
       const user = await authenticateUser(email, password);
+      console.log('Authenticated user:', user?.user);
       if (!user) {
         return { success: false, message: 'Invalid email or password' };
       }
-      localStorage.setItem('imaps_current_user', JSON.stringify(user));
+      localStorage.setItem('imaps_current_user', JSON.stringify(user?.user));
+      window.location.reload(); // Reload to reflect changes
       return { success: true, user, isAdmin: user.role === 'admin' };
     } catch (error) {
       return { success: false, message: error?.message || 'Login failed' };
@@ -155,9 +158,9 @@ class LocalStorageDB {
   // Points of Interest Management
   async addPOI(poi, selectedIcon) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) {
-      return { success: false, message: 'No user logged in' };
-    }
+    // if (!currentUser) {
+    //   return { success: false, message: 'No user logged in' };
+    // }
 
     if (currentUser.role === 'admin') {
       // Admins can add POIs without restrictions
@@ -195,7 +198,7 @@ class LocalStorageDB {
 
   async getUserPOIs() {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return [];
+    // if (!currentUser) return [];
     
     if (currentUser.role === 'admin') {
       return await this.getAllPOIs();
@@ -224,7 +227,7 @@ class LocalStorageDB {
 
   async updatePOI(poiId, updates) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return { success: false, message: 'No user logged in' };
+    // if (!currentUser) return { success: false, message: 'No user logged in' };
 
     // Check admin POIs first
     if (currentUser.role === 'admin') {
@@ -285,7 +288,7 @@ class LocalStorageDB {
 
   async deletePOI(poiId) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return { success: false, message: 'No user logged in' };
+    // if (!currentUser) return { success: false, message: 'No user logged in' };
 
     // Check admin POIs first
     if (currentUser.role === 'admin') {
@@ -332,7 +335,7 @@ class LocalStorageDB {
   // Notes Management
   async addNote(note) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return { success: false, message: 'No user logged in' };
+    // if (!currentUser) return { success: false, message: 'No user logged in' };
     if (currentUser.role !== 'admin') {
     const noteData = {
       id: Date.now().toString(),
@@ -359,7 +362,7 @@ class LocalStorageDB {
 
   getUserNotes() {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return [];
+    // if (!currentUser) return [];
     
     if (currentUser.role === 'admin') {
       return this.getAllNotes();
@@ -467,9 +470,9 @@ class LocalStorageDB {
   async addCategory(category) {
     const currentUser = this.getCurrentUser();
     
-    if (!currentUser) {
-      return { success: false, message: 'No user logged in' };
-    }
+    // if (!currentUser) {
+    //   return { success: false, message: 'No user logged in' };
+    // }
 
     if (currentUser.role === 'admin') {
       // Admin categories are stored globally
@@ -526,7 +529,7 @@ class LocalStorageDB {
   // Get categories available to the current user (admin-created or user-specific)
   async getAvailableCategories() {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return []; // No user logged in, return empty array
+    // if (!currentUser) return []; // No user logged in, return empty array
 
     if (currentUser.role === 'admin') {
       return await this.getAdminCategories(); // Admin sees global categories
@@ -655,7 +658,7 @@ class LocalStorageDB {
   // Get count of POIs in a specific category for the current user
   async getPOICountInCategory(categoryId) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return 0;
+    // if (!currentUser) return 0;
 
     const userPOIs = await this.getUserPOIs();
     return userPOIs?.filter(poi => poi.categoryId === categoryId)?.length;
@@ -664,7 +667,7 @@ class LocalStorageDB {
   // Get count of user's custom categories
   async getUserCategoryCount() {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return 0;
+    // if (!currentUser) return 0;
 
     if (currentUser.role === 'admin') {
       return await this.getAdminCategories()?.length;
@@ -721,7 +724,7 @@ class LocalStorageDB {
 
   getUserCustomIcons() {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return [];
+    // if (!currentUser) return [];
     
     if (currentUser.role === 'admin') {
       return this.getAllCustomIcons();
@@ -752,7 +755,7 @@ class LocalStorageDB {
   // Plan Management
   async updateUserPlan(plan) {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return { success: false, message: 'No user logged in' };
+    // if (!currentUser) return { success: false, message: 'No user logged in' };
 
     try {
       // Call changeUserPlan API
@@ -783,7 +786,7 @@ class LocalStorageDB {
 
   exportUserData() {
     const currentUser = this.getCurrentUser();
-    if (!currentUser) return null;
+    // if (!currentUser) return null;
 
     return {
       user: currentUser,
