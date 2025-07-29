@@ -122,11 +122,13 @@ export const getCustomIcons = () => {
 export const createCategoryIcon = (category, customIcon = null, selectedIcon = null, iconColor = null) => {
   let IconComponent;
   let iconHtml;
-  
+  if (customIcon && typeof customIcon === 'string') {
+    customIcon = JSON.parse(customIcon);
+  }
   // Check if we should use a custom icon
   if (selectedIcon && customIcon) {
     // Use custom uploaded icon
-    iconHtml = `<img src="${customIcon.url}" style="width: 24px; height: 24px; object-fit: contain;" alt="${customIcon.name}" />`;
+    iconHtml = `<img src="${customIcon?.url}" style="width: 24px; height: 24px; object-fit: contain;" alt="${customIcon.name}" />`;
   } else if (selectedIcon && selectedIcon.startsWith('custom_')) {
     // Try to find custom icon in localStorage
     const customIcons = getCustomIcons();
