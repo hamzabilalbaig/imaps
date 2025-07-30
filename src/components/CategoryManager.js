@@ -111,10 +111,10 @@ function CategoryManager() {
     setShowForm(true);
   };
 
-  const handleDeleteCategory = (categoryId) => {
+  const handleDeleteCategory = async (categoryId) => {
     if (window.confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
       try {
-        deleteCategory(categoryId);
+        await deleteCategory(categoryId);
       } catch (error) {
         console.error('Error deleting category:', error);
         alert(error);

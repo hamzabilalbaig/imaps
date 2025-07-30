@@ -59,8 +59,8 @@ export const CategoriesProvider = ({ children }) => {
     throw new Error(result.message);
   };
 
-  const deleteCategory = (categoryId) => {
-    const result = localDB.deleteCategory(categoryId);
+  const deleteCategory = async (categoryId) => {
+    const result = await localDB.deleteCategory(categoryId);
     if (result) {
       loadCategories(); // Reload categories from localStorage
       return true;

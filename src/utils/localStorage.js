@@ -652,6 +652,11 @@ class LocalStorageDB {
     if (user.role === 'admin') {
       const adminCategories = await deleteAdminCategory(categoryNameOrId);
       console.log('response:::', adminCategories);
+      if (adminCategories) {
+        localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
+        window.location.reload(); // Reload to reflect changes
+        return { success: true, message: 'Category deleted successfully' };
+      }
 
     } else {
       const response = await deleteUserCategory(user.id, categoryNameOrId);
