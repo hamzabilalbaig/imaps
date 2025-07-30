@@ -19,7 +19,9 @@ import {
   useTheme,
   alpha,
   Tabs,
-  Tab
+  Tab,
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -51,13 +53,23 @@ function Sidebar({
   onShowAll,
   onHideAll,
   streetsVisible = true,
-  onStreetsToggle
+  onStreetsToggle,
+  hiddenCategories = [],
+  setHiddenCategories = () => {}
 }) {
   const theme = useTheme();
   const { isAdmin, user } = useAuth();
   const { categories, getCategoryNames, getCategoryColors } = useCategories();
   const [expandedCategories, setExpandedCategories] = useState({});
   const [activeTab, setActiveTab] = useState(0); // 0 = Interactive Map, 1 = Categories
+  // const [hiddenCategories, setHiddenCategories] = useState([])
+  // Admin category visibility state
+  const [adminVisibleCategories, setAdminVisibleCategories] = useState(() => {
+    const adminCats = JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]');
+    const initial = {};
+    adminCats.forEach(cat => { initial[cat.id] = true; });
+    return initial;
+  });
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -95,6 +107,14 @@ function Sidebar({
   const getVisibleCount = (category) => {
     const categoryMarkers = markersByCategory[category] || [];
     return visibleCategories[category] ? categoryMarkers.length : 0;
+  };
+
+  // Toggle admin category visibility
+  const handleAdminCategoryToggle = (id) => {
+    setAdminVisibleCategories(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
   return (
@@ -226,7 +246,7 @@ function Sidebar({
             </Box>
 
             {/* Streets Toggle */}
-            <Button
+            {/* <Button
               size="small"
               variant={streetsVisible ? "contained" : "outlined"}
               onClick={onStreetsToggle}
@@ -245,7 +265,7 @@ function Sidebar({
               }}
             >
               {streetsVisible ? '✓ STREETS' : 'STREETS'}
-            </Button>
+            </Button> */}
           </>
         )}
       </Box>
@@ -287,8 +307,15 @@ function Sidebar({
                   )}
                 </Box>
               ) : (
-                getCategoryNames()?.map((category) => {
+
+
+                <div>
+                  <Typography variant="caption" sx={{ px: 2, py: 1 }}>
+                        My POIS
+                      </Typography>
+                {getCategoryNames()?.map((category) => {
                   const count = getCategoryCount(category);
+                  console.log('Category:', category, 'Count:', count);
                   const visibleCount = getVisibleCount(category);
                   const isVisible = visibleCategories[category];
                   const isExpanded = expandedCategories[category];
@@ -298,6 +325,8 @@ function Sidebar({
                   if (count === 0) return null;
 
                   return (
+                    <div>
+                      
                     <Accordion
                       key={category}
                       expanded={isExpanded}
@@ -419,8 +448,159 @@ function Sidebar({
                         </AccordionDetails>
                       )}
                     </Accordion>
+                    </div>
                   );
-                })
+                })}
+
+                {/* Admin Categories for user role, styled as Accordions */}
+                    {
+                      user?.role === 'user' && (
+                        <Typography variant="caption" sx={{ px: 2, py: 1 }}>
+                          Admin POIS
+                        </Typography>
+                      )
+                    }
+                    {user?.role === 'user' && (
+                      JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]').map(category => {
+                        const isVisible = adminVisibleCategories[category.id];
+                        const categoryColor = category.color || CATEGORY_COLORS['Other'];
+                        return (
+                          <Accordion
+                            key={category.id}
+                            expanded={expandedCategories[category.id]}
+                            onChange={() => handleCategoryToggle(category.id)}
+                            sx={{
+                              boxShadow: 'none',
+                              '&:before': { display: 'none' },
+                              '&.Mui-expanded': { margin: 0 },
+                              mb: 1,
+                              borderRadius: 2,
+                              border: `1px solid ${alpha(categoryColor, 0.2)}`,
+                              '&:hover': {
+                                backgroundColor: alpha(categoryColor, 0.02)
+                              }
+                            }}
+                          >
+                            <AccordionSummary
+                              expandIcon={<ExpandMoreIcon sx={{ fontSize: '1rem', color: categoryColor }} />}
+                              sx={{
+                                minHeight: 40,
+                                px: 2,
+                                '& .MuiAccordionSummary-content': {
+                                  alignItems: 'center',
+                                  margin: 0
+                                }
+                              }}
+                            >
+                              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                <IconButton
+                                  size="small"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    handleAdminCategoryToggle(category.id);
+                                    if (hiddenCategories.includes(category.name)) {
+                                      setHiddenCategories(hiddenCategories.filter(cat => cat !== category.name));
+                                    } else {
+                                    setHiddenCategories([...hiddenCategories,category?.name]);
+                                    }
+                                  }}
+                                  sx={{
+                                    mr: 1.5,
+                                    // color: isVisible ? categoryColor : theme.palette.grey[400],
+                                    color: hiddenCategories.includes(category.name) ? theme.palette.grey[400] : categoryColor,
+                                    '&:hover': {
+                                      backgroundColor: alpha(categoryColor, 0.1)
+                                    }
+                                  }}
+                                >
+                                  {/* {isVisible ? <VisibilityIcon sx={{ fontSize: '1rem' }} /> : <VisibilityOffIcon sx={{ fontSize: '1rem' }} />} */}
+                                  {
+                                    hiddenCategories.includes(category.name) ?
+                                    <VisibilityOffIcon sx={{ fontSize: '1rem' }} /> :
+                                    <VisibilityIcon sx={{ fontSize: '1rem' }} />
+                                  }
+                                </IconButton>
+                                <Box
+                                  sx={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    backgroundColor: categoryColor,
+                                    mr: 1.5,
+                                    flexShrink: 0
+                                  }}
+                                />
+                                <Typography 
+                                  variant="subtitle2" 
+                                  sx={{ 
+                                    flexGrow: 1,
+                                    fontWeight: 600,
+                                    fontSize: '0.85rem',
+                                    color: theme.palette.text.primary
+                                  }}
+                                >
+                                  {category.name}
+                                </Typography>
+                                <Chip
+                                  label={JSON.parse(localStorage.getItem('imaps_admin_pois') || '[]')
+                                    .filter(poi => poi.category === category.name).length || 0}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.7rem',
+                                    fontWeight: 500,
+                                    backgroundColor: isVisible ? categoryColor : theme.palette.grey[300],
+                                    color: 'white',
+                                    '& .MuiChip-label': { px: 0.75 }
+                                  }}
+                                />
+                              </Box>
+                            </AccordionSummary>
+
+                            <AccordionDetails sx={{ pt: 0, px: 0 }}>
+                            {
+                              JSON.parse(localStorage.getItem('imaps_admin_pois') || '[]')
+                                .filter(poi => poi.category === category.name)
+                                .map(poi => (
+                                  <ListItem key={poi.id} disablePadding>
+                                    <ListItemButton
+                                      onClick={() => onMarkerClick(poi)}
+                                      sx={{
+                                        pl: 5,
+                                        py: 0.5,
+                                        '&:hover': {
+                                          backgroundColor: alpha(categoryColor, 0.05)
+                                        }
+                                      }}
+                                    >
+                                      <ListItemText
+                                        primary={poi.title}
+                                        secondary={poi.description}
+                                        primaryTypographyProps={{
+                                          fontSize: '0.8rem',
+                                          fontWeight: 500
+                                        }}
+                                        secondaryTypographyProps={{
+                                          fontSize: '0.7rem',
+                                          sx: {
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                            color: theme.palette.text.secondary,
+                                            maxWidth: 'calc(100% - 40px)' // Adjust for icon padding
+                                          }
+                                        }}
+                                      />
+                                    </ListItemButton>
+                                  </ListItem>
+                                ))
+                            }
+                            </AccordionDetails>
+                          </Accordion>
+                        );
+                      })
+                    )}
+                </div>
               )}
             </Box>
           </>
@@ -428,7 +608,9 @@ function Sidebar({
 
         {/* Category Manager for Admins */}
         {user && activeTab === 1 && (
+          <div style={{ overflowY: 'auto' }}>
           <CategoryManager />
+          </div>
         )}
       </Box>
 

@@ -64,6 +64,8 @@ function InteractiveMapLayout({
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [pendingNoteLocation, setPendingNoteLocation] = useState(null);
+  const [hideAll, setHideAll] = useState(false);
+  const [hiddenCategories, setHiddenCategories] = useState([]);
 
   // Filter markers based on visible categories and search
   const filteredMarkers = markers?.filter(marker => {
@@ -83,21 +85,23 @@ function InteractiveMapLayout({
   };
 
   const handleShowAll = () => {
-    const allCategories = [...new Set(markers.map(m => m.category || 'Other'))];
-    const newVisible = {};
-    allCategories.forEach(cat => {
-      newVisible[cat] = true;
-    });
-    setVisibleCategories(newVisible);
+    // const allCategories = [...new Set(markers.map(m => m.category || 'Other'))];
+    // const newVisible = {};
+    // allCategories.forEach(cat => {
+    //   newVisible[cat] = true;
+    // });
+    // setVisibleCategories(newVisible);
+    setHideAll(false);
   };
 
   const handleHideAll = () => {
-    const allCategories = [...new Set(markers.map(m => m.category || 'Other'))];
-    const newVisible = {};
-    allCategories.forEach(cat => {
-      newVisible[cat] = false;
-    });
-    setVisibleCategories(newVisible);
+    // const allCategories = [...new Set(markers.map(m => m.category || 'Other'))];
+    // const newVisible = {};
+    // allCategories.forEach(cat => {
+    //   newVisible[cat] = false;
+    // });
+    // setVisibleCategories(newVisible);
+    setHideAll(true)
   };
 
   const handleAddNote = () => {
@@ -203,6 +207,10 @@ function InteractiveMapLayout({
       setNotes([]);
     });
   }, []);
+
+  useEffect(() => {
+    console.log('Hidden categories updated:', hiddenCategories);
+  }, [hiddenCategories]);
   
 
   const leftSidebarContent = (
@@ -217,6 +225,8 @@ function InteractiveMapLayout({
       onHideAll={handleHideAll}
       streetsVisible={streetsVisible}
       onStreetsToggle={handleStreetsToggle}
+      hiddenCategories={hiddenCategories}
+      setHiddenCategories={setHiddenCategories}
     />
   );
 
@@ -309,7 +319,7 @@ function InteractiveMapLayout({
                 width: { xs: '85vw', sm: '70vw', md: 320 },
                 maxWidth: 400,
                 height: '100%',
-                overflow: 'hidden'
+                // overflow: 'hidden'
               }
             }}
           >
@@ -361,18 +371,18 @@ function InteractiveMapLayout({
           )}
           
           {/* Markers */}
-          {filteredMarkers.map((marker) => (
+          {!hideAll && filteredMarkers.map((marker) => hiddenCategories[marker.category] ? null : (
             <MapMarker
               key={marker.id}
               marker={marker}
               onRemove={onMarkerRemove}
               onEdit={onMarkerEdit}
-              isAdmin={isAdmin}
-              canEdit={isAdmin || marker.userId === user?.id}
+              isAdmin={ user?.role === 'admin' }
+              canEdit={true}
             />
           ))}
           {
-            user?.role === 'admin' ?
+           !hideAll &&  user?.role === 'admin' ?
             JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]').map(note => (
               <MapNote
                 key={note.id}
@@ -390,6 +400,35 @@ function InteractiveMapLayout({
                 onRemove={handleRemoveNote}
                 canEdit={true}
               />
+            ))
+          }
+          {/* Render admin notes to view only for user */}
+          {/* {
+            !hideAll && user?.role === 'user' &&
+            JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]').map(note => (
+              <MapNote
+                key={note.id}
+                note={note}
+                onEdit={() => {}}
+                onRemove={() => {}}
+                canEdit={false}
+              />
+            ))} */}
+          
+          {/* Render admin pois to view only for user */}
+          {
+            !hideAll && user?.role === 'user' &&
+            JSON.parse(localStorage.getItem('imaps_admin_pois') || '[]').map(poi => hiddenCategories?.includes(poi.category) ? null : (
+              <>
+              <MapMarker
+                key={poi.id}
+                marker={poi}
+                onRemove={() => {}}
+                onEdit={() => {}}
+                isAdmin={false}
+                canEdit={false}
+              />
+</>
             ))
           }
         </MapWithLayers>

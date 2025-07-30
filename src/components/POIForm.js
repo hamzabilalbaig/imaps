@@ -14,7 +14,8 @@ import {
   Typography,
   Alert,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  CircularProgress
 } from "@mui/material";
 import { Save as SaveIcon, Cancel as CancelIcon } from "@mui/icons-material";
 import { useCategories } from "../contexts/CategoriesContext";
@@ -25,6 +26,8 @@ import { localDB } from "../utils/localStorage";
  * Form component for adding or editing POIs
  */
 function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
+  const [loading, setLoading] = useState(false);
+  const [doNotAllowUserToAddPOI, setDoNotAllowUserToAddPOI] = useState(false);
   const { getCategoryNames, getCategoryByName } = useCategories();
   const { canAddPOItoCategory, getRemainingPOIsForCategory } = useAuth();
   const [formData, setFormData] = useState({
@@ -48,8 +51,22 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
     }
   }, [poi, isEdit]);
 
-  const handleSubmit = (e) => {
+
+  useEffect(() => {
+    const canUserAddPOI = canAddPOItoCategory(formData.category);
+    if (canUserAddPOI === false) {
+      setDoNotAllowUserToAddPOI(true);
+      setCategoryLimitWarning("You have reached the limit for this category. Please upgrade your plan or choose a different category.");
+    }
+    else {
+      setDoNotAllowUserToAddPOI(false);
+      setCategoryLimitWarning("");
+    }
+  }, [formData.category]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     if (!formData.title.trim()) {
       alert("Please enter a title for the POI");
       return;
@@ -61,12 +78,12 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
     }
     
     // Get category data to include icon and color information
-    const categoryData = getCategoryByName(formData.category);
+    const categoryData = await getCategoryByName(formData.category);
     
     // Check category limits before saving (for new POIs)
     if (!isEdit && categoryData) {
-      const poisInCategory = localDB.getPOICountInCategory(categoryData.id);
-      if (!canAddPOItoCategory(categoryData.id, poisInCategory)) {
+      const poisInCategory = await localDB.getPOICountInCategory(categoryData.id);
+      if (!(await canAddPOItoCategory(categoryData.id, poisInCategory))) {
         alert("This category has reached its POI limit. Please upgrade your plan or choose a different category.");
         return;
       }
@@ -82,10 +99,11 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
     
     console.log('POIForm submitting data:', submissionData);
     console.log('POIForm submitting data:', submissionData);
-    onSave(submissionData);
+    await onSave(submissionData);
+    setLoading(false);
   };
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -95,9 +113,11 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
     // Check category limits when category is selected
     if (name === 'category' && value) {
       const categoryData = getCategoryByName(value);
+      console.log('Selected category data:', categoryData);
+      console.log('Selected category name:', value);
       if (categoryData) {
         const poisInCategory = localDB.getPOICountInCategory(categoryData.id);
-        const canAdd = canAddPOItoCategory(categoryData.id, poisInCategory);
+        const canAdd = await canAddPOItoCategory(value, poisInCategory);
         const remaining = getRemainingPOIsForCategory(poisInCategory);
         
         if (!canAdd) {
@@ -299,6 +319,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
           variant="contained" 
           startIcon={<SaveIcon />}
           fullWidth={isMobile}
+          disabled={loading || !formData.title || !formData.category || doNotAllowUserToAddPOI}
           sx={{
             borderRadius: 2,
             px: { xs: 2, md: 3 },
@@ -311,6 +332,10 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
             }
           }}
         >
+           {loading && (
+            <CircularProgress size={24} sx={{ color: 'white' }} />
+          )}
+
           {isEdit ? "Update Location" : (isAdmin ? "Add Location" : "Suggest Location")}
         </Button>
       </DialogActions>

@@ -20,7 +20,8 @@ import {
   Chip,
   Divider,
   useTheme,
-  alpha
+  alpha,
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,6 +37,7 @@ import { useAuth } from '../contexts/AuthContext';
 import IconSelector from './IconSelector';
 import ColorPicker from './ColorPicker';
 import { localDB } from '../utils/localStorage';
+import { Circle } from 'react-leaflet';
 
 // Storage key for custom categories
 const CATEGORIES_STORAGE_KEY = 'customCategories';
@@ -121,7 +123,8 @@ function CategoryManager() {
   };
 
   const handleSaveCategory = async () => {
-    
+    if (loading) return; // Prevent multiple submissions
+    setLoading(true);
     if (!formData?.name?.trim()) {
       alert('Please enter a category name');
       return;
@@ -142,22 +145,28 @@ function CategoryManager() {
       if (editingCategory) {
         // Update existing category
         const identifier = user?.role === 'admin' ? editingCategory.id : editingCategory.name;
-        updateCategory(identifier, {
+        const result = await updateCategory(identifier, {
           name: formData?.name?.trim(),
           selectedIcon: formData?.selectedIcon,
           customIcon: formData?.customIcon,
           color: formData?.color,
           description: formData?.description?.trim()
         });
+        if (result) {
+          window?.location.reload(); // Reload to get latest user data
+        }
       } else {
         // Add new category
-        await addCategory({
+       const result = await addCategory({
           name: formData?.name?.trim(),
           selectedIcon: formData?.selectedIcon,
           customIcon: formData?.customIcon,
           color: formData?.color,
           description: formData?.description?.trim()
         });
+        if (result) {
+          window?.location.reload(); // Reload to get latest user data
+        }
       }
 
       setShowForm(false);
@@ -166,6 +175,7 @@ function CategoryManager() {
       console.error('Error saving category:', error);
       alert('Error saving category: ' + error?.message);
     }
+    setLoading(false);
   };
 
   const handleCancelForm = () => {
@@ -318,6 +328,14 @@ function CategoryManager() {
         py: 1,
         minHeight: 0
       }}>
+        {user?.role === 'user' && (
+          <Alert severity="info" sx={{ mb: 2, fontSize: '0.75rem' }}>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              Own Categories Section
+            </Typography>
+          </Alert>
+            
+        )}
         {categories?.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 3 }}>
             <CategoryIcon sx={{ fontSize: 32, color: 'grey.400', mb: 1 }} />
@@ -477,6 +495,107 @@ function CategoryManager() {
             ))}
           </List>
         )}
+
+        {
+          user?.role === 'user' && (
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                Admin categories
+              </Typography>
+            </Box>
+          )
+        }
+        {
+          user?.role === 'user' && localStorage.getItem('imaps_admin_categories') && (
+            <List sx={{ p: 0, mt: 1 }}>
+              {JSON.parse(localStorage.getItem('imaps_admin_categories')).map((category, index) => (
+                <ListItem 
+                  key={category.id}
+                  sx={{ 
+                    p: 0, 
+                    mb: 1,
+                    '&:last-child': { mb: 0 }
+                  }}
+                >
+                  <Card 
+                    variant="outlined"
+                    sx={{ 
+                      width: '100%',
+                      borderRadius: 1.5,
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': { 
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        borderColor: 'primary.200',
+                        transform: 'translateY(-1px)'
+                      }
+                    }}
+                  >
+                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1.5,
+                        mb: 1
+                      }}>
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 1.5,
+                            backgroundColor: alpha(category.color, 0.15),
+                            border: `1.5px solid ${category.color}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}
+                        >
+                          {renderCategoryIcon(category, { fontSize: '1rem' })}
+                        </Box>
+                        
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography 
+                            variant="subtitle2" 
+                            fontWeight={600} 
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              lineHeight: 1.2,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {category.name} 
+                          </Typography>
+                          {category.description && (
+                            <Typography 
+                              variant="body2" 
+                              color="text.secondary" 
+                              sx={{ 
+                                fontSize: '0.65rem',
+                                lineHeight: 1.2,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 1,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                mt: 0.25
+                              }}
+                            >
+                              {category.description}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                          {/* cannot edit them */}
+                      </CardContent>
+                  </Card>
+                </ListItem>
+              ))}
+            </List>
+          )
+        }
       </Box>
 
       {/* Add/Edit Category Form Dialog */}
@@ -591,12 +710,14 @@ function CategoryManager() {
             type="submit" 
             variant="contained" 
             startIcon={<SaveIcon />}
+            disabled={loading || !formData.name.trim()}
             sx={{ 
               borderRadius: 2,
               ml: 1,
               background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
             }}
           >
+            {loading ? <CircularProgress size={24} /> : null}
             {editingCategory ? 'Update Category' : 'Add Category'}
           </Button>
         </DialogActions>

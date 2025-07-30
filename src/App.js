@@ -17,6 +17,15 @@ import Pricing from './components/Pricing';
 import SuccessPage from './components/SuccessPage';
 
 function App() {
+  const path = window.location.pathname;
+  const [showNavigation, setShowNavigation] = React.useState(true);
+  React.useEffect(() => {
+    if (path === '/login' || path === '/admin-login') {
+      setShowNavigation(false);
+    } else {
+      setShowNavigation(true);
+    }
+  }, [path]);
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -35,7 +44,13 @@ function App() {
               right: 0,
               bottom: 0
             }}>
-              <Navigation />
+{
+  // path !== '/login' && path !== '/admin-login' && 
+  // path?.includes('/login') || path.includes('/admin-login') ? null :
+              showNavigation && <Navigation />
+              
+
+}
               <Box sx={{ 
                 flex: 1, 
                 minHeight: 0,
@@ -43,7 +58,8 @@ function App() {
                 position: 'relative',
               }}>
                 <Routes>
-                  <Route path="/login" element={<Login />} />
+                  <Route path="/login" element={<Login loginType="user" />} />
+                  <Route path="/admin-login" element={<Login loginType="admin" />} />
                   <Route 
                     path="/" 
                     element={

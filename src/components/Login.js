@@ -27,9 +27,9 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
-const Login = () => {
+const Login = ({loginType}) => {
   const [mode, setMode] = useState('login'); // 'login' or 'register'
-  const [loginType, setLoginType] = useState('user'); // 'admin' or 'user'
+  // const [loginType, setLoginType] = useState('user'); // 'admin' or 'user'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -69,6 +69,8 @@ const Login = () => {
       const result = await register(email, password, name, 'user');
       if (!result.success) {
         setError(result.error);
+      } else {
+        window.location.reload(); // Reload to get latest user data
       }
     } else {
       const result = await login(email, password, loginType);
@@ -80,16 +82,16 @@ const Login = () => {
     setLoading(false);
   };
 
-  const handleLoginTypeChange = (type) => {
-    setLoginType(type);
-    if (type === 'admin') {
-      setEmail('admin@admin.com');
-      setPassword('admin');
-    } else {
-      setEmail('');
-      setPassword('');
-    }
-  };
+  // const handleLoginTypeChange = (type) => {
+  //   setLoginType(type);
+  //   if (type === 'admin') {
+  //     setEmail('admin@admin.com');
+  //     setPassword('admin');
+  //   } else {
+  //     setEmail('');
+  //     setPassword('');
+  //   }
+  // };
 
   const resetForm = () => {
     setEmail('');
@@ -97,7 +99,7 @@ const Login = () => {
     setConfirmPassword('');
     setName('');
     setError('');
-    setLoginType('user');
+    // setLoginType('user');
   };
 
   return (
@@ -157,33 +159,34 @@ const Login = () => {
 
           {/* Login Type Selector for Login Mode */}
           {mode === 'login' && (
-            <Box sx={{ mb: 3 }}>
-              <ButtonGroup fullWidth variant="outlined" sx={{ mb: 2 }}>
-                <Button
-                  variant={loginType === 'user' ? 'contained' : 'outlined'}
-                  onClick={() => handleLoginTypeChange('user')}
-                  startIcon={<UserIcon />}
-                  sx={{ py: 1.5 }}
-                >
-                  User Login
-                </Button>
-                <Button
-                  variant={loginType === 'admin' ? 'contained' : 'outlined'}
-                  onClick={() => handleLoginTypeChange('admin')}
-                  startIcon={<AdminIcon />}
-                  sx={{ py: 1.5 }}
-                  color="secondary"
-                >
-                  Admin Login
-                </Button>
-              </ButtonGroup>
-              <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
-                {loginType === 'admin' 
-                  ? 'Admin access with full management capabilities' 
-                  : 'Standard user access with POI creation limits'
-                }
-              </Typography>
-            </Box>
+            // <Box sx={{ mb: 3 }}>
+            //   <ButtonGroup fullWidth variant="outlined" sx={{ mb: 2 }}>
+            //     <Button
+            //       variant={loginType === 'user' ? 'contained' : 'outlined'}
+            //       onClick={() => handleLoginTypeChange('user')}
+            //       startIcon={<UserIcon />}
+            //       sx={{ py: 1.5 }}
+            //     >
+            //       User Login
+            //     </Button>
+            //     <Button
+            //       variant={loginType === 'admin' ? 'contained' : 'outlined'}
+            //       onClick={() => handleLoginTypeChange('admin')}
+            //       startIcon={<AdminIcon />}
+            //       sx={{ py: 1.5 }}
+            //       color="secondary"
+            //     >
+            //       Admin Login
+            //     </Button>
+            //   </ButtonGroup>
+            //   <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
+            //     {loginType === 'admin' 
+            //       ? 'Admin access with full management capabilities' 
+            //       : 'Standard user access with POI creation limits'
+            //     }
+            //   </Typography>
+            // </Box>
+            <></>
           )}
 
           <Divider sx={{ mb: 3 }} />

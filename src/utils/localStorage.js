@@ -17,8 +17,7 @@ class LocalStorageDB {
     }
     if (!localStorage.getItem('imaps_current_user')) {
       localStorage.setItem('imaps_current_user', null);
-    }
-    
+    }    
     // Initialize empty categories - only admin can create them
     if (!localStorage.getItem('imaps_admin_categories')) {
       // localStorage.setItem('imaps_admin_categories', JSON.stringify([]));
@@ -34,7 +33,15 @@ class LocalStorageDB {
     if (!localStorage.getItem('imaps_admin_pois')) {
       localStorage.setItem('imaps_admin_pois', JSON.stringify([]));
     }
-
+    // initialize admin pois to map for user to view only not to edit
+    const adminPois = await getAdminPois();
+    localStorage.setItem('imaps_admin_pois', JSON.stringify(adminPois));
+    // initialize admin categories to map for user to view only not to edit
+    const adminCategories = await getAdminCategoriesApi();
+    localStorage.setItem('imaps_admin_categories', JSON.stringify(adminCategories));
+    // initialize admin notes to map for user to view only not to edit
+    const adminNotes = await getAdminNotes();
+    localStorage.setItem('imaps_admin_notes', JSON.stringify(adminNotes));
   }
 
   // User Management
@@ -203,7 +210,7 @@ class LocalStorageDB {
     if (currentUser.role === 'admin') {
       return await this.getAllPOIs();
     }
-    
+    console.log('Current user POIs:', currentUser.pois);
     return currentUser.pois || [];
   }
 
@@ -536,6 +543,8 @@ class LocalStorageDB {
     } else {
       // Regular user sees their own categories
       return currentUser.usercategories || [];
+      
+      
     }
   }
 

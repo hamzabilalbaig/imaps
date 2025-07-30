@@ -55,14 +55,14 @@ export const AuthProvider = ({ children }) => {
         if (expectedRole === 'admin' && result.user.role === 'user') {
           return { success: false, error: 'These credentials are for a regular user account. Please use User Login.' };
         } else if (expectedRole === 'user' && result.user.role === 'admin') {
-          return { success: false, error: 'These credentials are for an admin account. Please use Admin Login.' };
+          return { success: false, error: 'Invalid credentials.' };
         }
       }
       
       setUser(result.user);
       return { success: true };
     }
-    return { success: false, error: result.message };
+    return { success: false, error: result.message === 'Request failed with status code 401' ? 'Invalid Credentials' : result.message};
   };
 
   const register = async (email, password, name, role = 'user', navigate) => {
@@ -124,18 +124,35 @@ export const AuthProvider = ({ children }) => {
     return limit === Infinity || currentCategoryCount < limit;
   };
 
-  const canAddPOItoCategory = async (categoryName, currentPOICountInCategory) => {
+  const canAddPOItoCategory = async (categoryName) => {
     // if (!user) return false;
     const limit = PLAN_LIMITS[user.plan]?.maxPOIsPerCategory || 0;
     // return limit === Infinity || currentPOICountInCategory < limit;
     // const userCategories = await localDB.getUserCategories()
-    const userPois = await localDB.getUserPOIs()
-    const userPoisLength = userPois?.length
-    const lengthOfPoisBelongingToCategoryName = userPois?.filter(poi => poi.category === categoryName)?.length || 0;
+
+
+
+    // const userPois = await localDB.getUserPOIs()
+    // const userPoisLength = userPois?.length
+    // console.log('User POIs length:', userPoisLength);
+    // const lengthOfPoisBelongingToCategoryName = userPois?.filter(poi => poi.category === categoryName)?.length || 0;
+    // console.log('categoryName:', categoryName, 'poi.category:', userPois);
+    // console.log('Length of POIs in category:', lengthOfPoisBelongingToCategoryName);
+
+
+    const userPois = await localDB.getUserPOIs();
+    const filteredPois = userPois.filter(poi => poi.category === categoryName);
+    console.log('Filtered POIs:', filteredPois);
+    const lengthOfPoisBelongingToCategoryName = filteredPois.length
+
     if (limit === Infinity) {
       return true;
     }
-    return lengthOfPoisBelongingToCategoryName < limit && userPoisLength < PLAN_LIMITS[user.plan]?.totalPOILimit;
+    // return lengthOfPoisBelongingToCategoryName < limit && userPoisLength < PLAN_LIMITS[user.plan]?.totalPOILimit;
+    const result = (lengthOfPoisBelongingToCategoryName >=  PLAN_LIMITS[user.plan]?.maxPOIsPerCategory) ? false : true;
+    console.log('PLAN_LIMITS[user.plan]?.maxPOIsPerCategory:', PLAN_LIMITS[user.plan]?.maxPOIsPerCategory);
+    console.log('can add POI to category:', result);
+    return result;
 
   };
 

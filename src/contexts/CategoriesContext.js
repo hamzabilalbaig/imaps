@@ -77,6 +77,8 @@ export const CategoriesProvider = ({ children }) => {
   };
 
   const getCategoryNames = () => {
+    const categoryNames = categories.map(category => category.name);
+    console.log('Category names:', categoryNames);
      return categories.map(category => category.name);
   };
 
