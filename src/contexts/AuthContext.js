@@ -77,11 +77,11 @@ export const AuthProvider = ({ children }) => {
       //   }
       // }
       const authenticated = await authenticateUser(email, password);
+      localStorage.setItem('imaps_current_user', JSON.stringify(authenticated.user));
       if (authenticated.success) {
         setUser(authenticated.user);
         if (navigate) {
           navigate('/maps', { replace: true });
-          window.location.reload(); // Reload to reflect changes
         }
       } else {
         return { success: false, message: authenticated.message };

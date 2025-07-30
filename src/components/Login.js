@@ -70,7 +70,7 @@ const Login = ({loginType}) => {
       if (!result.success) {
         setError(result.error);
       } else {
-        window.location.reload(); // Reload to get latest user data
+        // window.location.reload(); // Reload to get latest user data
       }
     } else {
       const result = await login(email, password, loginType);
