@@ -23,9 +23,26 @@ function App() {
     if (path === '/login' || path === '/admin-login') {
       setShowNavigation(false);
     } else {
-      setShowNavigation(true);
+      if(localStorage.getItem('imaps_current_user')) {
+        setShowNavigation(true);
+      }
     }
   }, [path]);
+  function checkNavigationToShow() {
+    setInterval(() => {
+      const currentPath = window.location.pathname;
+      if (currentPath === '/login' || currentPath === '/admin-login') {
+        setShowNavigation(false);
+      } else {
+        if(localStorage.getItem('imaps_current_user')) {
+          setShowNavigation(true);
+        }
+      }
+    }, 1000);
+  }
+  React.useEffect(() => {
+    checkNavigationToShow();
+  }, []);
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
