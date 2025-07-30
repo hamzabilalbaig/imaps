@@ -142,6 +142,7 @@ const Login = ({loginType}) => {
           </Box>
 
           {/* Mode Selection Tabs */}
+          { loginType === 'user' && (
           <Box sx={{ mb: 3 }}>
             <Tabs
               value={mode}
@@ -156,6 +157,7 @@ const Login = ({loginType}) => {
               <Tab value="register" label="Register" icon={<RegisterIcon />} />
             </Tabs>
           </Box>
+          ) }
 
           {/* Login Type Selector for Login Mode */}
           {mode === 'login' && (
