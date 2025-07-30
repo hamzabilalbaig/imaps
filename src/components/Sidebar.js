@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -39,6 +39,7 @@ import { CATEGORY_COLORS } from '../utils/mapUtils';
 import { useCategories } from '../contexts/CategoriesContext';
 import CategoryManager from './CategoryManager';
 import { useAuth } from '../contexts/AuthContext';
+import localDB from '../utils/localStorage';
 
 /**
  * Left sidebar component matching GTA 5 map layout with category management
@@ -64,12 +65,30 @@ function Sidebar({
   const [activeTab, setActiveTab] = useState(0); // 0 = Interactive Map, 1 = Categories
   // const [hiddenCategories, setHiddenCategories] = useState([])
   // Admin category visibility state
-  const [adminVisibleCategories, setAdminVisibleCategories] = useState(() => {
-    const adminCats = JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]');
-    const initial = {};
-    adminCats.forEach(cat => { initial[cat.id] = true; });
-    return initial;
-  });
+  // const [adminVisibleCategories, setAdminVisibleCategories] = useState(() => {
+  //   const adminCats = JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]');
+  //   const initial = {};
+  //   adminCats.forEach(cat => { initial[cat.id] = true; });
+  //   return initial;
+  // });
+  const [adminVisibleCategories, setAdminVisibleCategories] = useState([])
+  
+  const fetchAdminCategories = async () => {
+    const adminCats = await localDB.getAdminCategories();
+    if (adminCats) {
+      console.log('Admin categories fetched:', adminCats);
+      setAdminVisibleCategories(adminCats?.reduce((acc, cat) => {
+        acc[cat.id] = true; // Default to visible
+        return acc;
+      }, {}));
+    }
+  };
+
+  useEffect(() => {
+    // Initialize adminVisibleCategories from localStorage
+    fetchAdminCategories();
+    
+  }, []);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
