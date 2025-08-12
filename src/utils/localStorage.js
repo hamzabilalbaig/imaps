@@ -3,8 +3,9 @@
  * Handles user registration, authentication, POIs, notes, and categories
  */
 
-import { addUserCategory, authenticateUser, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminNote, deleteAdminPoi, deleteUserCategory, deleteUserNote, deleteUserPoi, editAdminNote, editAdminPoi, editUserPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateAdminCategory, updateCategory } from "../api/hooks/useAPI";
+import { addUserCategory, authenticateUser, createAdminCategory, createPoi, deleteAdminCategory, deleteAdminNote, deleteAdminPoi, deleteUserCategory, deleteUserNote, deleteUserPoi, editAdminNote, editAdminPoi, editUserPoi, getAdminCategories as getAdminCategoriesApi, getAdminNotes, getAdminPois, getAllUsers, updateAdminCategory, updateCategory } from "../api/functions/apiFunctions";
 import uploadFile from "../aws/fileUpload";
+import { saveMapState } from "./mapStateUtils";
 
 class LocalStorageDB {
   constructor() {
@@ -65,7 +66,7 @@ class LocalStorageDB {
       };
 
       // Call createUser API
-      const createdUser = await import('../api/hooks/useAPI').then(mod => mod.createUser(userData));
+      const createdUser = await import('../api/functions/apiFunctions').then(mod => mod.createUser(userData));
 
       // Update local storage after successful registration
       const updatedUsers = { ...users, [email]: {
@@ -118,6 +119,10 @@ class LocalStorageDB {
       if (!user) {
         return { success: false, message: 'Invalid email or password' };
       }
+      
+      // Save map state before reload
+      saveMapState();
+      
       localStorage.setItem('imaps_current_user', JSON.stringify(user?.user));
       window.location.reload(); // Reload to reflect changes
       return { success: true, user, isAdmin: user.role === 'admin' };
@@ -180,7 +185,7 @@ class LocalStorageDB {
 
     try {
       // Use addUserPOI API for user POIs
-      const { addUserPOI } = await import('../api/hooks/useAPI');
+      const { addUserPOI } = await import('../api/functions/apiFunctions');
       // Call API to add POI and get updated user from backend
       const updatedUser = await addUserPOI(currentUser.id, poi);
       if (!updatedUser) {
@@ -286,6 +291,10 @@ class LocalStorageDB {
       ...updates,
       updatedAt: new Date().toISOString()
     };
+    
+    // Save map state before reload
+    saveMapState();
+    
     const response = await editUserPoi(currentUser.id, poiId, editedPoi);
     if (response) {
       localStorage.setItem('imaps_current_user', JSON.stringify(response));
@@ -296,6 +305,9 @@ class LocalStorageDB {
   async deletePOI(poiId) {
     const currentUser = this.getCurrentUser();
     // if (!currentUser) return { success: false, message: 'No user logged in' };
+
+    // Save map state before performing operations that might reload
+    saveMapState();
 
     // Check admin POIs first
     if (currentUser.role === 'admin') {
@@ -773,7 +785,7 @@ class LocalStorageDB {
 
     try {
       // Call changeUserPlan API
-      const updatedUser = await import('../api/hooks/useAPI').then(mod => mod.changeUserPlan(currentUser.id, plan));
+      const updatedUser = await import('../api/functions/apiFunctions').then(mod => mod.changeUserPlan(currentUser.id, plan));
       // Update local storage
       const users = await this.getUsers();
       if (users[currentUser.email]) {

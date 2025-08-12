@@ -23,9 +23,11 @@ import {
   AttachMoney as PricingIcon,
   AccountCircle as AccountIcon,
   Logout as LogoutIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  PersonAdd as PersonAddIcon
 } from "@mui/icons-material";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext"; // Keep for now
+import useUserStore from "../stores/user";
 
 /**
  * Navigation component for switching between public and admin views
@@ -34,8 +36,15 @@ function Navigation() {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user, logout, isAdmin } = useAuth();
+  const { id, name, email, role, logout, initializeUser, isUserAdmin } = useUserStore();
   const [anchorEl, setAnchorEl] = React.useState(null);
+
+  React.useEffect(() => {
+    initializeUser();
+  }, []); // Only run once on mount
+
+  const user = { id, name, email, role };
+  const isAdmin = isUserAdmin();
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -49,11 +58,6 @@ function Navigation() {
     logout();
     handleClose();
   };
-
-  // Don't show navigation on login page
-  if (location.pathname === '/login') {
-    return null;
-  }
 
   return (
     <AppBar 
@@ -99,33 +103,36 @@ function Navigation() {
           <Box sx={{ flexGrow: 1 }} />
           
           <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, alignItems: 'center', flexShrink: 0 }}>
-            <Button
-              component={Link}
-              to="/"
-              color="inherit"
-              variant={location.pathname === "/" ? "contained" : "text"}
-              sx={{
-                backgroundColor: location.pathname === "/" ? "rgba(255,255,255,0.2)" : "transparent",
-                borderRadius: 2,
-                px: { xs: 1, sm: 2, md: 3 },
-                py: 1,
-                fontWeight: 600,
-                fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
-                backdropFilter: location.pathname === "/" ? 'blur(10px)' : 'none',
-                border: location.pathname === "/" ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
-                '&:hover': {
-                  backgroundColor: "rgba(255,255,255,0.15)",
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.2)'
-                }
-              }}
-              startIcon={!isMobile ? <PublicIcon /> : null}
-            >
-              {isMobile ? "Public" : "Public View"}
-            </Button>
+            {/* Remove Public View button when on public map */}
+            {location.pathname !== '/' && (
+              <Button
+                component={Link}
+                to={user ? "/dashboard" : "/"}
+                color="inherit"
+                variant={location.pathname === "/" || location.pathname === "/dashboard" ? "contained" : "text"}
+                sx={{
+                  backgroundColor: location.pathname === "/" || location.pathname === "/dashboard" ? "rgba(255,255,255,0.2)" : "transparent",
+                  borderRadius: 2,
+                  px: { xs: 1, sm: 2, md: 3 },
+                  py: 1,
+                  fontWeight: 600,
+                  fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+                  backdropFilter: location.pathname === "/" || location.pathname === "/dashboard" ? 'blur(10px)' : 'none',
+                  border: location.pathname === "/" || location.pathname === "/dashboard" ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+                  '&:hover': {
+                    backgroundColor: "rgba(255,255,255,0.15)",
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.2)'
+                  }
+                }}
+                startIcon={!isMobile ? <PublicIcon /> : null}
+              >
+                {isMobile ? "Public" : "Public View"}
+              </Button>
+            )}
             
-            {/* Show Admin Panel for admins, Pricing for regular users */}
-            {isAdmin ? (
+            {/* Show Admin Panel for admins, Pricing for regular users - only when authenticated */}
+            {user && (isAdmin ? (
               <Button
                 component={Link}
                 to="/admin"
@@ -175,6 +182,57 @@ function Navigation() {
               >
                 {isMobile ? "Pricing" : "Pricing"}
               </Button>
+            ))}
+
+            {/* Authentication buttons for non-authenticated users */}
+            {!user && (
+              <>
+                <Button
+                  component={Link}
+                  to="/login"
+                  color="inherit"
+                  variant="outlined"
+                  sx={{
+                    borderColor: 'rgba(255,255,255,0.5)',
+                    borderRadius: 2,
+                    px: { xs: 1.5, sm: 2, md: 3 },
+                    py: 1,
+                    fontWeight: 600,
+                    fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+                    '&:hover': {
+                      backgroundColor: "rgba(255,255,255,0.15)",
+                      borderColor: 'rgba(255,255,255,0.8)',
+                      backdropFilter: 'blur(10px)'
+                    }
+                  }}
+                  startIcon={!isMobile ? <PersonIcon /> : null}
+                >
+                  Login
+                </Button>
+                <Button
+                  component={Link}
+                  to="/register"
+                  color="inherit"
+                  variant="contained"
+                  sx={{
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                    borderRadius: 2,
+                    px: { xs: 1.5, sm: 2, md: 3 },
+                    py: 1,
+                    fontWeight: 600,
+                    fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    '&:hover': {
+                      backgroundColor: "rgba(255,255,255,0.3)",
+                      border: '1px solid rgba(255,255,255,0.5)'
+                    }
+                  }}
+                  startIcon={!isMobile ? <PersonAddIcon /> : null}
+                >
+                  Register
+                </Button>
+              </>
             )}
 
             {/* User Menu */}

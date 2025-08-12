@@ -1,26 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import { 
   Snackbar
 } from "@mui/material";
 import InteractiveMapLayout from "./InteractiveMapLayout";
-import { useMapMarkers } from "../hooks/useMapMarkers";
-import { useAuth } from "../contexts/AuthContext";
+import useUserStore from "../stores/user";
+import usePOIsStore from "../stores/pois";
+import useSubCategoriesStore from "../stores/subCategories";
 
 /**
- * Public Map component - now allows users to create POIs within their plan limits
+ * Public Map component - read-only view for unauthenticated users showing admin content
  */
 function PublicMap() {
-  const { 
-    markers, 
-    addMarker, 
-    updateMarker, 
-    removeMarker, 
-    userMarkerCount,
-    canCreateMore,
-    remainingPOIs
-  } = useMapMarkers();
-  const { user, isAdmin } = useAuth();
-
   const [showForm, setShowForm] = useState(false);
   const [editingPOI, setEditingPOI] = useState(null);
   const [pendingLocation, setPendingLocation] = useState(null);
@@ -28,99 +19,82 @@ function PublicMap() {
   const [isSuggestMode, setIsSuggestMode] = useState(false);
   const [isNoteMode, setIsNoteMode] = useState(false);
 
+  // Use new POI stores
+  const { pois, initializePOIs } = usePOIsStore();
+  const { subCategories, initializeSubCategories } = useSubCategoriesStore();
+  const { id, initializeUser, isAuthenticated, isUserAdmin } = useUserStore();
+
+  useEffect(() => {
+    initializeUser();
+    initializePOIs();
+    initializeSubCategories();
+  }, []); // Only run once on mount
+
+  // Filter only approved POIs for public view
+  const approvedPOIs = pois.filter(poi => poi.is_approved === true);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('PublicMap - Total POIs:', pois.length);
+    console.log('PublicMap - Approved POIs:', approvedPOIs.length);
+    if (pois.length > 0) {
+      console.log('PublicMap - Sample POI:', pois[0]);
+      console.log('PublicMap - POI approval statuses:', pois.map(p => ({id: p.id, name: p.name, is_approved: p.is_approved, type: typeof p.is_approved})));
+    }
+    console.log('PublicMap - SubCategories:', subCategories.length);
+  }, [pois, approvedPOIs, subCategories]);
+
+  // If user is authenticated, redirect them to their dashboard
+  if (isAuthenticated()) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   const handleMapClick = (latlng) => {
-    // Only allow map clicks when in suggest mode (not note mode, as that's handled separately)
-    if (!isSuggestMode) {
-      return;
-    }
-    
-    if (!canCreateMore) {
-      setSnackbar({
-        open: true,
-        message: `You've reached your POI limit (${userMarkerCount}). Upgrade your plan to create more.`,
-        severity: 'warning'
-      });
-      setIsSuggestMode(false); // Exit suggest mode
-      return;
-    }
-    
-    setPendingLocation(latlng);
-    setEditingPOI(null);
-    setShowForm(true);
-    setIsSuggestMode(false); // Exit suggest mode after clicking
+    // Disable map clicks for creating POIs in public view
+    setSnackbar({
+      open: true,
+      message: 'This map is view-only. Interaction is limited to exploring existing content.',
+      severity: 'info'
+    });
   };
 
   const handleSuggestLocation = () => {
-    if (!canCreateMore) {
-      setSnackbar({
-        open: true,
-        message: `You've reached your POI limit (${userMarkerCount}). Upgrade your plan to create more.`,
-        severity: 'warning'
-      });
-      return;
-    }
-    setIsSuggestMode(!isSuggestMode);
-    // Exit note mode if it's active
-    if (isNoteMode) {
-      setIsNoteMode(false);
-    }
+    setSnackbar({
+      open: true,
+      message: 'This map is view-only. Suggesting locations is not allowed.',
+      severity: 'info'
+    });
   };
 
   const handleAddNote = () => {
-    setIsNoteMode(!isNoteMode);
-    // Exit suggest mode if it's active
-    if (isSuggestMode) {
-      setIsSuggestMode(false);
-    }
-  };
-
-  const handleEditPOI = (poi) => {
-    setEditingPOI(poi);
-    setPendingLocation(null);
-    setShowForm(true);
-  };
-
-  const handleSavePOI = async (formData) => {
-    if (editingPOI) {
-      updateMarker(editingPOI.id, formData);
-      setSnackbar({
-        open: true,
-        message: 'POI updated successfully!',
-        severity: 'success'
-      });
-    } else if (pendingLocation) {
-      const result = await addMarker(pendingLocation, formData);
-      console.log('Add POI result:', result);
-      if (result?.success) {
-        setSnackbar({
-          open: true,
-          message: 'POI created successfully!',
-          severity: 'success'
-        });
-        window?.location.reload(); // Reload to get latest user data
-      } else {
-        setSnackbar({
-          open: true,
-          message: result.error,
-          severity: 'error'
-        });
-      }
-    }
-    handleCancelForm();
-  };
-
-  const handleCancelForm = () => {
-    setShowForm(false);
-    setEditingPOI(null);
-    setPendingLocation(null);
-  };
-
-  const handleRemovePOI = (poiId) => {
-    removeMarker(poiId);
     setSnackbar({
       open: true,
-      message: 'POI removed successfully!',
-      severity: 'success'
+      message: 'This map is view-only. Adding notes is not allowed.',
+      severity: 'info'
+    });
+  };
+
+  const handleEditPOI = () => {
+    setSnackbar({
+      open: true,
+      message: 'This map is view-only. Editing POIs is not allowed.',
+      severity: 'info'
+    });
+  };
+
+  const handleSavePOI = () => {
+    setSnackbar({
+      open: true,
+      message: 'This map is view-only. Saving POIs is not allowed.',
+      severity: 'info'
+    });
+  };
+
+  const handleRemovePOI = () => {
+    setSnackbar({
+      open: true,
+      message: 'This map is view-only. Removing POIs is not allowed.',
+      severity: 'info'
     });
   };
 
@@ -132,7 +106,8 @@ function PublicMap() {
   return (
     <>
       <InteractiveMapLayout
-        markers={markers}
+        pois={approvedPOIs}
+        subCategories={subCategories}
         onMapClick={handleMapClick}
         onMarkerClick={handleMarkerClick}
         onMarkerEdit={handleEditPOI}
@@ -141,12 +116,10 @@ function PublicMap() {
         editingPOI={editingPOI}
         pendingLocation={pendingLocation}
         onSavePOI={handleSavePOI}
-        onCancelForm={handleCancelForm}
-        user={user}
-        isAdmin={isAdmin}
-        userMarkerCount={userMarkerCount}
-        maxMarkers={user?.plan === 'free' ? 10 * user?.usercategories?.length : user?.plan === 'premium' ? 50 * user?.usercategories?.length : Infinity}
-        canCreateMore={canCreateMore}
+        onCancelForm={() => setShowForm(false)}
+        user={null}
+        isAdmin={false}
+        readOnly={true}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}
         onAddNote={handleAddNote}

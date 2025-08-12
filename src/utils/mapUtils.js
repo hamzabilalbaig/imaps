@@ -122,8 +122,22 @@ export const getCustomIcons = () => {
 export const createCategoryIcon = (category, customIcon = null, selectedIcon = null, iconColor = null) => {
   let IconComponent;
   let iconHtml;
+  
+  // Handle different formats of customIcon
   if (customIcon && typeof customIcon === 'string') {
-    customIcon = JSON.parse(customIcon);
+    // Check if it's a URL (starts with http or https)
+    if (customIcon.startsWith('http') || customIcon.startsWith('https')) {
+      // It's a URL, convert to object format
+      customIcon = { url: customIcon, name: category };
+    } else {
+      // It's JSON string, parse it
+      try {
+        customIcon = JSON.parse(customIcon);
+      } catch (error) {
+        console.error('Failed to parse customIcon JSON:', error);
+        customIcon = null;
+      }
+    }
   }
   // Check if we should use a custom icon
   if (selectedIcon && customIcon) {

@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import useUserStore from '../stores/user';
 import { Box, CircularProgress } from '@mui/material';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { user, loading } = useAuth();
+  const { id, role, loading, initializeUser, isAuthenticated, isUserAdmin } = useUserStore();
   const location = useLocation();
+
+  useEffect(() => {
+    initializeUser();
+  }, []); // Only run once on mount
 
   if (loading) {
     return (
@@ -22,12 +26,12 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated()) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requireAdmin && user.role !== 'admin') {
-    return <Navigate to="/" replace />;
+  if (requireAdmin && !isUserAdmin()) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;

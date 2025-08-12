@@ -1,31 +1,52 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createMarker } from "../utils/mapUtils";
-import { useAuth } from "../contexts/AuthContext";
+import useUserStore from "../stores/user";
 import { localDB } from "../utils/localStorage";
 
 /**
  * Custom hook for managing map markers with localStorage persistence and auth integration
  */
 export function useMapMarkers() {
-  const { user, canCreatePOI, getRemainingPOIs, canAddPOItoCategory } = useAuth();
-  
+  const { 
+    id, 
+    role, 
+    plan, 
+    initializeUser, 
+    canCreatePOI, 
+    getRemainingPOIs, 
+    canAddPOItoCategory 
+  } = useUserStore();
+
+  // Stabilize user object to prevent infinite re-renders
+  const user = useMemo(() => {
+    if (!id) return null;
+    return { id, role, plan };
+  }, [id, role, plan]);
+
   // Initialize state with data from localStorage
   const [markers, setMarkers] = useState([]);
   const [clickedCoords, setClickedCoords] = useState(null);
 
-  const loadAdminPois = async () => {
-    const adminMarkers = await localDB?.getAdminPOIs()
-        setMarkers(adminMarkers);
-  };
+  // Initialize user only once when component mounts
+  useEffect(() => {
+    if (!id) {
+      initializeUser();
+    }
+  }, []); // Empty dependency array - only run once
 
-  const loadUserPois = async () => {
+  const loadAdminPois = useCallback(async () => {
+    const adminMarkers = await localDB?.getAdminPOIs();
+    setMarkers(adminMarkers);
+  }, []);
+
+  const loadUserPois = useCallback(async () => {
     const userMarkers = await localDB?.getUserPOIs();
     setMarkers(userMarkers);
-  };
+  }, []);
 
   // Load markers when user changes or component mounts
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       if (user.role === 'admin') {
         loadAdminPois();
       } else {
@@ -34,7 +55,7 @@ export function useMapMarkers() {
     } else {
       setMarkers([]);
     }
-  }, [user]);
+  }, [user?.id, user?.role, loadAdminPois, loadUserPois]);
 
   const addMarker = async (latlng, poiData) => {
     if (!user) return { success: false, error: 'You must be logged in to create POIs' };

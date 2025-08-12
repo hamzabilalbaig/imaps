@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Marker, Popup } from "react-leaflet";
 import { 
   Box, 
@@ -17,17 +17,36 @@ import { generateShareableLink, createCategoryIcon } from "../utils/mapUtils";
 
 /**
  * Individual marker component with popup
- * @param {Object} marker - Marker data object
- * @param {Function} onRemove - Callback function to remove the marker
- * @param {Function} onEdit - Callback function to edit the marker
+ * @param {Object} poi - POI data object with new structure
+ * @param {Object} marker - Legacy marker data object (for backward compatibility)
+ * @param {Array} subCategories - Array of subcategories with icons
+ * @param {Function} onRemove - Callback function to remove the POI/marker
+ * @param {Function} onEdit - Callback function to edit the POI/marker
  * @param {boolean} isAdmin - Whether this is admin view with edit capabilities
- * @param {boolean} canEdit - Whether the current user can edit this marker
+ * @param {boolean} canEdit - Whether the current user can edit this POI/marker
  */
-function MapMarker({ marker, onRemove, onEdit, isAdmin = false, canEdit = false }) {
+function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isAdmin = false, canEdit = false }) {
   const theme = useTheme();
   
+  // Support both new POI structure and legacy marker structure
+  const currentItem = poi || marker;
+  const isNewStructure = !!poi;
+  
+  // Get subcategory data for new structure
+  const subCategory = isNewStructure ? 
+    subCategories.find(sub => sub.id === poi.sub_category_id) : null;
+
+  // Debug logging for new structure
+  useEffect(() => {
+    if (isNewStructure) {
+      console.log('MapMarker - POI:', poi);
+      console.log('MapMarker - SubCategory:', subCategory);
+      console.log('MapMarker - Position:', poi.position || poi.coords);
+    }
+  }, [poi, subCategory, isNewStructure]);
+  
   const handleShare = async () => {
-    const shareableLink = generateShareableLink(marker);
+    const shareableLink = generateShareableLink(currentItem);
     try {
       await navigator.clipboard.writeText(shareableLink);
       alert("Shareable link copied to clipboard!");
@@ -42,6 +61,10 @@ function MapMarker({ marker, onRemove, onEdit, isAdmin = false, canEdit = false 
       alert("Shareable link copied to clipboard!");
     }
   };
+
+  useEffect(() => {
+    console.log("POI/Marker updated:", currentItem);
+  }, [currentItem]);
 
   const getCategoryColor = (category) => {
     const colors = {
@@ -65,39 +88,78 @@ function MapMarker({ marker, onRemove, onEdit, isAdmin = false, canEdit = false 
     return colors[category] || "default";
   };
 
+  // Get display values based on structure
+  const displayName = isNewStructure ? poi.name : (marker.title || "Untitled POI");
+  const displayDescription = isNewStructure ? poi.description : marker.description;
+  const displayCategory = isNewStructure ? subCategory?.name : marker.category;
+  const position = isNewStructure ? poi.position || poi.coords : marker.position;
+  const iconImageUrl = isNewStructure ? subCategory?.icon_image_url : null;
+  const poiImageUrl = isNewStructure ? poi.image_url : null;
+
+  // Debug position format
+  useEffect(() => {
+    if (isNewStructure) {
+      console.log('MapMarker - Position format:', position, typeof position, Array.isArray(position));
+    }
+  }, [position, isNewStructure]);
+
   return (
     <Marker 
-      key={marker.id} 
-      position={marker.position}
-      // icon={createCategoryIcon(marker.category, marker.customIcon, marker.selectedIcon, marker.iconColor)}
-      icon={createCategoryIcon(marker.category, marker.customIcon, marker.selectedIcon, marker.iconColor)}
+      key={currentItem.id} 
+      position={position}
+      icon={isNewStructure ? 
+        createCategoryIcon(
+          subCategory?.name, 
+          iconImageUrl, 
+          iconImageUrl ? 'custom_subcategory' : null, 
+          subCategory?.color
+        ) :
+        createCategoryIcon(marker.category, marker.customIcon, marker.selectedIcon, marker.iconColor)
+      }
     >
       <Popup className="custom-popup">
         <Box sx={{ minWidth: 250, p: 1 }}>
+          {/* POI Image - Only show for new structure if image exists */}
+          {poiImageUrl && (
+            <Box sx={{ mb: 2, textAlign: 'center' }}>
+              <img 
+                src={poiImageUrl} 
+                alt={displayName}
+                style={{ 
+                  width: '100%', 
+                  maxHeight: '150px', 
+                  objectFit: 'cover',
+                  borderRadius: '8px'
+                }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            </Box>
+          )}
+          
           <Box sx={{ mb: 2 }}>
             <Typography variant="h6" fontWeight="bold" gutterBottom>
-              {marker.title || "Untitled POI"}
+              {displayName}
             </Typography>
             <Chip 
-              label={marker.category} 
-              color={getCategoryColor(marker.category)}
+              label={displayCategory} 
+              color={getCategoryColor(displayCategory)}
               size="small"
             />
           </Box>
           
-          {marker.description && (
+          {displayDescription && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {marker.description}
+              {displayDescription}
             </Typography>
           )}
           
           <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              <strong>Location:</strong> {marker.coords || marker.position.join(", ")}
-            </Typography>
-            {marker.createdAt && (
+            {/* Location info if needed */}
+            {currentItem.createdAt && (
               <Typography variant="caption" color="text.secondary" display="block">
-                <strong>Added:</strong> {new Date(marker.createdAt).toLocaleDateString()}
+                <strong>Added:</strong> {new Date(currentItem.createdAt).toLocaleDateString()}
               </Typography>
             )}
           </Box>
@@ -118,7 +180,7 @@ function MapMarker({ marker, onRemove, onEdit, isAdmin = false, canEdit = false 
               <Stack direction="row" spacing={1}>
                 {onEdit && (
                   <Button
-                    onClick={() => onEdit(marker)}
+                    onClick={() => onEdit(currentItem)}
                     variant="contained"
                     color="success"
                     size="small"
@@ -130,7 +192,7 @@ function MapMarker({ marker, onRemove, onEdit, isAdmin = false, canEdit = false 
                 )}
                 {onRemove && (
                   <Button
-                    onClick={() => onRemove(marker.id)}
+                    onClick={() => onRemove(currentItem.id)}
                     variant="contained"
                     color="error"
                     size="small"

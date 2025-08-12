@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Box, 
   useTheme, 
@@ -26,30 +26,33 @@ import ProgressTracker from './ProgressTracker';
 import POIForm from './POIForm';
 import NoteForm from './NoteForm';
 import { MAP_CONFIG } from '../utils/mapUtils';
-import { addUserNote, createAdminNote, getUserNotes } from '../api/hooks/useAPI';
+import { addUserNote, createAdminNote, getUserNotes } from '../api/functions/apiFunctions';
 import localDB from '../utils/localStorage';
 
-function InteractiveMapLayout({
-  markers = [],
-  onMapClick,
-  onMarkerClick,
-  onMarkerEdit,
-  onMarkerRemove,
-  showForm,
-  editingPOI,
-  pendingLocation,
-  onSavePOI,
-  onCancelForm,
-  user,
-  isAdmin = false,
-  userMarkerCount = 0,
-  maxMarkers = 5,
-  canCreateMore = true,
-  onSuggestLocation,
-  isSuggestMode = false,
-  onAddNote,
-  isNoteMode = false
-}) {
+function InteractiveMapLayout(props) {
+  const {
+    pois = [],
+    subCategories = [],
+    userMarkerCount = 0,
+    maxMarkers = Infinity,
+    canCreateMore = true,
+    onMapClick,
+    onMarkerClick,
+    onMarkerEdit,
+    onMarkerRemove,
+    showForm,
+    editingPOI,
+    pendingLocation,
+    onSavePOI,
+    onCancelForm,
+    user,
+    isAdmin = false,
+    readOnly = false,
+    onSuggestLocation,
+    isSuggestMode = false,
+    onAddNote,
+    isNoteMode = false
+  } = props;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   
@@ -67,15 +70,41 @@ function InteractiveMapLayout({
   const [hideAll, setHideAll] = useState(false);
   const [hiddenCategories, setHiddenCategories] = useState([]);
 
-  // Filter markers based on visible categories and search
-  const filteredMarkers = markers?.filter(marker => {
-    const categoryVisible = visibleCategories[marker.category] !== false;
-    const matchesSearch = !searchTerm || 
-      marker.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      marker.description.toLowerCase().includes(searchTerm.toLowerCase());
+    // Filter POIs based on visible subcategories and search
+  const filteredPOIs = useMemo(() => {
+    console.log('InteractiveMapLayout - Filtering POIs');
+    console.log('InteractiveMapLayout - Input POIs:', pois?.length);
+    console.log('InteractiveMapLayout - hideAll:', hideAll);
     
-    return categoryVisible && matchesSearch;
-  });
+    if (hideAll) return [];
+    
+    // TEMPORARY: Show all POIs for debugging
+    console.log('InteractiveMapLayout - Showing all POIs for debugging');
+    return pois || [];
+    
+    /* Original filtering logic - commented out for debugging
+    const filtered = pois?.filter(poi => {
+      // Find the subcategory for this POI
+      const subCategory = subCategories.find(sub => sub.id === poi.sub_category_id);
+      const subCategoryName = subCategory?.name || 'Other';
+      
+      const categoryVisible = visibleCategories[subCategoryName] !== false;
+      const isHidden = hiddenCategories.includes(subCategoryName);
+      const matchesSearch = !searchTerm || poi.name?.toLowerCase().includes(searchTerm.toLowerCase()) 
+        || poi.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        || subCategoryName.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const shouldShow = categoryVisible && !isHidden && matchesSearch;
+      
+      console.log(`POI "${poi.name}" - SubCategory: "${subCategoryName}", Visible: ${categoryVisible}, Hidden: ${isHidden}, Matches: ${matchesSearch}, Show: ${shouldShow}`);
+
+      return shouldShow;
+    }) || [];
+    
+    console.log('InteractiveMapLayout - Filtered POIs:', filtered.length);
+    return filtered;
+    */
+  }, [pois, subCategories, visibleCategories, hiddenCategories, searchTerm, hideAll]);
 
   const handleCategoryToggle = (category) => {
     setVisibleCategories(prev => ({
@@ -215,7 +244,8 @@ function InteractiveMapLayout({
 
   const leftSidebarContent = (
     <Sidebar
-      markers={markers}
+      pois={filteredPOIs}
+      subCategories={subCategories}
       onMarkerClick={onMarkerClick}
       onCategoryToggle={handleCategoryToggle}
       visibleCategories={visibleCategories}
@@ -230,11 +260,10 @@ function InteractiveMapLayout({
     />
   );
 
-  const rightSidebarContent = (
+  const rightSidebarContent = !readOnly && (
     <ProgressTracker
-      user={user}
-      userMarkerCount={userMarkerCount}
-      maxMarkers={maxMarkers}
+      pois={filteredPOIs}
+      subCategories={subCategories}
       notes={notes}
       onAddNote={handleAddNote}
       onEditNote={handleEditNote}
@@ -245,8 +274,11 @@ function InteractiveMapLayout({
       onSuggestLocation={onSuggestLocation}
       isSuggestMode={isSuggestMode}
       isNoteMode={isNoteMode}
-      canCreateMore={canCreateMore}
+      readOnly={readOnly}
       isAdmin={isAdmin}
+      userMarkerCount={userMarkerCount}
+      maxMarkers={maxMarkers}
+      canCreateMore={canCreateMore}
     />
   );
 
@@ -358,50 +390,52 @@ function InteractiveMapLayout({
         <MapWithLayers
           center={MAP_CONFIG?.defaultCenter}
           zoom={MAP_CONFIG?.defaultZoom}
-          key={`map-layout-${Date.now()}`}
           showLayerSelector={true}
           layerSelectorPosition="bottom-center"
           isAdmin={isAdmin}
           streetsVisible={streetsVisible}
           className={JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'atlas' ? 'atlas-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'road' ? 'road-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'satellite' ? 'satellite-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'uv' ? 'uv-image' : 'default-image'}
+          isRightSidebarVisible={rightSidebarOpen}
         >
           {/* Map Click Handler */}
           {((canCreateMore && (isAdmin || isSuggestMode)) || isNoteMode) && (
             <MapClickHandler onMapClick={isNoteMode ? handleNoteMapClick : onMapClick} />
           )}
           
-          {/* Markers */}
-          {!hideAll && filteredMarkers.map((marker) => hiddenCategories[marker.category] ? null : (
+          {/* POI Markers */}
+          {filteredPOIs.map((poi) => (
             <MapMarker
-              key={marker.id}
-              marker={marker}
+              key={poi.id}
+              poi={poi}
+              subCategories={subCategories}
               onRemove={onMarkerRemove}
               onEdit={onMarkerEdit}
               isAdmin={ user?.role === 'admin' }
               canEdit={true}
             />
           ))}
-          {
-           !hideAll &&  user?.role === 'admin' ?
-            JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]').map(note => (
-              <MapNote
-                key={note.id}
-                note={note}
-                onEdit={handleEditNote}
-                onRemove={handleRemoveNote}
-                canEdit={isAdmin || note.userId === user?.id}
-              />
-            ))
-            : notes?.map(note => (
-              <MapNote
-                key={note.id}
-                note={note}
-                onEdit={handleEditNote}
-                onRemove={handleRemoveNote}
-                canEdit={true}
-              />
-            ))
-          }
+          {/* Notes */}
+          {!hideAll && (
+            user?.role === 'admin' ?
+              JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]').map(note => (
+                <MapNote
+                  key={note.id}
+                  note={note}
+                  onEdit={handleEditNote}
+                  onRemove={handleRemoveNote}
+                  canEdit={isAdmin || note.userId === user?.id}
+                />
+              ))
+              : notes?.map(note => (
+                <MapNote
+                  key={note.id}
+                  note={note}
+                  onEdit={handleEditNote}
+                  onRemove={handleRemoveNote}
+                  canEdit={true}
+                />
+              ))
+          )}
           {/* Render admin notes to view only for user */}
           {/* {
             !hideAll && user?.role === 'user' &&
@@ -415,22 +449,6 @@ function InteractiveMapLayout({
               />
             ))} */}
           
-          {/* Render admin pois to view only for user */}
-          {
-            !hideAll && user?.role === 'user' &&
-            JSON.parse(localStorage.getItem('imaps_admin_pois') || '[]').map(poi => hiddenCategories?.includes(poi.category) ? null : (
-              <>
-              <MapMarker
-                key={poi.id}
-                marker={poi}
-                onRemove={() => {}}
-                onEdit={() => {}}
-                isAdmin={false}
-                canEdit={false}
-              />
-</>
-            ))
-          }
         </MapWithLayers>
 
         {/* Suggest Mode Indicator */}

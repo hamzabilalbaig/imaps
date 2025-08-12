@@ -8,13 +8,13 @@ import usePOIsStore from "../stores/pois";
 import useSubCategoriesStore from "../stores/subCategories";
 
 /**
- * Admin Map component with full editing capabilities
+ * User Map component with full editing capabilities for authenticated users
  */
-function AdminMap() {
+function UserMap() {
   // Use new POI stores
   const { pois, createPOI, updatePOI, deletePOI, initializePOIs } = usePOIsStore();
   const { subCategories, initializeSubCategories } = useSubCategoriesStore();
-  const { id, name, email, role, initializeUser } = useUserStore();
+  const { id, name, email, role, initializeUser, isUserAdmin } = useUserStore();
 
   useEffect(() => {
     initializeUser();
@@ -23,21 +23,48 @@ function AdminMap() {
   }, []); // Only run once on mount
 
   const user = { id, name, email, role };
+  const isAdmin = isUserAdmin();
+
+  // Filter POIs for current user (admins see all, users see their own + approved)
+  const userPOIs = isAdmin ? 
+    pois : 
+    pois.filter(poi => poi.user_id === id || poi.is_approved === true);
+
+  // Calculate POI limits for regular users
+  const userOwnedPOIs = pois.filter(poi => poi.user_id === id);
+  const userMarkerCount = userOwnedPOIs.length;
+  const MAX_USER_POIS = 10; // Adjust as needed
+  const canCreateMore = isAdmin || userMarkerCount < MAX_USER_POIS;
+  const remainingPOIs = isAdmin ? Infinity : Math.max(0, MAX_USER_POIS - userMarkerCount);
+
   const [showForm, setShowForm] = useState(false);
   const [editingPOI, setEditingPOI] = useState(null);
   const [pendingLocation, setPendingLocation] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [isSuggestMode, setIsSuggestMode] = useState(false);
+  const [isNoteMode, setIsNoteMode] = useState(false);
 
   const handleMapClick = (latlng) => {
-    setPendingLocation(latlng);
-    setEditingPOI(null);
-    setShowForm(true);
-    setIsSuggestMode(false); // Exit suggest mode after clicking
+    if (canCreateMore) {
+      setPendingLocation(latlng);
+      setEditingPOI(null);
+      setShowForm(true);
+      setIsSuggestMode(false);
+    } else {
+      setSnackbar({
+        open: true,
+        message: 'You have reached your POI limit. Upgrade your plan to add more locations.',
+        severity: 'warning'
+      });
+    }
   };
 
   const handleSuggestLocation = () => {
     setIsSuggestMode(!isSuggestMode);
+  };
+
+  const handleAddNote = () => {
+    setIsNoteMode(!isNoteMode);
   };
 
   const handleEditPOI = (poi) => {
@@ -67,8 +94,7 @@ function AdminMap() {
         const poiData = {
           ...formData,
           coords: [pendingLocation.lat, pendingLocation.lng],
-          user_id: id,
-          is_approved: true // Admin POIs are auto-approved
+          user_id: id
         };
         const result = await createPOI(poiData);
         if (result.success) {
@@ -129,14 +155,14 @@ function AdminMap() {
   };
 
   const handleMarkerClick = (marker) => {
-    // Admin can click markers to edit them directly
+    // Users can click markers to edit them
     handleEditPOI(marker);
   };
 
   return (
     <>
       <InteractiveMapLayout
-        pois={pois}
+        pois={userPOIs}
         subCategories={subCategories}
         onMapClick={handleMapClick}
         onMarkerClick={handleMarkerClick}
@@ -148,12 +174,14 @@ function AdminMap() {
         onSavePOI={handleSavePOI}
         onCancelForm={handleCancelForm}
         user={user}
-        isAdmin={true}
-        userMarkerCount={pois.length}
-        maxMarkers={Infinity}
-        canCreateMore={true}
+        isAdmin={isAdmin}
+        userMarkerCount={userMarkerCount}
+        maxMarkers={MAX_USER_POIS}
+        canCreateMore={canCreateMore}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}
+        onAddNote={handleAddNote}
+        isNoteMode={isNoteMode}
       />
 
       {/* Snackbar for notifications */}
@@ -167,4 +195,4 @@ function AdminMap() {
   );
 }
 
-export default AdminMap;
+export default UserMap;

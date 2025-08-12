@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { verifyCheckoutSession } from '../api/hooks/useAPI';
+import { verifyCheckoutSession } from '../api/functions/apiFunctions';
 import { Container, Typography, Box, CircularProgress, Paper, Button } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { useAuth } from '../contexts/AuthContext';
+import useUserStore from '../stores/user';
 
 export default function SuccessPage() {
   const { session_id, plan } = useParams();
   const [loading, setLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState(null);
-  const { upgradePlan } = useAuth();
+  const { upgradePlan, initializeUser, id } = useUserStore();
+
+  useEffect(() => {
+    initializeUser();
+  }, []); // Only run once on mount
 
   const verifySession = async () => {
     setLoading(true);

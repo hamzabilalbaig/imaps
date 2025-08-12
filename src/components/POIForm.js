@@ -15,120 +15,162 @@ import {
   Alert,
   useTheme,
   useMediaQuery,
-  CircularProgress
+  CircularProgress,
+  Avatar
 } from "@mui/material";
-import { Save as SaveIcon, Cancel as CancelIcon } from "@mui/icons-material";
-import { useCategories } from "../contexts/CategoriesContext";
-import { useAuth } from "../contexts/AuthContext";
-import { localDB } from "../utils/localStorage";
+import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon } from "@mui/icons-material";
+import useUserStore from "../stores/user";
+import useSubCategoriesStore from "../stores/subCategories";
+import usePOIsStore from "../stores/pois";
+import uploadFile from "../aws/fileUpload";
 
 /**
  * Form component for adding or editing POIs
  */
 function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
   const [loading, setLoading] = useState(false);
-  const [doNotAllowUserToAddPOI, setDoNotAllowUserToAddPOI] = useState(false);
-  const { getCategoryNames, getCategoryByName } = useCategories();
-  const { canAddPOItoCategory, getRemainingPOIsForCategory } = useAuth();
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const { initializeUser, id } = useUserStore();
+  const { subCategories, initializeSubCategories } = useSubCategoriesStore();
+  const { createPOI, updatePOI } = usePOIsStore();
+
+  useEffect(() => {
+    initializeUser();
+    initializeSubCategories();
+  }, []); // Only run once on mount
+
   const [formData, setFormData] = useState({
-    title: "",
+    name: "",
     description: "",
-    category: "",
+    sub_category_id: "",
+    image_url: "",
   });
-  const [categoryLimitWarning, setCategoryLimitWarning] = useState("");
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
 
+  // Get all subcategories (no category filtering needed)
+  const availableSubCategories = subCategories;
+
   useEffect(() => {
     if (poi && isEdit) {
       setFormData({
-        title: poi.title || "",
+        name: poi.name || "",
         description: poi.description || "",
-        category: poi.category || "",
+        sub_category_id: poi.sub_category_id || "",
+        image_url: poi.image_url || "",
       });
+      if (poi.image_url) {
+        setImagePreview(poi.image_url);
+      }
     }
   }, [poi, isEdit]);
 
+  // No need to reset subcategory since category is removed
 
-  useEffect(() => {
-    const canUserAddPOI = canAddPOItoCategory(formData.category);
-    if (canUserAddPOI === false) {
-      setDoNotAllowUserToAddPOI(true);
-      setCategoryLimitWarning("You have reached the limit for this category. Please upgrade your plan or choose a different category.");
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
     }
-    else {
-      setDoNotAllowUserToAddPOI(false);
-      setCategoryLimitWarning("");
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
     }
-  }, [formData.category]);
+
+    try {
+      setUploadingImage(true);
+      setSelectedImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreview(e.target.result);
+      reader.readAsDataURL(file);
+
+      // Upload to S3
+      const uploadedUrl = await uploadFile(file, setUploadingImage);
+      if (uploadedUrl) {
+        setFormData(prev => ({ ...prev, image_url: uploadedUrl }));
+      } else {
+        alert('Failed to upload image. Please try again.');
+        setSelectedImage(null);
+        setImagePreview('');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image. Please try again.');
+      setSelectedImage(null);
+      setImagePreview('');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    if (!formData.title.trim()) {
-      alert("Please enter a title for the POI");
+    
+    if (!formData.name.trim()) {
+      alert("Please enter a name for the POI");
+      setLoading(false);
       return;
     }
     
-    if (!formData.category) {
-      alert("Please select a category for the POI");
+    if (!formData.sub_category_id) {
+      alert("Please select a subcategory for the POI");
+      setLoading(false);
       return;
     }
-    
-    // Get category data to include icon and color information
-    const categoryData = await getCategoryByName(formData.category);
-    
-    // Check category limits before saving (for new POIs)
-    if (!isEdit && categoryData) {
-      const poisInCategory = await localDB.getPOICountInCategory(categoryData.id);
-      if (!(await canAddPOItoCategory(categoryData.id, poisInCategory))) {
-        alert("This category has reached its POI limit. Please upgrade your plan or choose a different category.");
-        return;
+
+    try {
+      const submissionData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        sub_category_id: parseInt(formData.sub_category_id),
+        image_url: formData.image_url || null,
+        // Extract coordinates from poi.coords if available
+        coords: poi?.coords ? (typeof poi.coords === 'string' ? 
+          poi.coords.split(',').map(coord => parseFloat(coord.trim())) : 
+          poi.coords
+        ) : null,
+        is_approved: isAdmin // Admin POIs are auto-approved
+      };
+
+      let result;
+      if (isEdit && poi?.id) {
+        result = await updatePOI(poi.id, submissionData);
+      } else {
+        result = await createPOI(submissionData);
       }
+
+      if (result.success) {
+        onSave(submissionData);
+      } else {
+        alert(result.error || 'Failed to save POI. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error saving POI:', error);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    const submissionData = {
-      ...formData,
-      categoryId: categoryData?.id || null,
-      selectedIcon: categoryData?.selectedIcon || null,
-      customIcon: categoryData?.customIcon || null,
-      iconColor: categoryData?.color || "#6b7280"
-    };
-    
-    console.log('POIForm submitting data:', submissionData);
-    console.log('POIForm submitting data:', submissionData);
-    await onSave(submissionData);
-    setLoading(false);
   };
 
-  const handleChange = async (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-
-    // Check category limits when category is selected
-    if (name === 'category' && value) {
-      const categoryData = getCategoryByName(value);
-      console.log('Selected category data:', categoryData);
-      console.log('Selected category name:', value);
-      if (categoryData) {
-        const poisInCategory = localDB.getPOICountInCategory(categoryData.id);
-        const canAdd = await canAddPOItoCategory(value, poisInCategory);
-        const remaining = getRemainingPOIsForCategory(poisInCategory);
-        
-        if (!canAdd) {
-          setCategoryLimitWarning(`This category has reached its POI limit. Upgrade your plan or choose a different category.`);
-        } else if (remaining !== Infinity && remaining <= 2) {
-          setCategoryLimitWarning(`Only ${remaining} POI${remaining !== 1 ? 's' : ''} remaining in this category.`);
-        } else {
-          setCategoryLimitWarning("");
-        }
-      }
-    }
   };
 
   return (
@@ -156,42 +198,23 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
       }}
     >
       <DialogTitle sx={{ 
-        pb: 2, 
-        borderBottom: '1px solid',
-        borderColor: 'grey.100',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-        p: { xs: 2, md: 3 }
+        pb: { xs: 1, md: 2 },
+        fontSize: { xs: '1.25rem', md: '1.5rem' },
+        fontWeight: 600
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Box
-            sx={{
-              backgroundColor: 'primary.main',
-              borderRadius: 2,
-              p: { xs: 0.75, md: 1 },
-              mr: { xs: 1.5, md: 2 },
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <SaveIcon sx={{ color: 'white', fontSize: { xs: 16, md: 20 } }} />
-          </Box>
-          <Typography variant="h5" component="h2" fontWeight={600} sx={{ fontSize: { xs: '1.125rem', md: '1.5rem' } }}>
-            {isEdit ? "Edit Location" : (isAdmin ? "Add New Location" : "Suggest New Location")}
-          </Typography>
-        </Box>
+        {isEdit ? 'Edit POI' : 'Add New POI'}
       </DialogTitle>
-      
-      <DialogContent sx={{ p: { xs: 2, md: 3 } }}>
+
+      <DialogContent sx={{ pb: 0 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, md: 3 }, pt: 1 }}>
           <TextField
-            name="title"
-            label="Location Name"
-            value={formData.title}
+            name="name"
+            label="POI Name"
+            value={formData.name}
             onChange={handleChange}
             fullWidth
             required
-            placeholder="Enter a descriptive name for this location"
+            placeholder="Enter a descriptive name for this POI"
             helperText="Required field"
             variant="outlined"
             size={isMobile ? "small" : "medium"}
@@ -211,7 +234,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
             fullWidth
             multiline
             rows={isMobile ? 3 : 4}
-            placeholder="Add any additional details about this location"
+            placeholder="Add any additional details about this POI"
             variant="outlined"
             size={isMobile ? "small" : "medium"}
             sx={{
@@ -223,120 +246,113 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
           />
 
           <FormControl fullWidth size={isMobile ? "small" : "medium"}>
-            <InputLabel>Category</InputLabel>
+            <InputLabel>SubCategory</InputLabel>
             <Select
-              name="category"
-              value={formData.category}
-              label="Category"
+              name="sub_category_id"
+              value={formData.sub_category_id}
+              label="SubCategory"
               onChange={handleChange}
+              required
               sx={{
                 borderRadius: 2,
                 fontSize: { xs: '0.875rem', md: '1rem' }
               }}
             >
-              {getCategoryNames()?.length === 0 ? (
-                <MenuItem disabled>
-                  No categories available. Create categories first.
+              {availableSubCategories.map((subCategory) => (
+                <MenuItem key={subCategory.id} value={subCategory.id}>
+                  {subCategory.name}
                 </MenuItem>
-              ) : (
-                getCategoryNames()?.map((category) => (
-                  <MenuItem key={category} value={category}>
-                    {category}
-                  </MenuItem>
-                ))
-              )}
+              ))}
             </Select>
           </FormControl>
 
-          {categoryLimitWarning && (
-            <Alert 
-              severity={categoryLimitWarning.includes('reached') ? 'error' : 'warning'} 
-              sx={{ 
-                borderRadius: 2,
-                fontSize: { xs: '0.75rem', md: '0.875rem' }
-              }}
-            >
-              {categoryLimitWarning}
-            </Alert>
-          )}
+          {/* Image Upload Section */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="subtitle1" fontWeight="medium">
+              POI Image
+            </Typography>
+            
+            {imagePreview && (
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center',
+                mb: 2
+              }}>
+                <Avatar
+                  src={imagePreview}
+                  alt="POI Image"
+                  variant="rounded"
+                  sx={{ 
+                    width: 120, 
+                    height: 120,
+                    border: '2px solid',
+                    borderColor: 'grey.300'
+                  }}
+                />
+              </Box>
+            )}
 
-          {poi && (
-            <Alert 
-              severity="info" 
-              sx={{ 
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={uploadingImage ? <CircularProgress size={20} /> : <UploadIcon />}
+              disabled={uploadingImage}
+              sx={{
                 borderRadius: 2,
-                border: '1px solid',
-                borderColor: 'info.light',
-                backgroundColor: 'info.50',
-                fontSize: { xs: '0.75rem', md: '0.875rem' }
+                borderStyle: 'dashed',
+                borderWidth: 2,
+                py: 2,
+                fontSize: { xs: '0.875rem', md: '1rem' }
               }}
             >
-              <Typography variant="body2" fontWeight={500} sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
-                <strong>Location:</strong> {poi.coords}
-              </Typography>
-              {isEdit && (
-                <Typography variant="body2" sx={{ mt: 0.5, fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
-                  <strong>Created:</strong>{" "}
-                  {new Date(poi.createdAt).toLocaleDateString()}
-                </Typography>
-              )}
-            </Alert>
-          )}
+              {uploadingImage ? 'Uploading...' : 'Upload Image'}
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+            </Button>
+            
+            <Typography variant="caption" color="text.secondary">
+              Supported formats: JPEG, PNG, GIF. Max size: 5MB
+            </Typography>
+          </Box>
         </Box>
       </DialogContent>
 
       <DialogActions sx={{ 
         p: { xs: 2, md: 3 }, 
-        pt: 2,
-        borderTop: '1px solid',
-        borderColor: 'grey.100',
-        backgroundColor: 'grey.50',
-        flexDirection: { xs: 'column', sm: 'row' },
-        gap: { xs: 1, sm: 0 }
+        pt: { xs: 1, md: 2 },
+        gap: { xs: 1, md: 2 },
+        flexDirection: { xs: 'column', sm: 'row' }
       }}>
-        <Button 
-          onClick={onCancel} 
+        <Button
+          onClick={onCancel}
           startIcon={<CancelIcon />}
-          color="inherit"
           variant="outlined"
           fullWidth={isMobile}
           sx={{
+            minWidth: { sm: 120 },
             borderRadius: 2,
-            px: { xs: 2, md: 3 },
-            py: { xs: 1, md: 1.5 },
-            fontSize: { xs: '0.875rem', md: '1rem' },
-            borderColor: 'grey.300',
-            '&:hover': {
-              borderColor: 'grey.400',
-              backgroundColor: 'grey.50'
-            }
+            fontSize: { xs: '0.875rem', md: '1rem' }
           }}
         >
           Cancel
         </Button>
-        <Button 
-          type="submit" 
-          variant="contained" 
-          startIcon={<SaveIcon />}
+        <Button
+          type="submit"
+          startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
+          variant="contained"
+          disabled={loading || uploadingImage}
           fullWidth={isMobile}
-          disabled={loading || !formData.title || !formData.category || doNotAllowUserToAddPOI}
           sx={{
+            minWidth: { sm: 120 },
             borderRadius: 2,
-            px: { xs: 2, md: 3 },
-            py: { xs: 1, md: 1.5 },
-            fontSize: { xs: '0.875rem', md: '1rem' },
-            ml: { xs: 0, sm: 1 },
-            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)'
-            }
+            fontSize: { xs: '0.875rem', md: '1rem' }
           }}
         >
-           {loading && (
-            <CircularProgress size={24} sx={{ color: 'white' }} />
-          )}
-
-          {isEdit ? "Update Location" : (isAdmin ? "Add Location" : "Suggest Location")}
+          {loading ? 'Saving...' : isEdit ? 'Update POI' : 'Create POI'}
         </Button>
       </DialogActions>
     </Dialog>

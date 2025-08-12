@@ -15,7 +15,8 @@ import {
 import { Save as SaveIcon, Cancel as CancelIcon, Note as NoteIcon } from "@mui/icons-material";
 import ColorPicker from "./ColorPicker";
 import localDB from "../utils/localStorage";
-import { editUserNote } from "../api/hooks/useAPI";
+import { editUserNote } from "../api/functions/apiFunctions";
+import { saveMapState } from "../utils/mapStateUtils";
 
 /**
  * Form component for adding or editing Notes
@@ -52,6 +53,12 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
     const user = JSON.parse(localStorage.getItem('imaps_current_user'));
     if(user?.role === 'admin') {}
     else {
+      // Save map state before triggering reload
+      const mapInstance = window.leafletMap; // This will be set in MapWithLayers
+      if (mapInstance) {
+        saveMapState(mapInstance);
+      }
+      
       const data = await editUserNote(user.id, note.id, {
         ...formData,
         updatedAt: new Date().toISOString()
@@ -187,7 +194,7 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
               onColorChange={handleColorChange}
             />
           </Box>
-
+{/* 
           {note && (
             <Alert 
               severity="info" 
@@ -209,7 +216,7 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
                 </Typography>
               )}
             </Alert>
-          )}
+          )} */}
         </Box>
       </DialogContent>
 

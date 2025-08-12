@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import useUserStore from '../stores/user';
 import { localDB } from '../utils/localStorage';
 
 const CategoryExample = () => {
-  const { user, isAdmin } = useAuth();
+  const { id, name, email, role, initializeUser, isUserAdmin } = useUserStore();
   const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    initializeUser();
+  }, []); // Only run once on mount
+
+  const user = { id, name, email, role };
+  const isAdmin = isUserAdmin();
   const [newCategory, setNewCategory] = useState({
     name: '',
     color: '#FF6B6B',

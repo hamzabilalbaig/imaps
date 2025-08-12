@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -25,12 +25,13 @@ import {
   Upgrade as UpgradeIcon,
   LocationSearching as LocationSearchingIcon
 } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
+import { localDB } from '../utils/localStorage';
+import useUserStore from '../stores/user';
 
 function ProgressTracker({ 
   // user, 
-  userMarkerCount, 
-  maxMarkers,
+  markers = [],
+  categories = [],
   foundLocations = [], 
   onClose,
   onAddNote,
@@ -42,11 +43,20 @@ function ProgressTracker({
   onSuggestLocation,
   isSuggestMode = false,
   isNoteMode = false,
-  canCreateMore = true,
-  isAdmin = false
+  readOnly = false,
+  isAdmin = false,
+  userMarkerCount = 0,
+  maxMarkers = Infinity,
+  canCreateMore = true
 }) {
   const theme = useTheme();
-  const { getRemainingCategories, canUseCustomIcons, user } = useAuth();
+  const { getRemainingCategories, canUseCustomIcons, id, name, email, plan, role, initializeUser } = useUserStore();
+  
+  useEffect(() => {
+    initializeUser();
+  }, []); // Only run once on mount
+
+  const user = { id, name, email, plan, role };
   
   // Get current category count from localStorage
   // const currentCategoryCount = user ? (user.usercategories?.length || 0) : 0;
@@ -139,67 +149,104 @@ function ProgressTracker({
             ACTIONS
           </Typography>
           
-          <Button
-            variant={isSuggestMode ? "contained" : "outlined"}
-            startIcon={<LocationSearchingIcon />}
-            onClick={onSuggestLocation}
-            fullWidth
-            disabled={!canCreateMore}
-            sx={{ 
-              mb: 1,
-              textTransform: 'uppercase',
-              fontSize: '0.75rem',
-              fontWeight: 'bold',
-              backgroundColor: isSuggestMode ? theme.palette.primary.main : 'transparent',
-              color: isSuggestMode ? 'white' : theme.palette.primary.main,
-              '&:hover': {
-                backgroundColor: isSuggestMode ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.1)
-              },
-              '&:disabled': {
-                backgroundColor: 'grey.200',
-                color: 'grey.400'
-              }
-            }}
-          >
-            {isSuggestMode 
-              ? (isAdmin ? 'Cancel Add' : 'Cancel Suggest') 
-              : (isAdmin ? 'Add Location' : 'Suggest Location')
-            }
-          </Button>
-          
-          {!canCreateMore && (
-            <Typography variant="caption" color="error" sx={{ 
-              display: 'block',
-              textAlign: 'center',
-              fontSize: '0.7rem',
-              fontStyle: 'italic',
-              mb: 1
-            }}>
-              POI limit reached. Upgrade to add more.
-            </Typography>
+          {user ? (
+            <>
+              <Button
+                variant={isSuggestMode ? "contained" : "outlined"}
+                startIcon={<LocationSearchingIcon />}
+                onClick={onSuggestLocation}
+                fullWidth
+                disabled={!canCreateMore}
+                sx={{ 
+                  mb: 1,
+                  textTransform: 'uppercase',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  backgroundColor: isSuggestMode ? theme.palette.primary.main : 'transparent',
+                  color: isSuggestMode ? 'white' : theme.palette.primary.main,
+                  '&:hover': {
+                    backgroundColor: isSuggestMode ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.1)
+                  },
+                  '&:disabled': {
+                    backgroundColor: 'grey.200',
+                    color: 'grey.400'
+                  }
+                }}
+              >
+                {isSuggestMode 
+                  ? (isAdmin ? 'Cancel Add' : 'Cancel Suggest') 
+                  : (isAdmin ? 'Add Location' : 'Suggest Location')
+                }
+              </Button>
+              
+              {!canCreateMore && (
+                <Typography variant="caption" color="error" sx={{ 
+                  display: 'block',
+                  textAlign: 'center',
+                  fontSize: '0.7rem',
+                  fontStyle: 'italic',
+                  mb: 1
+                }}>
+                  POI limit reached. Upgrade to add more.
+                </Typography>
+              )}
+              
+              <Button
+                variant={isNoteMode ? "contained" : "outlined"}
+                startIcon={<AddIcon />}
+                onClick={onAddNote}
+                fullWidth
+                sx={{ 
+                  mb: 2,
+                  textTransform: 'uppercase',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  backgroundColor: isNoteMode ? theme.palette.secondary.main : 'transparent',
+                  color: isNoteMode ? 'white' : theme.palette.secondary.main,
+                  borderColor: theme.palette.secondary.main,
+                  '&:hover': {
+                    backgroundColor: isNoteMode ? theme.palette.secondary.dark : alpha(theme.palette.secondary.main, 0.1),
+                    borderColor: theme.palette.secondary.main
+                  }
+                }}
+              >
+                {isNoteMode ? 'Cancel Note' : 'Add Note'}
+              </Button>
+            </>
+          ) : (
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                Sign in to suggest locations, add notes, and track your progress.
+              </Typography>
+              <Button
+                component="a"
+                href="/login"
+                variant="contained"
+                fullWidth
+                sx={{
+                  mb: 1,
+                  textTransform: 'uppercase',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                Sign In to Contribute
+              </Button>
+              <Button
+                component="a"
+                href="/register"
+                variant="outlined"
+                fullWidth
+                sx={{
+                  textTransform: 'uppercase',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                Create Account
+              </Button>
+            </Box>
           )}
-          
-          <Button
-            variant={isNoteMode ? "contained" : "outlined"}
-            startIcon={<AddIcon />}
-            onClick={onAddNote}
-            fullWidth
-            sx={{ 
-              mb: 2,
-              textTransform: 'uppercase',
-              fontSize: '0.75rem',
-              fontWeight: 'bold',
-              backgroundColor: isNoteMode ? theme.palette.secondary.main : 'transparent',
-              color: isNoteMode ? 'white' : theme.palette.secondary.main,
-              borderColor: theme.palette.secondary.main,
-              '&:hover': {
-                backgroundColor: isNoteMode ? theme.palette.secondary.dark : alpha(theme.palette.secondary.main, 0.1),
-                borderColor: theme.palette.secondary.main
-              }
-            }}
-          >
-            {isNoteMode ? 'Cancel Note' : 'Add Note'}
-          </Button>
 
           <Typography variant="subtitle2" sx={{ 
             mb: 1,
@@ -320,127 +367,131 @@ function ProgressTracker({
           )}
         </Box>
 
-        <Divider />
+        {user && (
+          <>
+            <Divider />
 
-        {/* POI Usage Stats */}
-        <Box sx={{ p: 2 }}>
-          <Typography variant="subtitle2" sx={{ 
-            mb: 2,
-            fontSize: '0.75rem',
-            textTransform: 'uppercase',
-            color: theme.palette.text.secondary,
-            letterSpacing: 1
-          }}>
-            YOUR USAGE STATS
-          </Typography>
-          
-          {/* Category Usage */}
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-                Custom Categories
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
-                {currentCategoryCount} / {remainingCategories === Infinity ? '∞' : (currentCategoryCount + remainingCategories)}
-              </Typography>
-            </Box>
-            {remainingCategories !== Infinity && (
-              <LinearProgress 
-                variant="determinate" 
-                value={remainingCategories === 0 ? 100 : (currentCategoryCount / (currentCategoryCount + remainingCategories)) * 100} 
-                sx={{ 
-                  height: 6, 
-                  borderRadius: 3,
-                  backgroundColor: alpha(theme.palette.secondary.main, 0.1),
-                  '& .MuiLinearProgress-bar': {
-                    borderRadius: 3,
-                    backgroundColor: theme.palette.secondary.main
-                  }
-                }}
-              />
-            )}
-          </Box>
-
-          {/* POI Usage */}
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-                Total POIs
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
-                {userMarkerCount} / {maxMarkers === Infinity ? '∞' : maxMarkers}
-              </Typography>
-            </Box>
-            {maxMarkers !== Infinity && (
-              <LinearProgress 
-                variant="determinate" 
-                value={progress} 
-                sx={{ 
-                  height: 6, 
-                  borderRadius: 3,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  '& .MuiLinearProgress-bar': {
-                    borderRadius: 3,
-                    backgroundColor: progress >= 80 ? 
-                      theme.palette.warning.main : 
-                      theme.palette.primary.main
-                  }
-                }}
-              />
-            )}
-          </Box>
-
-          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-            <Chip 
-              label={`${remainingCategories === Infinity ? '∞' : remainingCategories} categories left`}
-              size="small"
-              color={remainingCategories === 0 ? "error" : "secondary"}
-              sx={{ fontSize: '0.7rem' }}
-            />
-            <Chip 
-              label={`${remainingPOIs} remaining`}
-              size="small"
-              color={remainingPOIs === 0 ? "error" : "primary"}
-              sx={{ fontSize: '0.7rem' }}
-            />
-          </Box>
-
-          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-            <Chip 
-              label={user?.plan?.toUpperCase() || 'FREE'}
-              size="small"
-              color="info"
-              sx={{ fontSize: '0.7rem' }}
-            />
-            {canUseCustomIcons() && (
-              <Chip 
-                label="CUSTOM ICONS"
-                size="small"
-                color="warning"
-                sx={{ fontSize: '0.7rem' }}
-              />
-            )}
-          </Box>
-
-          {user?.plan !== 'unlimited' && (
-            <Button
-              variant="contained"
-              startIcon={<UpgradeIcon />}
-              fullWidth
-              sx={{
-                backgroundColor: theme.palette.secondary.main,
-                '&:hover': {
-                  backgroundColor: theme.palette.secondary.dark
-                },
-                textTransform: 'uppercase',
+            {/* POI Usage Stats */}
+            <Box sx={{ p: 2 }}>
+              <Typography variant="subtitle2" sx={{ 
+                mb: 2,
                 fontSize: '0.75rem',
-                fontWeight: 'bold'
-              }}
-            >
-              UPGRADE TO PRO
-            </Button>
-          )}
-        </Box>
+                textTransform: 'uppercase',
+                color: theme.palette.text.secondary,
+                letterSpacing: 1
+              }}>
+                YOUR USAGE STATS
+              </Typography>
+              
+              {/* Category Usage */}
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                    Custom Categories
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
+                    {currentCategoryCount} / {remainingCategories === Infinity ? '∞' : (currentCategoryCount + remainingCategories)}
+                  </Typography>
+                </Box>
+                {remainingCategories !== Infinity && (
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={remainingCategories === 0 ? 100 : (currentCategoryCount / (currentCategoryCount + remainingCategories)) * 100} 
+                    sx={{ 
+                      height: 6, 
+                      borderRadius: 3,
+                      backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 3,
+                        backgroundColor: theme.palette.secondary.main
+                      }
+                    }}
+                  />
+                )}
+              </Box>
+
+              {/* POI Usage */}
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                    Total POIs
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
+                    {userMarkerCount} / {maxMarkers === Infinity ? '∞' : maxMarkers}
+                  </Typography>
+                </Box>
+                {maxMarkers !== Infinity && (
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={progress} 
+                    sx={{ 
+                      height: 6, 
+                      borderRadius: 3,
+                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 3,
+                        backgroundColor: progress >= 80 ? 
+                          theme.palette.warning.main : 
+                          theme.palette.primary.main
+                      }
+                    }}
+                  />
+                )}
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <Chip 
+                  label={`${remainingCategories === Infinity ? '∞' : remainingCategories} categories left`}
+                  size="small"
+                  color={remainingCategories === 0 ? "error" : "secondary"}
+                  sx={{ fontSize: '0.7rem' }}
+                />
+                <Chip 
+                  label={`${remainingPOIs} remaining`}
+                  size="small"
+                  color={remainingPOIs === 0 ? "error" : "primary"}
+                  sx={{ fontSize: '0.7rem' }}
+                />
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <Chip 
+                  label={user?.plan?.toUpperCase() || 'FREE'}
+                  size="small"
+                  color="info"
+                  sx={{ fontSize: '0.7rem' }}
+                />
+                {canUseCustomIcons() && (
+                  <Chip 
+                    label="CUSTOM ICONS"
+                    size="small"
+                    color="warning"
+                    sx={{ fontSize: '0.7rem' }}
+                  />
+                )}
+              </Box>
+
+              {user?.plan !== 'unlimited' && (
+                <Button
+                  variant="contained"
+                  startIcon={<UpgradeIcon />}
+                  fullWidth
+                  sx={{
+                    backgroundColor: theme.palette.secondary.main,
+                    '&:hover': {
+                      backgroundColor: theme.palette.secondary.dark
+                    },
+                    textTransform: 'uppercase',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  UPGRADE TO PRO
+                </Button>
+              )}
+            </Box>
+          </>
+        )}
 
         
       </Box>

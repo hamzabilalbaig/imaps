@@ -1,4 +1,4 @@
-import { checkout } from "../api/hooks/useAPI"
+import { checkout } from "../api/functions/apiFunctions"
 
  export const handleCheckout = async (plan, setLoading) => {
     setLoading(true)

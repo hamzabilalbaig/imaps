@@ -158,28 +158,95 @@ export async function authenticateUser(email, password) {
     return data;
 }
 
-export default function useAPI() {
-  return {
-    getAllUsers,
-    registerUser,
-    createPoi,
-    getAdminPois,
-    getAdminCategories,
-    createAdminCategory,
-    createUser,
-    changeUserPlan,
-    addUserPOI,
-    addUserNote,
-    getAdminNotes,
-    createAdminNote,
-    deleteAdminNote,
-    addUserCategory,
-    getUserNotes,
-    checkout,
-    verifyCheckoutSession,
-    deleteUserPoi,
-    deleteUserCategory,
-    deleteAdminCategory,
-    deleteAdminPoi
-  };
+// Request password reset
+export async function requestPasswordReset(email) {
+    try {
+        const { data } = await apiClient.post('/users/forgot-password', { email });
+        return { success: true, data };
+    } catch (error) {
+        return { 
+            success: false, 
+            error: error.response?.data?.message || 'Failed to send reset email' 
+        };
+    }
+}
+
+// Reset password with token
+export async function resetPassword(token, newPassword) {
+    try {
+        const { data } = await apiClient.post('/users/reset-password', { token, newPassword });
+        return { success: true, data };
+    } catch (error) {
+        return { 
+            success: false, 
+            error: error.response?.data?.message || 'Failed to reset password' 
+        };
+    }
+}
+
+export async function getAllCategories() {
+    const { data } = await apiClient.get('/categories');
+    return data;
+}
+
+export async function getCategoryById(id) {
+    const { data } = await apiClient.get(`/categories/${id}`);
+    return data;
+}
+
+export async function createCategory(categoryData) {
+    const { data } = await apiClient.post('/categories', categoryData);
+    return data;
+}
+
+export async function updateCategoryById(id, categoryData) {
+    const { data } = await apiClient.put(`/categories/${id}`, categoryData);
+    return data;
+}
+
+// SubCategories API functions
+export async function getAllSubCategories() {
+    const { data } = await apiClient.get('/subcategories');
+    return data;
+}
+
+export async function getSubCategoryById(id) {
+    const { data } = await apiClient.get(`/subcategories/${id}`);
+    return data;
+}
+
+export async function createSubCategory(subCategoryData) {
+    const { data } = await apiClient.post('/subcategories', subCategoryData);
+    return data;
+}
+
+export async function updateSubCategoryById(id, subCategoryData) {
+    const { data } = await apiClient.put(`/subcategories/${id}`, subCategoryData);
+    return data;
+}
+
+// POIs API functions
+export async function getAllPOIs() {
+    const { data } = await apiClient.get('/pois');
+    return data;
+}
+
+export async function getPOIById(id) {
+    const { data } = await apiClient.get(`/pois/${id}`);
+    return data;
+}
+
+export async function createPOI(poiData) {
+    const { data } = await apiClient.post('/pois', poiData);
+    return data;
+}
+
+export async function updatePOIById(id, poiData) {
+    const { data } = await apiClient.put(`/pois/${id}`, poiData);
+    return data;
+}
+
+export async function deletePOIById(id) {
+    const { data } = await apiClient.delete(`/pois/${id}`);
+    return data;
 }

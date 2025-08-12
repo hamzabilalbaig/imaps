@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { localDB } from '../utils/localStorage';
-import { authenticateUser } from '../api/hooks/useAPI';
+import { authenticateUser } from '../api/functions/apiFunctions';
 
 const AuthContext = createContext();
 

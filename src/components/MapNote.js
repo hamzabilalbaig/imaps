@@ -173,7 +173,7 @@ function MapNote({
               Updated: {new Date(note.updatedat || note.updatedAt).toLocaleDateString()}
             </Typography>
             
-            <Typography 
+            {/* <Typography 
               variant="caption" 
               sx={{ 
                 fontSize: '0.75rem',
@@ -181,7 +181,7 @@ function MapNote({
               }}
             >
               {note.coords}
-            </Typography>
+            </Typography> */}
           </Box>
         </Box>
       </Popup>

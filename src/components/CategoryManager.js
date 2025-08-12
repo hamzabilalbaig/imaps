@@ -33,7 +33,7 @@ import {
 } from '@mui/icons-material';
 import { CATEGORY_ICONS, CATEGORY_COLORS } from '../utils/mapUtils';
 import { useCategories } from '../contexts/CategoriesContext';
-import { useAuth } from '../contexts/AuthContext';
+import useUserStore from '../stores/user';
 import IconSelector from './IconSelector';
 import ColorPicker from './ColorPicker';
 import { localDB } from '../utils/localStorage';
@@ -53,7 +53,13 @@ function CategoryManager() {
     updateCategory,
     deleteCategory
   } = useCategories();
-  const { user, canCreateCategory, getRemainingCategories } = useAuth();
+  const { id, name, email, plan, role, initializeUser, canCreateCategory, getRemainingCategories } = useUserStore();
+  
+  useEffect(() => {
+    initializeUser();
+  }, []); // Only run once on mount
+
+  const user = { id, name, email, plan, role };
   
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);

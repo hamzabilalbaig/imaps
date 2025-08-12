@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -25,10 +25,11 @@ import {
   AdminPanelSettings as AdminIcon,
   Person as UserIcon
 } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext'; // optional, for register
+import useUserStore from '../stores/user';
 
-const Login = ({loginType}) => {
-  const [mode, setMode] = useState('login'); // 'login' or 'register'
+const Login = ({loginType, isRegister}) => {
+  const [mode, setMode] = useState(isRegister ? 'register' : 'login'); // 'login' or 'register'
   // const [loginType, setLoginType] = useState('user'); // 'admin' or 'user'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,15 +40,18 @@ const Login = ({loginType}) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, register, user } = useAuth();
+  // Get login from store
+  const { authenticate, clearUser, id: userId } = useUserStore();
+  const { register } = useAuth(); // keep context register for now
   const location = useLocation();
-  
-  const from = location.state?.from?.pathname || '/';
+
+  const from = location.state?.from?.pathname || '/dashboard';
 
   // If already logged in, redirect
-  if (user) {
+  if (userId) {
     return <Navigate to={from} replace />;
   }
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,7 +77,7 @@ const Login = ({loginType}) => {
         // window.location.reload(); // Reload to get latest user data
       }
     } else {
-      const result = await login(email, password, loginType);
+      const result = await authenticate(email, password);
       if (!result.success) {
         setError(result.error);
       }
@@ -294,6 +298,22 @@ const Login = ({loginType}) => {
               }
             </Button>
           </form>
+
+          {mode === 'login' && (
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Link 
+                to="/forgot-password" 
+                style={{ 
+                  color: '#667eea', 
+                  textDecoration: 'none', 
+                  fontWeight: 'bold',
+                  fontSize: '14px'
+                }}
+              >
+                Forgot your password?
+              </Link>
+            </Box>
+          )}
 
           {mode === 'login' && (
             <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 2 }}>

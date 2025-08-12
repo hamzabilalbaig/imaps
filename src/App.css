@@ -58,3 +58,16 @@
 .uv-image {
   background: #faf3cd !important;
 }
+
+.zoomControlsAfterRightSidebarOpen {
+  position: absolute !important;
+  bottom: 10px !important;
+  right: 350px !important; /* Move left to avoid sidebar overlap */
+  transition: right 0.3s ease !important; /* Smooth transition */
+}
+
+/* .leaflet-control-zoom {
+  position: absolute !important;
+  bottom: 10px !important;
+  left: -400px !important;
+} */

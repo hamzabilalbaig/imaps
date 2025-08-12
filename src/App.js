@@ -7,36 +7,42 @@ import theme from './theme';
 import './App.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { CategoriesProvider } from './contexts/CategoriesContext';
+import useUserStore from './stores/user';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
 import PublicMap from './components/PublicMap';
+import UserMap from './components/UserMap';
 import AdminMap from './components/AdminMap';
 import Login from './components/Login';
-import Register from './components/Register';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 import Pricing from './components/Pricing';
 import SuccessPage from './components/SuccessPage';
 
 function App() {
+  const { initializeUser } = useUserStore();
   const path = window.location.pathname;
   const [showNavigation, setShowNavigation] = React.useState(true);
+
+  // Initialize user from localStorage on app start
   React.useEffect(() => {
-    if (path === '/login' || path === '/admin-login') {
+    initializeUser();
+  }, [initializeUser]);
+
+  React.useEffect(() => {
+    if (path === '/login' || path === '/admin-login' || path === '/register' || path === '/forgot-password' || path === '/reset-password') {
       setShowNavigation(false);
     } else {
-      if(localStorage.getItem('imaps_current_user')) {
-        setShowNavigation(true);
-      }
+      setShowNavigation(true);
     }
   }, [path]);
   function checkNavigationToShow() {
     setInterval(() => {
       const currentPath = window.location.pathname;
-      if (currentPath === '/login' || currentPath === '/admin-login') {
+      if (currentPath === '/login' || currentPath === '/admin-login' || currentPath === '/register' || currentPath === '/forgot-password' || currentPath === '/reset-password') {
         setShowNavigation(false);
       } else {
-        if(localStorage.getItem('imaps_current_user')) {
-          setShowNavigation(true);
-        }
+        setShowNavigation(true);
       }
     }, 1000);
   }
@@ -76,12 +82,19 @@ function App() {
               }}>
                 <Routes>
                   <Route path="/login" element={<Login loginType="user" />} />
+                  <Route path="/register" element={<Login loginType="user" isRegister={true} />} />
                   <Route path="/admin-login" element={<Login loginType="admin" />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route 
                     path="/" 
+                    element={<PublicMap />}
+                  />
+                  <Route 
+                    path="/dashboard" 
                     element={
                       <ProtectedRoute>
-                        <PublicMap />
+                        <UserMap />
                       </ProtectedRoute>
                     } 
                   />

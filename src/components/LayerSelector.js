@@ -14,6 +14,7 @@ import {
   Layers as LayersIcon
 } from "@mui/icons-material";
 import { useMapLayers } from "../hooks/useMapLayers";
+import { saveMapState } from "../utils/mapStateUtils";
 
 /**
  * Component for quick layer selection on the map - now shows as buttons in bottom center
@@ -41,6 +42,12 @@ function LayerSelector({ position = "bottom-center", showInPublic = true, isAdmi
   };
 
   const handleLayerChange = (layerId) => {
+    // Save current map state before changing layer
+    // Use the global map instance instead of the hook
+    if (window.leafletMap) {
+      saveMapState(window.leafletMap);
+    }
+    
     // Set the new layer
     setActiveLayer(layerId);
     

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -20,13 +20,17 @@ import {
 } from "@mui/icons-material";
 import { CATEGORY_ICONS, getCustomIcons } from "../utils/mapUtils";
 import { localDB } from '../utils/localStorage';
-import { useAuth } from '../contexts/AuthContext';
+import useUserStore from '../stores/user';
 
 /**
  * Icon selector component for POI forms
  */
 function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
-  const { canUseCustomIcons } = useAuth();
+  const { canUseCustomIcons, initializeUser, id } = useUserStore();
+
+  useEffect(() => {
+    initializeUser();
+  }, []); // Only run once on mount
   const [isOpen, setIsOpen] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const fileInputRef = useRef(null);

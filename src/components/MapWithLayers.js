@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { MapContainer, ImageOverlay, useMap } from "react-leaflet";
+import { MapContainer, ImageOverlay, useMap, ZoomControl } from "react-leaflet";
 import { Box, Typography, Alert } from "@mui/material";
 import { useMapLayers } from "../hooks/useMapLayers";
 import LayerSelector from "./LayerSelector";
 import L from "leaflet";
+import { restoreMapState } from "../utils/mapStateUtils";
 
 /**
  * Component to handle dynamic image overlay updates
@@ -11,6 +12,11 @@ import L from "leaflet";
 function DynamicImageOverlay({ imageUrl, bounds }) {
   const map = useMap();
   const overlayRef = useRef(null);
+
+  // Store the map instance globally for access by other components
+  useEffect(() => {
+    window.leafletMap = map;
+  }, [map]);
 
   useEffect(() => {
     // Remove existing overlay if it exists
@@ -28,10 +34,10 @@ function DynamicImageOverlay({ imageUrl, bounds }) {
     // Add the new overlay to the map
     overlayRef.current.addTo(map);
 
-    // Force map to refresh
+    // Force map to refresh without changing view
     setTimeout(() => {
       map.invalidateSize();
-      map.fitBounds(bounds);
+      // Note: Removed fitBounds call to prevent resetting the view
     }, 100);
 
     // Cleanup function
@@ -46,36 +52,59 @@ function DynamicImageOverlay({ imageUrl, bounds }) {
 }
 
 /**
+ * Component to restore map state from localStorage
+ */
+function MapStateRestorer() {
+  const map = useMap();
+  const restoredRef = useRef(false);
+  
+  useEffect(() => {
+    if (restoredRef.current) return; // Only restore once
+    
+    // Try to restore map state after a short delay
+    setTimeout(() => {
+      const restored = restoreMapState(map);
+      restoredRef.current = true;
+      
+      // Only fit bounds if state wasn't restored
+      if (!restored) {
+        // Default behavior for initial load
+        const imageBounds = [
+          [24.8, 67.0], // Southwest corner
+          [25.0, 67.3]  // Northeast corner
+        ];
+        map.fitBounds(imageBounds);
+      }
+    }, 100);
+  }, [map]);
+  
+  return null;
+}
+
+/**
  * Component to force map refresh when layer changes
  */
 function MapRefresher({ layerId }) {
   const map = useMap();
 
   useEffect(() => {
-    // Multiple methods to force refresh
+    // Store current view state
+    const currentCenter = map.getCenter();
+    const currentZoom = map.getZoom();
+
+    // Simple refresh that preserves view state
     const refreshMap = () => {
       // Method 1: Invalidate size
       map.invalidateSize(true);
       
-      // Method 2: Trigger resize event
-      window.dispatchEvent(new Event('resize'));
-      
-      // Method 3: Force redraw
-      map._onResize();
-      
-      // Method 4: Pan slightly and back
-      const center = map?.getCenter();
-      const tempCenter = L.latLng(center.lat + 0.0001, center.lng + 0.0001);
-      map.panTo(tempCenter, { animate: false });
+      // Restore view state
       setTimeout(() => {
-        map.panTo(center, { animate: false });
+        map.setView(currentCenter, currentZoom, { animate: false });
       }, 50);
     };
 
-    // Delay to ensure DOM is ready
+    // Single refresh with small delay
     setTimeout(refreshMap, 100);
-    setTimeout(refreshMap, 300);
-    setTimeout(refreshMap, 500);
 
   }, [layerId, map]);
 
@@ -93,11 +122,43 @@ function MapWithLayers({
   showLayerSelector = true,
   layerSelectorPosition = "bottom-center",
   isAdmin = false,
-  streetsVisible = true
+  streetsVisible = true,
+  isRightSidebarVisible
 }) {
   const { activeLayer } = useMapLayers();
   const mapRef = useRef(null);
   const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    // Function to update zoom control position
+    const updateZoomControlPosition = () => {
+      const mapContainer = mapRef.current?._container;
+      if (!mapContainer) return;
+      
+      const zoomControl = mapContainer.querySelector('.leaflet-control-zoom');
+      
+      if (zoomControl) {
+        if (isRightSidebarVisible) {
+          zoomControl.classList.add("zoomControlsAfterRightSidebarOpen");
+          console.log('Added zoom control class'); // Debug log
+        } else {
+          zoomControl.classList.remove("zoomControlsAfterRightSidebarOpen");
+          console.log('Removed zoom control class'); // Debug log
+        }
+      } else {
+        console.log('Zoom control not found'); // Debug log
+      }
+    };
+
+    // Try multiple times with increasing delays to ensure the control is rendered
+    const timeouts = [100, 300, 500, 1000].map(delay => 
+      setTimeout(updateZoomControlPosition, delay)
+    );
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, [isRightSidebarVisible, isMounted]);
   useEffect(() => {
     setTimeout(() => {
       setIsMounted(true);
@@ -151,29 +212,42 @@ function MapWithLayers({
         center={center}
         zoom={zoom}
         className={className}
-        key={`map-${activeLayer.id}-${Date.now()}`} // Force complete re-render
+        key={`map-${activeLayer.id}`} // Only re-render when layer changes
         crs={L.CRS.Simple} // Use simple CRS for local images
         minZoom={10}
         maxZoom={15}
-        zoomControl={true}
+        zoomControl={false}
         attributionControl={false}
         whenCreated={(mapInstance) => {
           // Store map instance for manual control
           mapRef.current = mapInstance;
           
-          // Force initial refresh
+          // Set the global map instance as a fallback
+          // (DynamicImageOverlay will set it again when it renders)
+          window.leafletMap = mapInstance;
+          
+          // No need to force fitBounds on initial load - MapStateRestorer will handle this
           setTimeout(() => {
             mapInstance.invalidateSize(true);
-            mapInstance.fitBounds(imageBounds);
-          }, 100);
+            
+            // Apply zoom control styling if sidebar is visible
+            if (isRightSidebarVisible) {
+              const zoomControl = mapInstance._container?.querySelector('.leaflet-control-zoom');
+              if (zoomControl) {
+                zoomControl.classList.add("zoomControlsAfterRightSidebarOpen");
+              }
+            }
+          }, 200);
         }}
       >
+        <ZoomControl position="bottomright" />
         <DynamicImageOverlay 
           imageUrl={activeLayer.imageUrl} 
           bounds={imageBounds} 
         />
         
         <MapRefresher layerId={activeLayer.id} />
+        <MapStateRestorer />
         
         {children}
       </MapContainer>

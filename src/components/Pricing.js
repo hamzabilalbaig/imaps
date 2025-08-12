@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -28,7 +28,7 @@ import {
   WorkspacePremium as PremiumIcon,
   Palette as PaletteIcon
 } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
+import useUserStore from '../stores/user';
 import { handleCheckout } from '../stripe/handleCheckout';
 
 const PLANS = [
@@ -96,9 +96,15 @@ const PLANS = [
 ];
 
 const Pricing = () => {
-  const { user, upgradePlan } = useAuth();
+  const { id, name, email, plan, initializeUser, upgradePlan } = useUserStore();
   const [loading, setLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, plan: null });
+
+  useEffect(() => {
+    initializeUser();
+  }, []); // Only run once on mount
+
+  const user = { id, name, email, plan };
 
   const handleUpgrade = (planId) => {
     setConfirmDialog({ open: true, plan: PLANS.find(p => p.id === planId) });
