@@ -58,13 +58,60 @@ export const createMarker = (latlng, poiData = {}) => ({
 
 export const generateShareableLink = (poi) => {
   const baseUrl = window.location.origin;
+  
+  // Support both new POI structure and legacy marker structure
+  // New structure has sub_category_id, legacy has category
+  const isNewStructure = poi.sub_category_id !== undefined;
+  
+  let lat, lng, title, category;
+  
+  if (isNewStructure) {
+    // New POI structure
+    const position = poi.position || poi.coords;
+    lat = position[0];
+    lng = position[1];
+    title = poi.name || poi.title || 'POI'; // Handle both name and title fields
+    category = poi.subcategory_name || 'POI'; // This should be set by the caller
+  } else {
+    // Legacy marker structure
+    lat = poi.position[0];
+    lng = poi.position[1];
+    title = poi.title;
+    category = poi.category;
+  }
+  
+  console.log('generateShareableLink - POI:', poi);
+  console.log('generateShareableLink - isNewStructure:', isNewStructure);
+  console.log('generateShareableLink - Values:', { lat, lng, title, category });
+  
   const params = new URLSearchParams({
-    lat: poi.position[0],
-    lng: poi.position[1],
-    title: poi.title,
-    category: poi.category
+    lat: lat,
+    lng: lng,
+    title: title || 'POI',
+    category: category || 'Other'
   });
   return `${baseUrl}/?poi=${encodeURIComponent(params.toString())}`;
+};
+
+// Parse POI parameters from URL
+export const parsePOIFromURL = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const poiParam = urlParams.get('poi');
+  
+  if (!poiParam) return null;
+  
+  try {
+    const poiParams = new URLSearchParams(decodeURIComponent(poiParam));
+    return {
+      lat: parseFloat(poiParams.get('lat')),
+      lng: parseFloat(poiParams.get('lng')),
+      title: poiParams.get('title'),
+      category: poiParams.get('category')
+    };
+  } catch (error) {
+    console.error('Error parsing POI from URL:', error);
+    return null;
+  }
 };
 
 // Category to icon mapping

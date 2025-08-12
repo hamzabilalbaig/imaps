@@ -25,7 +25,7 @@ import AdSection from './AdSection';
 import ProgressTracker from './ProgressTracker';
 import POIForm from './POIForm';
 import NoteForm from './NoteForm';
-import { MAP_CONFIG } from '../utils/mapUtils';
+import { MAP_CONFIG, parsePOIFromURL } from '../utils/mapUtils';
 import { addUserNote, createAdminNote, getUserNotes } from '../api/functions/apiFunctions';
 import localDB from '../utils/localStorage';
 
@@ -69,8 +69,9 @@ function InteractiveMapLayout(props) {
   const [pendingNoteLocation, setPendingNoteLocation] = useState(null);
   const [hideAll, setHideAll] = useState(false);
   const [hiddenCategories, setHiddenCategories] = useState([]);
+  const [focusedPOI, setFocusedPOI] = useState(null);
 
-    // Filter POIs based on visible subcategories and search
+  // Filter POIs based on visible subcategories and search
   const filteredPOIs = useMemo(() => {
     console.log('InteractiveMapLayout - Filtering POIs');
     console.log('InteractiveMapLayout - Input POIs:', pois?.length);
@@ -105,6 +106,40 @@ function InteractiveMapLayout(props) {
     return filtered;
     */
   }, [pois, subCategories, visibleCategories, hiddenCategories, searchTerm, hideAll]);
+
+  // Handle POI from URL parameter
+  useEffect(() => {
+    const poiFromURL = parsePOIFromURL();
+    if (poiFromURL) {
+      console.log('Focusing on POI from URL:', poiFromURL);
+      setFocusedPOI(poiFromURL);
+      // Clear the URL parameter after processing
+      const url = new URL(window.location);
+      url.searchParams.delete('poi');
+      window.history.replaceState({}, '', url);
+    }
+  }, []);
+
+  // When focusing on a POI, try to find and highlight it
+  useEffect(() => {
+    if (focusedPOI && filteredPOIs.length > 0) {
+      console.log('Looking for focused POI in filtered POIs:', focusedPOI);
+      const matchingPOI = filteredPOIs.find(poi => {
+        const position = poi.position || poi.coords;
+        return position && 
+               Math.abs(position[0] - focusedPOI.lat) < 0.001 && 
+               Math.abs(position[1] - focusedPOI.lng) < 0.001;
+      });
+      
+      if (matchingPOI) {
+        console.log('Found matching POI:', matchingPOI);
+        // Optionally trigger marker click to open popup
+        setTimeout(() => onMarkerClick && onMarkerClick(matchingPOI), 1000);
+      } else {
+        console.log('No matching POI found in current filtered POIs');
+      }
+    }
+  }, [focusedPOI, filteredPOIs, onMarkerClick]);
 
   const handleCategoryToggle = (category) => {
     setVisibleCategories(prev => ({
@@ -388,8 +423,8 @@ function InteractiveMapLayout(props) {
 
       }}>
         <MapWithLayers
-          center={MAP_CONFIG?.defaultCenter}
-          zoom={MAP_CONFIG?.defaultZoom}
+          center={focusedPOI ? [focusedPOI.lat, focusedPOI.lng] : MAP_CONFIG?.defaultCenter}
+          zoom={focusedPOI ? 15 : MAP_CONFIG?.defaultZoom}
           showLayerSelector={true}
           layerSelectorPosition="bottom-center"
           isAdmin={isAdmin}
@@ -403,17 +438,25 @@ function InteractiveMapLayout(props) {
           )}
           
           {/* POI Markers */}
-          {filteredPOIs.map((poi) => (
-            <MapMarker
-              key={poi.id}
-              poi={poi}
-              subCategories={subCategories}
-              onRemove={onMarkerRemove}
-              onEdit={onMarkerEdit}
-              isAdmin={ user?.role === 'admin' }
-              canEdit={true}
-            />
-          ))}
+          {filteredPOIs.map((poi) => {
+            // Check if this POI is the focused one
+            const isFocused = focusedPOI && poi.position && 
+              Math.abs(poi.position[0] - focusedPOI.lat) < 0.001 && 
+              Math.abs(poi.position[1] - focusedPOI.lng) < 0.001;
+            
+            return (
+              <MapMarker
+                key={poi.id}
+                poi={poi}
+                subCategories={subCategories}
+                onRemove={onMarkerRemove}
+                onEdit={onMarkerEdit}
+                isAdmin={ user?.role === 'admin' }
+                canEdit={user?.role === 'admin' || poi.user_id === user?.id}
+                isFocused={isFocused}
+              />
+            );
+          })}
           {/* Notes */}
           {!hideAll && (
             user?.role === 'admin' ?

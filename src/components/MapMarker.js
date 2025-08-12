@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Marker, Popup } from "react-leaflet";
 import { 
   Box, 
@@ -24,9 +24,11 @@ import { generateShareableLink, createCategoryIcon } from "../utils/mapUtils";
  * @param {Function} onEdit - Callback function to edit the POI/marker
  * @param {boolean} isAdmin - Whether this is admin view with edit capabilities
  * @param {boolean} canEdit - Whether the current user can edit this POI/marker
+ * @param {boolean} isFocused - Whether this POI is focused (from shareable link)
  */
-function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isAdmin = false, canEdit = false }) {
+function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isAdmin = false, canEdit = false, isFocused = false }) {
   const theme = useTheme();
+  const [popupRef, setPopupRef] = useState(null);
   
   // Support both new POI structure and legacy marker structure
   const currentItem = poi || marker;
@@ -42,11 +44,30 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isAdmin 
       console.log('MapMarker - POI:', poi);
       console.log('MapMarker - SubCategory:', subCategory);
       console.log('MapMarker - Position:', poi.position || poi.coords);
+      console.log('MapMarker - Is Focused:', isFocused);
     }
-  }, [poi, subCategory, isNewStructure]);
+  }, [poi, subCategory, isNewStructure, isFocused]);
+
+  // Auto-open popup when focused
+  useEffect(() => {
+    if (isFocused && popupRef) {
+      console.log('Opening popup for focused POI');
+      setTimeout(() => {
+        popupRef.openPopup();
+      }, 500);
+    }
+  }, [isFocused, popupRef]);
   
   const handleShare = async () => {
-    const shareableLink = generateShareableLink(currentItem);
+    // For new POI structure, pass the current POI with subcategory name
+    const itemForSharing = isNewStructure ? {
+      ...currentItem,
+      subcategory_name: subCategory?.name
+    } : currentItem;
+    
+    console.log('Sharing item:', itemForSharing);
+    
+    const shareableLink = generateShareableLink(itemForSharing);
     try {
       await navigator.clipboard.writeText(shareableLink);
       alert("Shareable link copied to clipboard!");
@@ -96,17 +117,22 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isAdmin 
   const iconImageUrl = isNewStructure ? subCategory?.icon_image_url : null;
   const poiImageUrl = isNewStructure ? poi.image_url : null;
 
-  // Debug position format
+  // Debug the POI structure and values
   useEffect(() => {
     if (isNewStructure) {
+      console.log('MapMarker - Full POI object:', poi);
+      console.log('MapMarker - poi.name:', poi.name);
+      console.log('MapMarker - poi.title:', poi.title);  
+      console.log('MapMarker - subCategory:', subCategory);
       console.log('MapMarker - Position format:', position, typeof position, Array.isArray(position));
     }
-  }, [position, isNewStructure]);
+  }, [position, isNewStructure, poi, subCategory]);
 
   return (
     <Marker 
       key={currentItem.id} 
       position={position}
+      ref={setPopupRef}
       icon={isNewStructure ? 
         createCategoryIcon(
           subCategory?.name, 
@@ -117,7 +143,7 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isAdmin 
         createCategoryIcon(marker.category, marker.customIcon, marker.selectedIcon, marker.iconColor)
       }
     >
-      <Popup className="custom-popup">
+      <Popup className="custom-popup" ref={popupRef}>
         <Box sx={{ minWidth: 250, p: 1 }}>
           {/* POI Image - Only show for new structure if image exists */}
           {poiImageUrl && (
