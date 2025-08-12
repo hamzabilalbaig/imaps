@@ -15,13 +15,17 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Avatar
+  Avatar,
+  Button,
+  ButtonGroup
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
-  Category as CategoryIcon
+  Category as CategoryIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon
 } from '@mui/icons-material';
 import { CATEGORY_COLORS } from '../utils/mapUtils';
 import useCategoriesStore from '../stores/categories';
@@ -33,7 +37,8 @@ import usePOIsStore from '../stores/pois';
  */
 function Sidebar({ 
   searchTerm = '', 
-  onSearchChange
+  onSearchChange,
+  onVisibilityChange
 }) {
   const theme = useTheme();
   
@@ -65,13 +70,38 @@ function Sidebar({
   } = usePOIsStore();
 
   const [expandedCategories, setExpandedCategories] = useState({});
+  
+  // Visibility state management
+  const [globalVisibility, setGlobalVisibility] = useState(true);
+  const [hiddenCategories, setHiddenCategories] = useState(new Set());
+  const [hiddenSubCategories, setHiddenSubCategories] = useState(new Set());
 
   useEffect(() => {
     // Initialize categories, subcategories, and POIs when component mounts
     initializeCategories();
     initializeSubCategories();
     initializePOIs();
-  }, [initializeCategories, initializeSubCategories, initializePOIs]);
+    
+    // Set all categories as expanded by default (non-collapsible)
+    if (categories.length > 0) {
+      const allExpanded = {};
+      categories.forEach(category => {
+        allExpanded[category.id] = true;
+      });
+      setExpandedCategories(allExpanded);
+    }
+  }, [initializeCategories, initializeSubCategories, initializePOIs, categories]);
+
+  // Auto-expand all categories when they are loaded
+  useEffect(() => {
+    if (categories.length > 0) {
+      const allExpanded = {};
+      categories.forEach(category => {
+        allExpanded[category.id] = true;
+      });
+      setExpandedCategories(allExpanded);
+    }
+  }, [categories]);
 
   // Filter categories based on search term
   const filteredCategories = categories?.filter(category => 
@@ -80,10 +110,96 @@ function Sidebar({
   ) || [];
 
   const handleCategoryToggle = (categoryId) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryId]: !prev[categoryId]
-    }));
+    // Categories are always expanded, so we toggle subcategory visibility instead
+    setHiddenCategories(prev => {
+      const newHidden = new Set(prev);
+      if (newHidden.has(categoryId)) {
+        newHidden.delete(categoryId);
+      } else {
+        newHidden.add(categoryId);
+      }
+      
+      // Notify parent of visibility changes
+      if (onVisibilityChange) {
+        onVisibilityChange({
+          hiddenCategories: newHidden,
+          hiddenSubCategories,
+          globalVisibility
+        });
+      }
+      
+      return newHidden;
+    });
+  };
+
+  const handleSubCategoryToggle = (subCategoryId) => {
+    setHiddenSubCategories(prev => {
+      const newHidden = new Set(prev);
+      if (newHidden.has(subCategoryId)) {
+        newHidden.delete(subCategoryId);
+      } else {
+        newHidden.add(subCategoryId);
+      }
+      
+      // Notify parent of visibility changes
+      if (onVisibilityChange) {
+        onVisibilityChange({
+          hiddenCategories,
+          hiddenSubCategories: newHidden,
+          globalVisibility
+        });
+      }
+      
+      return newHidden;
+    });
+  };
+
+  const handleShowAll = () => {
+    setGlobalVisibility(true);
+    setHiddenCategories(new Set());
+    setHiddenSubCategories(new Set());
+    
+    // Notify parent of visibility changes
+    if (onVisibilityChange) {
+      onVisibilityChange({
+        hiddenCategories: new Set(),
+        hiddenSubCategories: new Set(),
+        globalVisibility: true
+      });
+    }
+  };
+
+  const handleHideAll = () => {
+    setGlobalVisibility(false);
+    const allCategoryIds = new Set(categories.map(cat => cat.id));
+    const allSubCategoryIds = new Set(subCategories.map(sub => sub.id));
+    setHiddenCategories(allCategoryIds);
+    setHiddenSubCategories(allSubCategoryIds);
+    
+    // Notify parent of visibility changes
+    if (onVisibilityChange) {
+      onVisibilityChange({
+        hiddenCategories: allCategoryIds,
+        hiddenSubCategories: allSubCategoryIds,
+        globalVisibility: false
+      });
+    }
+  };
+
+  // Helper function to determine if a subcategory should be visible
+  const isSubCategoryVisible = (subCategory) => {
+    if (!globalVisibility) return false;
+    const isCategoryHidden = hiddenCategories.has(subCategory.category_id);
+    const isSubCategoryHidden = hiddenSubCategories.has(subCategory.id);
+    return !isCategoryHidden && !isSubCategoryHidden;
+  };
+
+  // Helper function to determine if POIs should be visible for a subcategory
+  const arePOIsVisible = (subCategory) => {
+    if (!globalVisibility) return false;
+    const isCategoryHidden = hiddenCategories.has(subCategory.category_id);
+    const isSubCategoryHidden = hiddenSubCategories.has(subCategory.id);
+    return !isCategoryHidden && !isSubCategoryHidden;
   };  return (
     <Box
       sx={{
@@ -103,6 +219,26 @@ function Sidebar({
         <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ fontSize: '1.2rem' }}>
           Categories
         </Typography>
+        
+        {/* Show/Hide All Buttons */}
+        <Box sx={{ mb: 2 }}>
+          <ButtonGroup variant="outlined" size="small" fullWidth>
+            <Button
+              onClick={handleShowAll}
+              startIcon={<VisibilityIcon />}
+              sx={{ fontSize: '0.75rem' }}
+            >
+              Show All
+            </Button>
+            <Button
+              onClick={handleHideAll}
+              startIcon={<VisibilityOffIcon />}
+              sx={{ fontSize: '0.75rem' }}
+            >
+              Hide All
+            </Button>
+          </ButtonGroup>
+        </Box>
         
         {/* Search */}
         <TextField
@@ -184,15 +320,16 @@ function Sidebar({
             </Typography>
             
             {filteredCategories.map((category) => {
-              const isExpanded = expandedCategories[category.id];
+              const isExpanded = true; // Categories are always expanded
               const categoryColor = category.color || CATEGORY_COLORS[category.name] || CATEGORY_COLORS['Other'];
               const categorySubCategories = getSubCategoriesByCategoryId(category.id);
+              const isCategoryHidden = hiddenCategories.has(category.id);
 
               return (
                 <Accordion
                   key={category.id}
                   expanded={isExpanded}
-                  onChange={() => handleCategoryToggle(category.id)}
+                  onChange={() => {}} // Prevent accordion collapse
                   sx={{
                     boxShadow: 'none',
                     '&:before': { display: 'none' },
@@ -202,14 +339,17 @@ function Sidebar({
                     border: `1px solid ${alpha(categoryColor, 0.2)}`,
                     '&:hover': {
                       backgroundColor: alpha(categoryColor, 0.02)
-                    }
+                    },
+                    opacity: globalVisibility ? 1 : 0.5
                   }}
                 >
                   <AccordionSummary
-                    expandIcon={<ExpandMoreIcon sx={{ fontSize: '1rem', color: categoryColor }} />}
+                    expandIcon={null} // Remove expand icon since categories don't collapse
+                    onClick={() => handleCategoryToggle(category.id)}
                     sx={{
                       minHeight: 48,
                       px: 2,
+                      cursor: 'pointer',
                       '& .MuiAccordionSummary-content': {
                         alignItems: 'center',
                         margin: 0
@@ -253,6 +393,15 @@ function Sidebar({
                           </Typography>
                         )}
                       </Box>
+                      
+                      {/* Visibility indicator */}
+                      <IconButton size="small" sx={{ ml: 1 }}>
+                        {isCategoryHidden ? (
+                          <VisibilityOffIcon sx={{ fontSize: '1rem', color: theme.palette.text.secondary }} />
+                        ) : (
+                          <VisibilityIcon sx={{ fontSize: '1rem', color: categoryColor }} />
+                        )}
+                      </IconButton>
                     </Box>
                   </AccordionSummary>
                   
@@ -283,90 +432,110 @@ function Sidebar({
                         gap: 1,
                         p: 1
                       }}>
-                        {categorySubCategories.map((subCategory) => (
-                          <Box
-                            key={subCategory.id}
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              p: 1,
-                              borderRadius: 1,
-                              backgroundColor: alpha(categoryColor, 0.03),
-                              border: `1px solid ${alpha(categoryColor, 0.1)}`,
-                              cursor: 'pointer',
-                              '&:hover': {
-                                backgroundColor: alpha(categoryColor, 0.08),
-                                borderColor: alpha(categoryColor, 0.2)
-                              }
-                            }}
-                          >
-                            {/* Icon */}
-                            <Box sx={{ mr: 1, flexShrink: 0 }}>
-                              {subCategory.icon_image_url ? (
-                                <img
-                                   src={subCategory.icon_image_url}
-                                   alt={subCategory.name}
-                                   style={{
-                                     width: 20,
-                                     height: 20,
-                                     borderRadius: 2
-                                   }}
-                                />
-                              ) : (
-                                <Box
-                                  sx={{
-                                    width: 20,
-                                    height: 20,
-                                    borderRadius: 1,
-                                    backgroundColor: subCategory.color || alpha(categoryColor, 0.4),
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                  }}
-                                >
-                                  <Typography
-                                    variant="caption"
+                        {categorySubCategories.map((subCategory) => {
+                          const isSubCategoryHidden = hiddenSubCategories.has(subCategory.id);
+                          const shouldShowStrikethrough = isCategoryHidden || isSubCategoryHidden;
+                          
+                          return (
+                            <Box
+                              key={subCategory.id}
+                              onClick={() => handleSubCategoryToggle(subCategory.id)}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                p: 1,
+                                borderRadius: 1,
+                                backgroundColor: alpha(categoryColor, 0.03),
+                                border: `1px solid ${alpha(categoryColor, 0.1)}`,
+                                cursor: 'pointer',
+                                opacity: shouldShowStrikethrough ? 0.6 : 1,
+                                '&:hover': {
+                                  backgroundColor: alpha(categoryColor, 0.08),
+                                  borderColor: alpha(categoryColor, 0.2)
+                                }
+                              }}
+                            >
+                              {/* Icon */}
+                              <Box sx={{ mr: 1, flexShrink: 0 }}>
+                                {subCategory.icon_image_url ? (
+                                  <img
+                                     src={subCategory.icon_image_url}
+                                     alt={subCategory.name}
+                                     style={{
+                                       width: 20,
+                                       height: 20,
+                                       borderRadius: 2,
+                                       filter: shouldShowStrikethrough ? 'grayscale(100%)' : 'none'
+                                     }}
+                                  />
+                                ) : (
+                                  <Box
                                     sx={{
-                                      fontSize: '0.6rem',
-                                      fontWeight: 'bold',
-                                      color: 'white'
+                                      width: 20,
+                                      height: 20,
+                                      borderRadius: 1,
+                                      backgroundColor: subCategory.color || alpha(categoryColor, 0.4),
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      filter: shouldShowStrikethrough ? 'grayscale(100%)' : 'none'
                                     }}
                                   >
-                                    {subCategory.name.charAt(0).toUpperCase()}
-                                  </Typography>
-                                </Box>
-                              )}
-                            </Box>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        fontSize: '0.6rem',
+                                        fontWeight: 'bold',
+                                        color: 'white'
+                                      }}
+                                    >
+                                      {subCategory.name.charAt(0).toUpperCase()}
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Box>
 
-                            {/* Content */}
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  fontSize: '0.75rem',
-                                  fontWeight: 500,
-                                  color: theme.palette.text.primary,
-                                  lineHeight: 1.2,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap'
-                                }}
-                              >
-                                {subCategory.name}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  fontSize: '0.65rem',
-                                  fontWeight: 'bold',
-                                  color: theme.palette.text.secondary
-                                }}
-                              >
-                                {getPOIsCountBySubCategory(subCategory.id)}
-                              </Typography>
+                              {/* Content */}
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                    color: theme.palette.text.primary,
+                                    lineHeight: 1.2,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    textDecoration: shouldShowStrikethrough ? 'line-through' : 'none'
+                                  }}
+                                >
+                                  {subCategory.name}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 'bold',
+                                    color: theme.palette.text.secondary,
+                                    textDecoration: shouldShowStrikethrough ? 'line-through' : 'none'
+                                  }}
+                                >
+                                  {getPOIsCountBySubCategory(subCategory.id)}
+                                </Typography>
+                              </Box>
+                              
+                              {/* Visibility indicator for subcategory */}
+                              <Box sx={{ ml: 1 }}>
+                                {isSubCategoryHidden ? (
+                                  <VisibilityOffIcon sx={{ fontSize: '0.75rem', color: theme.palette.text.disabled }} />
+                                ) : (
+                                  <VisibilityIcon sx={{ fontSize: '0.75rem', color: categoryColor }} />
+                                )}
+                              </Box>
                             </Box>
-                          </Box>
-                        ))}
+                          );
+                        })}
                       </Box>
                     )}
                   </AccordionDetails>
@@ -380,7 +549,12 @@ function Sidebar({
       {/* Footer */}
       <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-          {loading || subCategoriesLoading || poisLoading ? 'Loading...' : `${categories.length} categories, ${subCategories.length} subcategories, ${pois.length} POIs`}
+          {loading || subCategoriesLoading || poisLoading ? 'Loading...' : 
+            `${categories.length} categories, ${subCategories.length} subcategories, ${pois.length} POIs`
+          }
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block', mt: 0.5 }}>
+          Hidden: {hiddenCategories.size} categories, {hiddenSubCategories.size} subcategories
         </Typography>
       </Box>
     </Box>

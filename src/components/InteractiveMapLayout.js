@@ -71,41 +71,57 @@ function InteractiveMapLayout(props) {
   const [hiddenCategories, setHiddenCategories] = useState([]);
   const [focusedPOI, setFocusedPOI] = useState(null);
 
+  // New sidebar visibility state
+  const [sidebarVisibilityState, setSidebarVisibilityState] = useState({
+    hiddenCategories: new Set(),
+    hiddenSubCategories: new Set(),
+    globalVisibility: true
+  });
+
   // Filter POIs based on visible subcategories and search
   const filteredPOIs = useMemo(() => {
     console.log('InteractiveMapLayout - Filtering POIs');
     console.log('InteractiveMapLayout - Input POIs:', pois?.length);
-    console.log('InteractiveMapLayout - hideAll:', hideAll);
+    console.log('InteractiveMapLayout - Sidebar visibility state:', sidebarVisibilityState);
     
-    if (hideAll) return [];
+    if (!sidebarVisibilityState.globalVisibility) {
+      console.log('InteractiveMapLayout - Global visibility is false, hiding all POIs');
+      return [];
+    }
     
-    // TEMPORARY: Show all POIs for debugging
-    console.log('InteractiveMapLayout - Showing all POIs for debugging');
-    return pois || [];
-    
-    /* Original filtering logic - commented out for debugging
     const filtered = pois?.filter(poi => {
       // Find the subcategory for this POI
       const subCategory = subCategories.find(sub => sub.id === poi.sub_category_id);
-      const subCategoryName = subCategory?.name || 'Other';
+      if (!subCategory) {
+        console.log(`POI "${poi.name || poi.title}" - No subcategory found for sub_category_id: ${poi.sub_category_id}`);
+        return false; // Hide POIs without subcategories
+      }
       
-      const categoryVisible = visibleCategories[subCategoryName] !== false;
-      const isHidden = hiddenCategories.includes(subCategoryName);
-      const matchesSearch = !searchTerm || poi.name?.toLowerCase().includes(searchTerm.toLowerCase()) 
-        || poi.description?.toLowerCase().includes(searchTerm.toLowerCase())
-        || subCategoryName.toLowerCase().includes(searchTerm.toLowerCase());
+      // Check if category is hidden
+      const isCategoryHidden = sidebarVisibilityState.hiddenCategories.has(subCategory.category_id);
+      
+      // Check if subcategory is hidden
+      const isSubCategoryHidden = sidebarVisibilityState.hiddenSubCategories.has(subCategory.id);
+      
+      // Check search term match
+      const matchesSearch = !searchTerm || 
+        poi.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        poi.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        poi.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        subCategory.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const shouldShow = categoryVisible && !isHidden && matchesSearch;
+      const shouldShow = !isCategoryHidden && !isSubCategoryHidden && matchesSearch;
       
-      console.log(`POI "${poi.name}" - SubCategory: "${subCategoryName}", Visible: ${categoryVisible}, Hidden: ${isHidden}, Matches: ${matchesSearch}, Show: ${shouldShow}`);
+      if (poi.title || poi.name) {
+        console.log(`POI "${poi.title || poi.name}" - Category Hidden: ${isCategoryHidden}, SubCategory Hidden: ${isSubCategoryHidden}, Matches Search: ${matchesSearch}, Show: ${shouldShow}`);
+      }
 
       return shouldShow;
     }) || [];
     
     console.log('InteractiveMapLayout - Filtered POIs:', filtered.length);
     return filtered;
-    */
-  }, [pois, subCategories, visibleCategories, hiddenCategories, searchTerm, hideAll]);
+  }, [pois, subCategories, sidebarVisibilityState, searchTerm]);
 
   // Handle POI from URL parameter
   useEffect(() => {
@@ -149,23 +165,18 @@ function InteractiveMapLayout(props) {
   };
 
   const handleShowAll = () => {
-    // const allCategories = [...new Set(markers.map(m => m.category || 'Other'))];
-    // const newVisible = {};
-    // allCategories.forEach(cat => {
-    //   newVisible[cat] = true;
-    // });
-    // setVisibleCategories(newVisible);
+    // Legacy functionality - can be removed since sidebar handles this now
     setHideAll(false);
   };
 
   const handleHideAll = () => {
-    // const allCategories = [...new Set(markers.map(m => m.category || 'Other'))];
-    // const newVisible = {};
-    // allCategories.forEach(cat => {
-    //   newVisible[cat] = false;
-    // });
-    // setVisibleCategories(newVisible);
+    // Legacy functionality - can be removed since sidebar handles this now
     setHideAll(true)
+  };
+
+  const handleSidebarVisibilityChange = (visibilityState) => {
+    console.log('InteractiveMapLayout - Sidebar visibility changed:', visibilityState);
+    setSidebarVisibilityState(visibilityState);
   };
 
   const handleAddNote = () => {
@@ -292,6 +303,7 @@ function InteractiveMapLayout(props) {
       onStreetsToggle={handleStreetsToggle}
       hiddenCategories={hiddenCategories}
       setHiddenCategories={setHiddenCategories}
+      onVisibilityChange={handleSidebarVisibilityChange}
     />
   );
 
