@@ -335,8 +335,7 @@ function Sidebar({
                     '&:before': { display: 'none' },
                     '&.Mui-expanded': { margin: 0 },
                     mb: 1,
-                    borderRadius: 2,
-                    border: `1px solid ${alpha(categoryColor, 0.2)}`,
+
                     '&:hover': {
                       backgroundColor: alpha(categoryColor, 0.02)
                     },
@@ -393,15 +392,6 @@ function Sidebar({
                           </Typography>
                         )}
                       </Box>
-                      
-                      {/* Visibility indicator */}
-                      <IconButton size="small" sx={{ ml: 1 }}>
-                        {isCategoryHidden ? (
-                          <VisibilityOffIcon sx={{ fontSize: '1rem', color: theme.palette.text.secondary }} />
-                        ) : (
-                          <VisibilityIcon sx={{ fontSize: '1rem', color: categoryColor }} />
-                        )}
-                      </IconButton>
                     </Box>
                   </AccordionSummary>
                   
@@ -523,15 +513,6 @@ function Sidebar({
                                 >
                                   {getPOIsCountBySubCategory(subCategory.id)}
                                 </Typography>
-                              </Box>
-                              
-                              {/* Visibility indicator for subcategory */}
-                              <Box sx={{ ml: 1 }}>
-                                {isSubCategoryHidden ? (
-                                  <VisibilityOffIcon sx={{ fontSize: '0.75rem', color: theme.palette.text.disabled }} />
-                                ) : (
-                                  <VisibilityIcon sx={{ fontSize: '0.75rem', color: categoryColor }} />
-                                )}
                               </Box>
                             </Box>
                           );

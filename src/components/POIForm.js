@@ -21,7 +21,6 @@ import {
 import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon } from "@mui/icons-material";
 import useUserStore from "../stores/user";
 import useSubCategoriesStore from "../stores/subCategories";
-import usePOIsStore from "../stores/pois";
 import uploadFile from "../aws/fileUpload";
 
 /**
@@ -32,7 +31,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const { initializeUser, id } = useUserStore();
   const { subCategories, initializeSubCategories } = useSubCategoriesStore();
-  const { createPOI, updatePOI } = usePOIsStore();
+  // POI creation and update handled by parent via onSave callback
 
   useEffect(() => {
     initializeUser();
@@ -137,28 +136,17 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
         description: formData.description.trim(),
         sub_category_id: parseInt(formData.sub_category_id),
         image_url: formData.image_url || null,
-        // Extract coordinates from poi.coords if available
         coords: poi?.coords ? (typeof poi.coords === 'string' ? 
           poi.coords.split(',').map(coord => parseFloat(coord.trim())) : 
           poi.coords
         ) : null,
-        is_approved: isAdmin // Admin POIs are auto-approved
+        is_approved: isAdmin // Admin auto-approval
       };
 
-      let result;
-      if (isEdit && poi?.id) {
-        result = await updatePOI(poi.id, submissionData);
-      } else {
-        result = await createPOI(submissionData);
-      }
-
-      if (result.success) {
-        onSave(submissionData);
-      } else {
-        alert(result.error || 'Failed to save POI. Please try again.');
-      }
+      // Pass data to parent for API call
+      onSave(submissionData);
     } catch (error) {
-      console.error('Error saving POI:', error);
+      console.error('Error submitting POI:', error);
       alert('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
