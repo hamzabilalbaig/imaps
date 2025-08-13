@@ -17,7 +17,13 @@ import {
   ListItemText,
   Avatar,
   Button,
-  ButtonGroup
+  ButtonGroup,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Tooltip,
+  Chip
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -25,12 +31,20 @@ import {
   Clear as ClearIcon,
   Category as CategoryIcon,
   Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon
+  VisibilityOff as VisibilityOffIcon,
+  CheckCircle as ApproveIcon,
+  Edit as EditIcon,
+  LocationOn as LocationIcon,
+  Close as CloseIcon,
+  CloudUpload as UploadIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { CATEGORY_COLORS } from '../utils/mapUtils';
 import useCategoriesStore from '../stores/categories';
 import useSubCategoriesStore from '../stores/subCategories';
 import usePOIsStore from '../stores/pois';
+import useUserStore from '../stores/user';
+import uploadFile from '../aws/fileUpload';
 
 /**
  * Simple sidebar component displaying categories
@@ -66,15 +80,35 @@ function Sidebar({
     loading: poisLoading, 
     error: poisError, 
     initializePOIs,
-    getPOIsCountBySubCategory 
+    getPOIsCountBySubCategory,
+    approvePOI,
+    updatePOI,
+    deletePOI,
+    fetchPOIs
   } = usePOIsStore();
 
+  // User store
+  const { isadmin } = useUserStore();
+
+  const [unapprovedPois, setUnapprovedPois] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState({});
   
   // Visibility state management
   const [globalVisibility, setGlobalVisibility] = useState(true);
   const [hiddenCategories, setHiddenCategories] = useState(new Set());
   const [hiddenSubCategories, setHiddenSubCategories] = useState(new Set());
+
+  // POI management state
+  const [editingPoi, setEditingPoi] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+
+  useEffect(()=>{
+    setUnapprovedPois(pois.filter(poi => !poi.is_approved));
+  },[pois])
 
   useEffect(() => {
     // Initialize categories, subcategories, and POIs when component mounts
@@ -200,6 +234,91 @@ function Sidebar({
     const isCategoryHidden = hiddenCategories.has(subCategory.category_id);
     const isSubCategoryHidden = hiddenSubCategories.has(subCategory.id);
     return !isCategoryHidden && !isSubCategoryHidden;
+  };
+
+  // POI management handlers
+  const handleApprovePOI = async (poi) => {
+    setActionLoading(true);
+    try {
+      const result = await approvePOI(poi.id, poi);
+      if (result.success) {
+        // Refresh POIs to update the list
+        await fetchPOIs();
+      }
+    } catch (error) {
+      console.error('Error approving POI:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEditPOI = (poi) => {
+    setEditingPoi(poi);
+    setImagePreview(poi.image_url || '');
+    setSelectedImage(null);
+    setEditDialogOpen(true);
+  };
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      setSelectedImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreview(e.target.result);
+      reader.readAsDataURL(file);
+
+      // Upload to S3
+      const uploadedUrl = await uploadFile(file, setUploadingImage);
+      if (uploadedUrl) {
+        setEditingPoi(prev => ({ ...prev, image_url: uploadedUrl }));
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleEditSave = async (updatedPOI) => {
+    setActionLoading(true);
+    try {
+      const result = await updatePOI(editingPoi.id, { ...updatedPOI, is_approved: true });
+      if (result.success) {
+        setEditDialogOpen(false);
+        setEditingPoi(null);
+        // Refresh POIs to update the list
+        await fetchPOIs();
+      }
+    } catch (error) {
+      console.error('Error updating POI:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditDialogOpen(false);
+    setEditingPoi(null);
+    setImagePreview('');
+    setSelectedImage(null);
   };  return (
     <Box
       sx={{
@@ -525,6 +644,326 @@ function Sidebar({
             })}
           </>
         )}
+
+        {/* Unapproved POIs Section - Show for testing */}
+        {(isadmin ) && ( 
+          <Box sx={{ mt: 3, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                mb: 2, 
+                display: 'block', 
+                fontWeight: 'bold', 
+                color: 'warning.main',
+                fontSize: '0.75rem'
+              }}
+            >
+              Pending Suggested Location ({unapprovedPois.length})
+            </Typography>
+            
+            {unapprovedPois.length === 0 ? (
+              <Box sx={{ 
+                p: 2, 
+                textAlign: 'center',
+                backgroundColor: alpha(theme.palette.info.main, 0.05),
+                borderRadius: 1,
+                border: `1px dashed ${alpha(theme.palette.info.main, 0.2)}`
+              }}>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ fontSize: '0.8rem' }}
+                >
+                  No POIs pending Suggested Location
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                {unapprovedPois.map((poi) => (
+                <Box
+                  key={poi.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    p: 1.5,
+                    mb: 1,
+                    borderRadius: 1,
+                    backgroundColor: alpha(theme.palette.warning.main, 0.05),
+                    border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.warning.main, 0.1),
+                    }
+                  }}
+                >
+                  {/* POI Info */}
+                  <Box sx={{ flex: 1, mr: 1 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: theme.palette.text.primary,
+                        lineHeight: 1.2,
+                        mb: 0.5
+                      }}
+                    >
+                      {poi.name}
+                    </Typography>
+                    
+                    {poi.description && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.7rem',
+                          color: theme.palette.text.secondary,
+                          display: 'block',
+                          lineHeight: 1.2,
+                          mb: 0.5,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {poi.description}
+                      </Typography>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip
+                        size="small"
+                        label="Pending"
+                        color="warning"
+                        variant="outlined"
+                        sx={{ 
+                          fontSize: '0.65rem', 
+                          height: 20,
+                          '& .MuiChip-label': { px: 1 }
+                        }}
+                      />
+                      <LocationIcon sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
+                        ID: {poi.id}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Action Buttons */}
+                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0.5 }}>
+                    
+                    <Tooltip title="Delete POI">
+                      <IconButton
+                        size="small"
+                        onClick={() => deletePOI(poi.id)}
+                        disabled={actionLoading}
+                        sx={{
+                          backgroundColor: alpha(theme.palette.error.main, 0.1),
+                          color: 'error.main',
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.error.main, 0.2),
+                          },
+                          width: 28,
+                          height: 28
+                        }}
+                      >
+                        {actionLoading ? (
+                          <CircularProgress size={14} />
+                        ) : (
+                          <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Edit & Approve">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditPOI(poi)}
+                        disabled={actionLoading}
+                        sx={{
+                          backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                          color: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.primary.main, 0.2),
+                          },
+                          width: 28,
+                          height: 28
+                        }}
+                      >
+                        <EditIcon sx={{ fontSize: '0.9rem' }} />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title="Approve POI">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleApprovePOI(poi)}
+                        disabled={actionLoading}
+                        sx={{
+                          backgroundColor: alpha(theme.palette.success.main, 0.1),
+                          color: 'success.main',
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.success.main, 0.2),
+                          },
+                          width: 28,
+                          height: 28
+                        }}
+                      >
+                        {actionLoading ? (
+                          <CircularProgress size={14} />
+                        ) : (
+                          <ApproveIcon sx={{ fontSize: '0.9rem' }} />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+
+                    
+                  </Box>
+                </Box>
+              ))}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {/* Edit POI Dialog */}
+        <Dialog
+          open={editDialogOpen}
+          onClose={handleEditCancel}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              maxHeight: '90vh'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            pb: 1
+          }}>
+            <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+              Edit & Approve POI
+            </Typography>
+            <IconButton onClick={handleEditCancel} size="small">
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          
+          <DialogContent sx={{ pt: 1 }}>
+            {editingPoi && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  fullWidth
+                  label="POI Name"
+                  value={editingPoi.name || ''}
+                  onChange={(e) => setEditingPoi(prev => ({ ...prev, name: e.target.value }))}
+                  size="small"
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Description"
+                  value={editingPoi.description || ''}
+                  onChange={(e) => setEditingPoi(prev => ({ ...prev, description: e.target.value }))}
+                  multiline
+                  rows={3}
+                  size="small"
+                />
+                
+                <TextField
+                  fullWidth
+                  select
+                  label="Sub Category"
+                  value={editingPoi.sub_category_id || ''}
+                  onChange={(e) => setEditingPoi(prev => ({ ...prev, sub_category_id: e.target.value }))}
+                  size="small"
+                  SelectProps={{
+                    native: true,
+                  }}
+                >
+                  <option value="">Select a subcategory</option>
+                  {subCategories.map((subCat) => (
+                    <option key={subCat.id} value={subCat.id}>
+                      {subCat.name}
+                    </option>
+                  ))}
+                </TextField>
+
+                {/* Image Upload Section */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontSize: '0.9rem' }}>
+                    POI Image
+                  </Typography>
+                  
+                  <Button
+                    component="label"
+                    variant="outlined"
+                    startIcon={uploadingImage ? <CircularProgress size={16} /> : <UploadIcon />}
+                    disabled={uploadingImage}
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  >
+                    {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                    />
+                  </Button>
+
+                  {imagePreview && (
+                    <Box sx={{ 
+                      textAlign: 'center',
+                      p: 2,
+                      border: `1px solid ${theme.palette.divider}`,
+                      borderRadius: 1,
+                      backgroundColor: alpha(theme.palette.background.paper, 0.5)
+                    }}>
+                      <img 
+                        src={imagePreview} 
+                        alt="POI Preview" 
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: 200, 
+                          borderRadius: 8,
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
+                        Image preview
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>
+                  <Button
+                    onClick={handleEditCancel}
+                    disabled={actionLoading}
+                    variant="outlined"
+                    size="small"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => handleEditSave(editingPoi)}
+                    disabled={actionLoading || !editingPoi.name || !editingPoi.sub_category_id}
+                    variant="contained"
+                    size="small"
+                    startIcon={actionLoading ? <CircularProgress size={16} /> : <ApproveIcon />}
+                  >
+                    Update & Approve
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </DialogContent>
+        </Dialog>
       </Box>
 
       {/* Footer */}

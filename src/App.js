@@ -13,6 +13,7 @@ import Navigation from './components/Navigation';
 import PublicMap from './components/PublicMap';
 import UserMap from './components/UserMap';
 import AdminMap from './components/AdminMap';
+import AdminDashboard from './components/AdminDashboard';
 import Login from './components/Login';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
@@ -94,7 +95,7 @@ function App() {
                     path="/dashboard" 
                     element={
                       <ProtectedRoute>
-                        <UserMap />
+                        <AdminMap />
                       </ProtectedRoute>
                     } 
                   />
@@ -108,6 +109,14 @@ function App() {
                   />
                   <Route 
                     path="/admin" 
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminDashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/admin-map" 
                     element={
                       <ProtectedRoute requireAdmin={true}>
                         <AdminMap />

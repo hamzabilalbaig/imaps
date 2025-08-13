@@ -195,6 +195,22 @@ const usePOIsStore = create((set, get) => ({
     }
   },
 
+  approvePOI: async (id, poiData) => {
+    try {
+      set({ loading: true, error: null });
+      const updatedPOI = await updatePOIById(id, { ...poiData, is_approved: true });
+      set({ loading: false });
+      return { success: true, poi: updatedPOI };
+    } catch (error) {
+      console.error('Error approving POI:', error);
+      set({ 
+        error: error.message,
+        loading: false 
+      });
+      return { success: false, error: error.message };
+    }
+  },
+
   // Clear current POI
   clearCurrentPOI: () => {
     set({ currentPOI: null });

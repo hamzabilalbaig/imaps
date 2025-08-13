@@ -28,6 +28,7 @@ import NoteForm from './NoteForm';
 import { MAP_CONFIG, parsePOIFromURL } from '../utils/mapUtils';
 import { addUserNote, createAdminNote, getUserNotes } from '../api/functions/apiFunctions';
 import localDB from '../utils/localStorage';
+import useUserStore from '../stores/user';
 
 function InteractiveMapLayout(props) {
   const {
@@ -45,7 +46,7 @@ function InteractiveMapLayout(props) {
     pendingLocation,
     onSavePOI,
     onCancelForm,
-    user,
+    
     isAdmin = false,
     readOnly = false,
     onSuggestLocation,
@@ -55,7 +56,7 @@ function InteractiveMapLayout(props) {
   } = props;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
-  
+  const user = useUserStore(state => state.user);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(!isMobile);
   const [visibleCategories, setVisibleCategories] = useState({});
@@ -445,7 +446,7 @@ function InteractiveMapLayout(props) {
           isRightSidebarVisible={rightSidebarOpen}
         >
           {/* Map Click Handler */}
-          {((canCreateMore && (isAdmin || isSuggestMode)) || isNoteMode) && (
+          {((canCreateMore && isSuggestMode) || isNoteMode) && (
             <MapClickHandler onMapClick={isNoteMode ? handleNoteMapClick : onMapClick} />
           )}
           
@@ -463,15 +464,15 @@ function InteractiveMapLayout(props) {
                 subCategories={subCategories}
                 onRemove={onMarkerRemove}
                 onEdit={onMarkerEdit}
-                isAdmin={ user?.role === 'admin' }
-                canEdit={user?.role === 'admin' || poi.user_id === user?.id}
+                isAdmin={ user?.isadmin }
+                canEdit={user?.isadmin || poi.user_id === user?.id}
                 isFocused={isFocused}
               />
             );
           })}
           {/* Notes */}
           {!hideAll && (
-            user?.role === 'admin' ?
+            user?.isadmin ?
               JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]').map(note => (
                 <MapNote
                   key={note.id}

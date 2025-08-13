@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
 import {
-  Snackbar
+  Snackbar,
+  Box,
+  Fab,
+  Tooltip
 } from "@mui/material";
+import {
+  Dashboard as DashboardIcon
+} from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 import InteractiveMapLayout from "./InteractiveMapLayout";
 import useUserStore from "../stores/user";
 import usePOIsStore from "../stores/pois";
@@ -9,18 +16,32 @@ import useSubCategoriesStore from "../stores/subCategories";
 
 /**
  * Admin Map component with full editing capabilities
+ * This is the map view accessible from the admin dashboard
  */
 function AdminMap() {
+  const navigate = useNavigate();
+  
   // Use new POI stores
   const { pois, createPOI, updatePOI, deletePOI, initializePOIs } = usePOIsStore();
   const { subCategories, initializeSubCategories } = useSubCategoriesStore();
-  const { id, name, email, role, initializeUser } = useUserStore();
+  const { id, name, email, role, initializeUser, isUserAdmin } = useUserStore();
 
   useEffect(() => {
-    initializeUser();
-    initializePOIs();
-    initializeSubCategories();
-  }, []); // Only run once on mount
+    const initializeData = async () => {
+      await initializeUser();
+      
+      // Redirect if not admin
+      if (!isUserAdmin()) {
+        navigate('/dashboard');
+        return;
+      }
+      
+      await initializePOIs();
+      await initializeSubCategories();
+    };
+
+    initializeData();
+  }, []);
 
   const user = { id, name, email, role };
   const [showForm, setShowForm] = useState(false);
@@ -134,7 +155,7 @@ function AdminMap() {
   };
 
   return (
-    <>
+    <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
       <InteractiveMapLayout
         pois={pois}
         subCategories={subCategories}
@@ -149,12 +170,23 @@ function AdminMap() {
         onCancelForm={handleCancelForm}
         user={user}
         isAdmin={true}
-        userMarkerCount={pois.length}
+        userMarkerCount={pois.filter(poi => poi.user_id === user.id).length}
         maxMarkers={Infinity}
         canCreateMore={true}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}
       />
+
+      {/* Floating Action Button to go back to Dashboard */}
+      <Fab
+        color="primary"
+        sx={{ position: 'fixed', bottom: 16, left: 16 }}
+        onClick={() => navigate('/admin')}
+      >
+        <Tooltip title="Back to Dashboard">
+          <DashboardIcon />
+        </Tooltip>
+      </Fab>
 
       {/* Snackbar for notifications */}
       <Snackbar
@@ -163,7 +195,7 @@ function AdminMap() {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         message={snackbar.message}
       />
-    </>
+    </Box>
   );
 }
 

@@ -30,7 +30,7 @@ const useUserStore = create((set, get) => ({
   email: '',
   plan: '',
   role: '',
-  isAdmin: false,
+  isadmin: false,
   
 
   loading: false,
@@ -56,7 +56,7 @@ const useUserStore = create((set, get) => ({
           email: user.email,
           plan: user.plan,
           role: user.role,
-          isAdmin: user.isAdmin,
+          isadmin: user.isadmin,
         });
       }
     } catch (error) {
@@ -67,7 +67,7 @@ const useUserStore = create((set, get) => ({
   
 
   isAuthenticated: () => !!get().id,
-  isUserAdmin: () => get().role === 'admin',
+  isUserAdmin: () => get().isadmin,
   
 
   authenticate: async (email, password) => {
@@ -80,8 +80,8 @@ const useUserStore = create((set, get) => ({
         name: user.name,
         email: user.email,
         plan: user.plan,
-        role: user.role,
-        isAdmin: user.isAdmin,
+        role: user.isadmin ? 'admin' : 'user',
+        isadmin: user.isadmin,
       });
     
       localStorage.setItem('imaps_current_user', JSON.stringify(user));
@@ -104,7 +104,7 @@ const useUserStore = create((set, get) => ({
         email: user.email,
         plan: user.plan,
         role: user.role,
-        isAdmin: user?.isAdmin,
+        isadmin: user?.isadmin,
       });
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -119,7 +119,7 @@ const useUserStore = create((set, get) => ({
       email: '', 
       plan: '', 
       role: '',
-      isAdmin: false,
+      isadmin: false,
       passwordResetStatus: null,
       passwordResetError: null,
       passwordResetSuccess: false

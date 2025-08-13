@@ -250,3 +250,55 @@ export async function deletePOIById(id) {
     const { data } = await apiClient.delete(`/pois/${id}`);
     return data;
 }
+
+// User management API functions for admin
+export async function updateUserPlan(userId, newPlan) {
+    const { data } = await apiClient.put(`/users/${userId}/plan`, { plan: newPlan });
+    return data;
+}
+
+export async function getUserById(userId) {
+    const { data } = await apiClient.get(`/users/${userId}`);
+    return data;
+}
+
+export async function updateUserById(userId, userData) {
+    const { data } = await apiClient.put(`/users/${userId}`, userData);
+    return data;
+}
+
+export async function deleteUserById(userId) {
+    const { data } = await apiClient.delete(`/users/${userId}`);
+    return data;
+}
+
+// Admin statistics API functions
+export async function getAdminStats() {
+    const { data } = await apiClient.get('/admin/stats/stats');
+    return data;
+}
+
+export async function getPendingPOIs() {
+    const { data } = await apiClient.get('/admin/stats/pois/pending');
+    return data;
+}
+
+export async function getApprovedPOIs() {
+    const { data } = await apiClient.get('/pois?approved=true');
+    return data;
+}
+
+export async function getUserActivity() {
+    const { data } = await apiClient.get('/admin/stats/users/activity');
+    return data;
+}
+
+export async function bulkApprovePOIs(poiIds) {
+    const { data } = await apiClient.post('/admin/stats/pois/bulk-approve', { poiIds });
+    return data;
+}
+
+export async function bulkRejectPOIs(poiIds) {
+    const { data } = await apiClient.post('/admin/stats/pois/bulk-reject', { poiIds });
+    return data;
+}
