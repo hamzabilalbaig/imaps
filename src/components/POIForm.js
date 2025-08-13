@@ -135,7 +135,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
         name: formData.name.trim(),
         description: formData.description.trim(),
         sub_category_id: parseInt(formData.sub_category_id),
-        image_url: formData.image_url || null,
+        image_url: formData.image_url || "", // Always send empty string, never null
         coords: poi?.coords ? (typeof poi.coords === 'string' ? 
           poi.coords.split(',').map(coord => parseFloat(coord.trim())) : 
           poi.coords
@@ -190,7 +190,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
         fontSize: { xs: '1.25rem', md: '1.5rem' },
         fontWeight: 600
       }}>
-        {isEdit ? 'Edit POI' : 'Add New POI'}
+        {isEdit ? 'Edit POI' : (isAdmin ? 'Add New POI' : 'Suggest New POI')}
       </DialogTitle>
 
       <DialogContent sx={{ pb: 0 }}>
@@ -254,58 +254,69 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
             </Select>
           </FormControl>
 
-          {/* Image Upload Section */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="subtitle1" fontWeight="medium">
-              POI Image
-            </Typography>
-            
-            {imagePreview && (
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center',
-                mb: 2
-              }}>
-                <Avatar
-                  src={imagePreview}
-                  alt="POI Image"
-                  variant="rounded"
-                  sx={{ 
-                    width: 120, 
-                    height: 120,
-                    border: '2px solid',
-                    borderColor: 'grey.300'
-                  }}
-                />
-              </Box>
-            )}
+          {/* Image Upload Section - Only show for admins */}
+          {isAdmin && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography variant="subtitle1" fontWeight="medium">
+                POI Image
+              </Typography>
+              
+              {imagePreview && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center',
+                  mb: 2
+                }}>
+                  <Avatar
+                    src={imagePreview}
+                    alt="POI Image"
+                    variant="rounded"
+                    sx={{ 
+                      width: 120, 
+                      height: 120,
+                      border: '2px solid',
+                      borderColor: 'grey.300'
+                    }}
+                  />
+                </Box>
+              )}
 
-            <Button
-              variant="outlined"
-              component="label"
-              startIcon={uploadingImage ? <CircularProgress size={20} /> : <UploadIcon />}
-              disabled={uploadingImage}
-              sx={{
-                borderRadius: 2,
-                borderStyle: 'dashed',
-                borderWidth: 2,
-                py: 2,
-                fontSize: { xs: '0.875rem', md: '1rem' }
-              }}
-            >
-              {uploadingImage ? 'Uploading...' : 'Upload Image'}
-              <input
-                type="file"
-                hidden
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
-            </Button>
-            
-            <Typography variant="caption" color="text.secondary">
-              Supported formats: JPEG, PNG, GIF. Max size: 5MB
-            </Typography>
-          </Box>
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={uploadingImage ? <CircularProgress size={20} /> : <UploadIcon />}
+                disabled={uploadingImage}
+                sx={{
+                  borderRadius: 2,
+                  borderStyle: 'dashed',
+                  borderWidth: 2,
+                  py: 2,
+                  fontSize: { xs: '0.875rem', md: '1rem' }
+                }}
+              >
+                {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+              </Button>
+              
+              <Typography variant="caption" color="text.secondary">
+                Supported formats: JPEG, PNG, GIF. Max size: 5MB
+              </Typography>
+            </Box>
+          )}
+
+          {/* Info message for non-admin users */}
+          {!isAdmin && (
+            <Alert severity="info" sx={{ mt: 1 }}>
+              <Typography variant="body2">
+                You are suggesting a new POI. An admin will review your submission before it appears on the map.
+              </Typography>
+            </Alert>
+          )}
         </Box>
       </DialogContent>
 
@@ -340,7 +351,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
             fontSize: { xs: '0.875rem', md: '1rem' }
           }}
         >
-          {loading ? 'Saving...' : isEdit ? 'Update POI' : 'Create POI'}
+          {loading ? 'Saving...' : isEdit ? 'Update POI' : (isAdmin ? 'Create POI' : 'Suggest POI')}
         </Button>
       </DialogActions>
     </Dialog>

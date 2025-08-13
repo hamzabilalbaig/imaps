@@ -14,6 +14,7 @@ import {
   Delete as DeleteIcon
 } from "@mui/icons-material";
 import { generateShareableLink, createCategoryIcon } from "../utils/mapUtils";
+import useUserStore from "../stores/user";
 
 /**
  * Individual marker component with popup
@@ -26,7 +27,12 @@ import { generateShareableLink, createCategoryIcon } from "../utils/mapUtils";
  * @param {boolean} canEdit - Whether the current user can edit this POI/marker
  * @param {boolean} isFocused - Whether this POI is focused (from shareable link)
  */
-function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isAdmin = false, canEdit = false, isFocused = false }) {
+function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocused = false }) {
+  const isAdmin = useUserStore(state => state.isadmin)
+  const canEdit = isAdmin ? true : false
+  useEffect(() => {
+    console.log("MapMarker - isAdmin:", isAdmin);
+  }, [isAdmin]);
   const theme = useTheme();
   const [popupRef, setPopupRef] = useState(null);
   

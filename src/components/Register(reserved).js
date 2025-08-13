@@ -29,7 +29,7 @@ const Register = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname || '/map';
 
   // If already logged in, redirect
   if (user) {

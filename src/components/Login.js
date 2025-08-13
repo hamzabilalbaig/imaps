@@ -45,7 +45,7 @@ const Login = ({loginType, isRegister}) => {
   const { register } = useAuth(); // keep context register for now
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname || '/map';
 
   // If already logged in, redirect
   if (userId) {

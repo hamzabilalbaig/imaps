@@ -107,18 +107,18 @@ function Navigation() {
             {location.pathname !== '/' && (
               <Button
                 component={Link}
-                to={user ? "/dashboard" : "/"}
+                to={user ? "/map" : "/"}
                 color="inherit"
-                variant={location.pathname === "/" || location.pathname === "/dashboard" ? "contained" : "text"}
+                variant={location.pathname === "/" || location.pathname === "/map" ? "contained" : "text"}
                 sx={{
-                  backgroundColor: location.pathname === "/" || location.pathname === "/dashboard" ? "rgba(255,255,255,0.2)" : "transparent",
+                  backgroundColor: location.pathname === "/" || location.pathname === "/map" ? "rgba(255,255,255,0.2)" : "transparent",
                   borderRadius: 2,
                   px: { xs: 1, sm: 2, md: 3 },
                   py: 1,
                   fontWeight: 600,
                   fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
-                  backdropFilter: location.pathname === "/" || location.pathname === "/dashboard" ? 'blur(10px)' : 'none',
-                  border: location.pathname === "/" || location.pathname === "/dashboard" ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+                  backdropFilter: location.pathname === "/" || location.pathname === "/map" ? 'blur(10px)' : 'none',
+                  border: location.pathname === "/" || location.pathname === "/map" ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
                   '&:hover': {
                     backgroundColor: "rgba(255,255,255,0.15)",
                     backdropFilter: 'blur(10px)',

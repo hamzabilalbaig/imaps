@@ -46,7 +46,7 @@ function PublicMap() {
 
   // If user is authenticated, redirect them to their dashboard
   if (isAuthenticated()) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/map" replace />;
   }
 
   const handleMapClick = (latlng) => {

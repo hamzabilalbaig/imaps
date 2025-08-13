@@ -30,84 +30,86 @@ import {
 } from '@mui/icons-material';
 import useUserStore from '../stores/user';
 import { handleCheckout } from '../stripe/handleCheckout';
-
-const PLANS = [
-  {
-    id: 'free',
-    name: 'Free',
-    price: '$0',
-    period: 'forever',
-    maxCustomCategories: 10,
-    maxPOIsPerCategory: 10,
-    totalPOILimit: 100, // 10 categories × 10 POIs each
-    allowCustomIcons: false,
-    features: [
-      '10 Custom Categories',
-      '10 POIs per Category (100 total)',
-      'View public maps',
-      'Basic map layers',
-      'Community support'
-    ],
-    popular: false,
-    color: 'grey'
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: '$5',
-    period: 'month',
-    maxCustomCategories: 20,
-    maxPOIsPerCategory: 20,
-    totalPOILimit: 400, // 20 categories × 20 POIs each
-    allowCustomIcons: false,
-    features: [
-      '20 Custom Categories',
-      '20 POIs per Category (400 total)',
-      'Advanced map layers',
-      'Export map data',
-      'Priority support',
-      'Analytics dashboard'
-    ],
-    popular: true,
-    color: 'primary'
-  },
-  {
-    id: 'unlimited',
-    name: 'Unlimited',
-    price: '$10',
-    period: 'month',
-    maxCustomCategories: 'Unlimited',
-    maxPOIsPerCategory: 'Unlimited',
-    totalPOILimit: Infinity,
-    allowCustomIcons: true,
-    features: [
-      'Unlimited Custom Categories',
-      'Unlimited POIs per Category',
-      'Custom Icon Upload',
-      'All premium features',
-      'API access',
-      'White-label options',
-      'Dedicated support',
-      'Custom integrations'
-    ],
-    popular: false,
-    color: 'secondary'
-  }
-];
+import { getAllPlanConfigurations } from '../api/functions/apiFunctions';
 
 const Pricing = () => {
   const { id, name, email, plan, initializeUser, upgradePlan } = useUserStore();
   const [loading, setLoading] = useState(false);
+  const [plans, setPlans] = useState([]);
+  const [plansLoading, setPlansLoading] = useState(true);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, plan: null });
+
+  // Load plans from API
+  const loadPlans = async () => {
+    try {
+      setPlansLoading(true);
+      const planConfigs = await getAllPlanConfigurations();
+      
+      // Transform API data to match the expected format
+      const transformedPlans = planConfigs.filter(config => config.is_active).map(config => ({
+        id: config.plan_name,
+        name: config.plan_name.charAt(0).toUpperCase() + config.plan_name.slice(1),
+        price: config.price_cents === 0 ? '$0' : `$${(config.price_cents / 100).toFixed(0)}`,
+        period: config.price_cents === 0 ? 'forever' : 'month',
+        maxCustomCategories: config.max_custom_categories === -1 ? 'Unlimited' : config.max_custom_categories,
+        maxPOIsPerCategory: config.max_pois_per_category === -1 ? 'Unlimited' : config.max_pois_per_category,
+        totalPOILimit: config.total_poi_limit === -1 ? Infinity : config.total_poi_limit,
+        allowCustomIcons: config.allow_custom_icons,
+        features: generateFeatures(config),
+        popular: config.plan_name === 'premium', // Mark premium as popular
+        color: config.plan_name === 'free' ? 'grey' : (config.plan_name === 'premium' ? 'primary' : 'secondary'),
+        description: config.description
+      }));
+      
+      setPlans(transformedPlans);
+    } catch (error) {
+      console.error('Error loading plans:', error);
+    } finally {
+      setPlansLoading(false);
+    }
+  };
+
+  // Generate features based on plan configuration
+  const generateFeatures = (config) => {
+    const features = [];
+    
+    if (config.max_custom_categories === -1) {
+      features.push('Unlimited Custom Categories');
+    } else {
+      features.push(`${config.max_custom_categories} Custom Categories`);
+    }
+    
+    if (config.max_pois_per_category === -1) {
+      features.push('Unlimited POIs per Category');
+    } else {
+      const totalPois = config.total_poi_limit === -1 ? 'unlimited' : config.total_poi_limit;
+      features.push(`${config.max_pois_per_category} POIs per Category (${totalPois} total)`);
+    }
+    
+    // Add common features based on plan type
+    if (config.plan_name === 'free') {
+      features.push('View public maps', 'Basic map layers', 'Community support');
+    } else if (config.plan_name === 'premium') {
+      features.push('Advanced map layers', 'Export map data', 'Priority support', 'Analytics dashboard');
+    } else if (config.plan_name === 'unlimited') {
+      if (config.allow_custom_icons) {
+        features.push('Custom Icon Upload');
+      }
+      features.push('All premium features', 'API access', 'White-label options', 'Dedicated support', 'Custom integrations');
+    }
+    
+    return features;
+  };
 
   useEffect(() => {
     initializeUser();
+    loadPlans();
   }, []); // Only run once on mount
 
   const user = { id, name, email, plan };
 
   const handleUpgrade = (planId) => {
-    setConfirmDialog({ open: true, plan: PLANS.find(p => p.id === planId) });
+    setConfirmDialog({ open: true, plan: plans.find(p => p.id === planId) });
   };
 
   const confirmUpgrade = async () => {
@@ -160,14 +162,19 @@ const Pricing = () => {
           </Typography>
           {user && (
             <Alert severity="info" sx={{ maxWidth: 600, mx: 'auto' }}>
-              Current Plan: <strong>{PLANS.find(p => p.id === user.plan)?.name || 'Free'}</strong>
+              Current Plan: <strong>{plans.find(p => p.id === user.plan)?.name || 'Free'}</strong>
             </Alert>
           )}
         </Box>
 
         {/* Pricing Cards */}
-        <Grid container spacing={3} justifyContent="center">
-          {PLANS.map((plan) => (
+        {plansLoading ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography>Loading plans...</Typography>
+          </Box>
+        ) : (
+          <Grid container spacing={3} justifyContent="center">
+            {plans.map((plan) => (
             <Grid item xs={12} sm={6} md={4} key={plan.id}>
               <Card
                 elevation={plan.popular ? 8 : 2}
@@ -277,6 +284,7 @@ const Pricing = () => {
             </Grid>
           ))}
         </Grid>
+        )}
 
         {/* FAQ or Additional Info */}
         <Box sx={{ mt: 6, textAlign: 'center' }}>

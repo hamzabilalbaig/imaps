@@ -7,7 +7,12 @@ import {
   IconButton,
   Fab,
   Paper,
-  Typography
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button
 } from '@mui/material';
 import { 
   Menu as MenuIcon,
@@ -56,7 +61,7 @@ function InteractiveMapLayout(props) {
   } = props;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
-  const user = useUserStore(state => state.user);
+  const user = useUserStore(state => state);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(!isMobile);
   const [visibleCategories, setVisibleCategories] = useState({});
@@ -78,6 +83,9 @@ function InteractiveMapLayout(props) {
     hiddenSubCategories: new Set(),
     globalVisibility: true
   });
+
+  // New state for thank-you dialog
+  const [thanksDialogOpen, setThanksDialogOpen] = useState(false);
 
   // Filter POIs based on visible subcategories and search
   const filteredPOIs = useMemo(() => {
@@ -329,6 +337,18 @@ function InteractiveMapLayout(props) {
       canCreateMore={canCreateMore}
     />
   );
+
+  // Local handler for saving POI, wraps the onSavePOI prop
+  const handleSavePOILocal = async (data) => {
+    try {
+      await onSavePOI(data);
+      if (!isAdmin) {
+        setThanksDialogOpen(true);
+      }
+    } catch (err) {
+      console.error('Error saving POI:', err);
+    }
+  };
 
   return (
     <Box sx={{ 
@@ -641,7 +661,7 @@ function InteractiveMapLayout(props) {
             poi={editingPOI || (pendingLocation ? { 
               coords: `${pendingLocation.lat.toFixed(6)}, ${pendingLocation?.lng.toFixed(6)}` 
             } : null)}
-            onSave={onSavePOI}
+            onSave={handleSavePOILocal}
             onCancel={onCancelForm}
             isEdit={!!editingPOI}
             isAdmin={isAdmin}
@@ -731,6 +751,17 @@ function InteractiveMapLayout(props) {
           <NotesIcon />
         </Fab>
       )}
+
+      {/* Thank-you dialog for suggestions */}
+      <Dialog open={thanksDialogOpen} onClose={() => setThanksDialogOpen(false)}>
+        <DialogTitle>Thank you!</DialogTitle>
+        <DialogContent>
+          <Typography>Thanks for your suggestion! It will be reviewed by the administration.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setThanksDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

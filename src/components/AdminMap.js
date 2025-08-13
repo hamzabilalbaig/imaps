@@ -32,7 +32,7 @@ function AdminMap() {
       
       // Redirect if not admin
       if (!isUserAdmin()) {
-        navigate('/dashboard');
+        navigate('/map');
         return;
       }
       

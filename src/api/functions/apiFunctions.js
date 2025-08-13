@@ -302,3 +302,39 @@ export async function bulkRejectPOIs(poiIds) {
     const { data } = await apiClient.post('/admin/stats/pois/bulk-reject', { poiIds });
     return data;
 }
+
+// Plan management API functions
+export async function getAllPlanConfigurations() {
+    const { data } = await apiClient.get('/admin/plans');
+    return data;
+}
+
+export async function getPlanConfiguration(planName) {
+    const { data } = await apiClient.get(`/admin/plans/${planName}`);
+    return data;
+}
+
+export async function createPlanConfiguration(planData) {
+    const { data } = await apiClient.post('/admin/plans', planData);
+    return data;
+}
+
+export async function updatePlanConfiguration(planName, planData) {
+    const { data } = await apiClient.put(`/admin/plans/${planName}`, planData);
+    return data;
+}
+
+export async function deletePlanConfiguration(planName) {
+    const { data } = await apiClient.delete(`/admin/plans/${planName}`);
+    return data;
+}
+
+export async function initializeDefaultPlans() {
+    const { data } = await apiClient.post('/admin/plans/initialize-defaults');
+    return data;
+}
+
+export async function getPlanUsageStats() {
+    const { data } = await apiClient.get('/admin/plans/stats/usage');
+    return data;
+}

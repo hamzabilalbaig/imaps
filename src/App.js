@@ -92,10 +92,10 @@ function App() {
                     element={<PublicMap />}
                   />
                   <Route 
-                    path="/dashboard" 
+                    path="/map" 
                     element={
                       <ProtectedRoute>
-                        <AdminMap />
+                        <UserMap />
                       </ProtectedRoute>
                     } 
                   />

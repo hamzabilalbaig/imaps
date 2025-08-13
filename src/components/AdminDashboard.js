@@ -37,7 +37,8 @@ import {
   Tooltip,
   Fab,
   Badge,
-  Stack
+  Stack,
+  InputAdornment
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -60,14 +61,15 @@ import {
   ColorLens as ColorIcon,
   CloudUpload as UploadIcon,
   Image as ImageIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Save as SaveIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import useUserStore, { PLAN_LIMITS } from '../stores/user';
 import usePOIsStore from '../stores/pois';
 import useCategoriesStore from '../stores/categories';
 import useSubCategoriesStore from '../stores/subCategories';
-import { getAllUsers, updateUserPlan, getAdminStats, bulkApprovePOIs, bulkRejectPOIs } from '../api/functions/apiFunctions';
+import { getAllUsers, updateUserPlan, getAdminStats, bulkApprovePOIs, bulkRejectPOIs, getAllPlanConfigurations, updatePlanConfiguration, createPlanConfiguration, deletePlanConfiguration, getPlanUsageStats } from '../api/functions/apiFunctions';
 
 /**
  * Comprehensive Admin Dashboard Component
@@ -121,6 +123,21 @@ function AdminDashboard() {
   
   // Custom plan limits (editable by admin)
   const [customPlanLimits, setCustomPlanLimits] = useState(PLAN_LIMITS);
+  
+  // Plan management state
+  const [planConfigurations, setPlanConfigurations] = useState([]);
+  const [planFormData, setPlanFormData] = useState({
+    plan_name: '',
+    max_custom_categories: 10,
+    max_pois_per_category: 10,
+    total_poi_limit: 100,
+    allow_custom_icons: false,
+    price_cents: 0,
+    description: '',
+    is_active: true
+  });
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [planUsageStats, setPlanUsageStats] = useState([]);
 
   // Initialize data
   useEffect(() => {
@@ -129,7 +146,7 @@ function AdminDashboard() {
       try {
         await initializeUser();
         if (!isUserAdmin()) {
-          navigate('/dashboard');
+          navigate('/map');
           return;
         }
         
@@ -137,7 +154,8 @@ function AdminDashboard() {
           initializePOIs(),
           initializeCategories(),
           initializeSubCategories(),
-          loadUsers()
+          loadUsers(),
+          loadPlanConfigurations()
         ]);
         
         calculateStats();
@@ -158,6 +176,20 @@ function AdminDashboard() {
       setUsers(userData);
     } catch (error) {
       console.error('Error loading users:', error);
+    }
+  };
+
+  // Load plan configurations from API
+  const loadPlanConfigurations = async () => {
+    try {
+      const [planConfigs, usageStats] = await Promise.all([
+        getAllPlanConfigurations(),
+        getPlanUsageStats()
+      ]);
+      setPlanConfigurations(planConfigs);
+      setPlanUsageStats(usageStats);
+    } catch (error) {
+      console.error('Error loading plan configurations:', error);
     }
   };
 
@@ -504,6 +536,44 @@ function AdminDashboard() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  // Plan management handlers
+  const handleUpdatePlan = async () => {
+    try {
+      await updatePlanConfiguration(selectedPlan.plan_name, planFormData);
+      setSnackbar({
+        open: true,
+        message: 'Plan updated successfully! Changes will be reflected on the pricing page.',
+        severity: 'success'
+      });
+      setEditPlanLimitsDialogOpen(false);
+      setSelectedPlan(null);
+      await loadPlanConfigurations();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.error || 'Error updating plan',
+        severity: 'error'
+      });
+    }
+  };
+
+  const openPlanDialog = (plan) => {
+    if (!plan) return; // Only allow editing existing plans
+    
+    setSelectedPlan(plan);
+    setPlanFormData({
+      plan_name: plan.plan_name || '',
+      max_custom_categories: plan.max_custom_categories || 10,
+      max_pois_per_category: plan.max_pois_per_category || 10,
+      total_poi_limit: plan.total_poi_limit || 100,
+      allow_custom_icons: plan.allow_custom_icons || false,
+      price_cents: plan.price_cents || 0,
+      description: plan.description || '',
+      is_active: plan.is_active !== undefined ? plan.is_active : true
+    });
+    setEditPlanLimitsDialogOpen(true);
   };
 
   // Render statistics cards
@@ -893,56 +963,72 @@ function AdminDashboard() {
     return (
       <Box>
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
-            Plan Management
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Configure subscription plans and user limits
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box>
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+                Plan Management
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Edit subscription plan configurations and pricing
+              </Typography>
+            </Box>
+          </Box>
         </Box>
         
         <Grid container spacing={3}>
-          {Object.entries(customPlanLimits).map(([planName, limits]) => (
-            <Grid item xs={12} md={4} key={planName}>
+          {planUsageStats.map((plan) => (
+            <Grid item xs={12} lg={4} md={6} key={plan.plan_name}>
               <Card 
                 elevation={0}
                 sx={{
                   border: 1,
-                  borderColor: 'divider',
+                  borderColor: plan.is_active ? 'primary.main' : 'divider',
                   height: '100%',
                   transition: 'all 0.2s ease-in-out',
+                  opacity: plan.is_active ? 1 : 0.6,
                   '&:hover': {
                     transform: 'translateY(-2px)',
-                    boxShadow: theme.shadows[4]
+                    boxShadow: theme.shadows[6]
                   }
                 }}
               >
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-                    <Box>
-                      <Typography variant="h6" fontWeight={600} textTransform="capitalize" sx={{ mb: 0.5 }}>
-                        {planName} Plan
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Typography variant="h6" fontWeight={600} textTransform="capitalize">
+                          {plan.plan_name} Plan
+                        </Typography>
+                        {!plan.is_active && (
+                          <Chip label="Inactive" size="small" color="default" variant="outlined" />
+                        )}
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        {plan.user_count} users • ${(plan.price_cents / 100).toFixed(2)}/month
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {users.filter(user => user.plan === planName).length} users
-                      </Typography>
+                      {plan.description && (
+                        <Typography variant="caption" color="text.secondary">
+                          {plan.description}
+                        </Typography>
+                      )}
                     </Box>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setSelectedUser({ plan: planName });
-                        setEditPlanLimitsDialogOpen(true);
-                      }}
-                      sx={{ 
-                        border: 1, 
-                        borderColor: 'divider',
-                        '&:hover': {
-                          backgroundColor: alpha(theme.palette.primary.main, 0.04)
-                        }
-                      }}
-                    >
-                      <SettingsIcon fontSize="small" />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Tooltip title="Edit Plan Configuration">
+                        <IconButton
+                          size="small"
+                          onClick={() => openPlanDialog(plan)}
+                          sx={{ 
+                            border: 1, 
+                            borderColor: 'divider',
+                            '&:hover': {
+                              backgroundColor: alpha(theme.palette.primary.main, 0.04)
+                            }
+                          }}
+                        >
+                          <SettingsIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                   </Box>
                   
                   <Divider sx={{ mb: 2 }} />
@@ -953,7 +1039,7 @@ function AdminDashboard() {
                         Max Categories
                       </Typography>
                       <Typography variant="body2" fontWeight={500}>
-                        {limits.maxCustomCategories === Infinity ? '∞' : limits.maxCustomCategories}
+                        {plan.max_custom_categories === -1 ? '∞' : plan.max_custom_categories}
                       </Typography>
                     </Box>
                     
@@ -962,7 +1048,7 @@ function AdminDashboard() {
                         POIs per Category
                       </Typography>
                       <Typography variant="body2" fontWeight={500}>
-                        {limits.maxPOIsPerCategory === Infinity ? '∞' : limits.maxPOIsPerCategory}
+                        {plan.max_pois_per_category === -1 ? '∞' : plan.max_pois_per_category}
                       </Typography>
                     </Box>
                     
@@ -971,7 +1057,7 @@ function AdminDashboard() {
                         Total POI Limit
                       </Typography>
                       <Typography variant="body2" fontWeight={500}>
-                        {limits.totalPOILimit === Infinity ? '∞' : limits.totalPOILimit}
+                        {plan.total_poi_limit === -1 ? '∞' : plan.total_poi_limit}
                       </Typography>
                     </Box>
                     
@@ -980,17 +1066,47 @@ function AdminDashboard() {
                         Custom Icons
                       </Typography>
                       <Chip
-                        label={limits.allowCustomIcons ? 'Enabled' : 'Disabled'}
+                        label={plan.allow_custom_icons ? 'Enabled' : 'Disabled'}
                         size="small"
                         variant="outlined"
-                        color={limits.allowCustomIcons ? 'success' : 'default'}
+                        color={plan.allow_custom_icons ? 'success' : 'default'}
                       />
                     </Box>
+
+                    {plan.user_count > 0 && (
+                      <Box sx={{ mt: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          <strong>{plan.user_count}</strong> user{plan.user_count !== 1 ? 's' : ''} currently on this plan
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
           ))}
+          
+          {planUsageStats.length === 0 && (
+            <Grid item xs={12}>
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: 8,
+                border: 1,
+                borderColor: 'divider',
+                borderStyle: 'dashed',
+                borderRadius: 2,
+                bgcolor: 'action.hover'
+              }}>
+                <MoneyIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No Plans Available
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Please contact system administrator to configure plans
+                </Typography>
+              </Box>
+            </Grid>
+          )}
         </Grid>
       </Box>
     );
@@ -1885,6 +2001,148 @@ function AdminDashboard() {
             disabled={!subCategoryFormData.name.trim() || !subCategoryFormData.category_id}
           >
             {selectedSubCategory ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Plan Configuration Dialog */}
+      <Dialog
+        open={editPlanLimitsDialogOpen}
+        onClose={() => setEditPlanLimitsDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <SettingsIcon />
+            Edit {selectedPlan?.plan_name || 'Plan'} Configuration
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Grid container spacing={3}>
+              {/* <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Plan Name"
+                  value={planFormData.plan_name || ''}
+                  onChange={(e) => setPlanFormData({
+                    ...planFormData,
+                    plan_name: e.target.value
+                  })}
+                  disabled={!!selectedPlan}
+                  helperText="Plan name cannot be changed"
+                />
+              </Grid> */}
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Price (per month)"
+                  type="number"
+                  value={planFormData.price_cents ? (planFormData.price_cents / 100).toFixed(2) : ''}
+                  onChange={(e) => setPlanFormData({
+                    ...planFormData,
+                    price_cents: Math.round(parseFloat(e.target.value || 0) * 100)
+                  })}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Description"
+                  multiline
+                  rows={2}
+                  value={planFormData.description || ''}
+                  onChange={(e) => setPlanFormData({
+                    ...planFormData,
+                    description: e.target.value
+                  })}
+                  placeholder="Brief description of this plan"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Max Custom Categories"
+                  type="number"
+                  value={planFormData.max_custom_categories === -1 ? '' : planFormData.max_custom_categories || ''}
+                  onChange={(e) => setPlanFormData({
+                    ...planFormData,
+                    max_custom_categories: e.target.value === '' ? -1 : parseInt(e.target.value) || 0
+                  })}
+                  helperText="Leave empty for unlimited"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="POIs per Category"
+                  type="number"
+                  value={planFormData.max_pois_per_category === -1 ? '' : planFormData.max_pois_per_category || ''}
+                  onChange={(e) => setPlanFormData({
+                    ...planFormData,
+                    max_pois_per_category: e.target.value === '' ? -1 : parseInt(e.target.value) || 0
+                  })}
+                  helperText="Leave empty for unlimited"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Total POI Limit"
+                  type="number"
+                  value={planFormData.total_poi_limit === -1 ? '' : planFormData.total_poi_limit || ''}
+                  onChange={(e) => setPlanFormData({
+                    ...planFormData,
+                    total_poi_limit: e.target.value === '' ? -1 : parseInt(e.target.value) || 0
+                  })}
+                  helperText="Leave empty for unlimited"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={planFormData.allow_custom_icons || false}
+                      onChange={(e) => setPlanFormData({
+                        ...planFormData,
+                        allow_custom_icons: e.target.checked
+                      })}
+                    />
+                  }
+                  label="Allow Custom Icons"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={planFormData.is_active !== false}
+                      onChange={(e) => setPlanFormData({
+                        ...planFormData,
+                        is_active: e.target.checked
+                      })}
+                    />
+                  }
+                  label="Plan Active"
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setEditPlanLimitsDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleUpdatePlan}
+            disabled={!planFormData.plan_name?.trim()}
+          >
+            Update Plan Configuration
           </Button>
         </DialogActions>
       </Dialog>
