@@ -52,7 +52,7 @@ class LocalStorageDB {
       // Check if user already exists (API call)
       const users = await this.getUsers();
       if (users[email]) {
-        alert('User already exists');
+        // Don't show alert here - let the component handle the error message
         return { success: false, message: 'User already exists' };
       }
 

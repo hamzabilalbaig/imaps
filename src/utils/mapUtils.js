@@ -38,6 +38,29 @@ export const MAP_CONFIG = {
   ],
 };
 
+/**
+ * Safely perform operations on a map instance
+ * @param {Object} map - Leaflet map instance
+ * @param {Function} operation - Function to execute on the map
+ * @param {number} delay - Optional delay in ms
+ * @returns {Function} Cleanup function
+ */
+export const safeMapOperation = (map, operation, delay = 0) => {
+  if (!map) return () => {};
+  
+  const timeoutId = setTimeout(() => {
+    try {
+      if (map && map._container && map._loaded) {
+        operation(map);
+      }
+    } catch (err) {
+      console.log("Map operation error:", err);
+    }
+  }, delay);
+  
+  return () => clearTimeout(timeoutId);
+};
+
 export const createMarker = (latlng, poiData = {}) => ({
   id: `poi-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
   position: [latlng.lat, latlng.lng],
@@ -101,13 +124,24 @@ export const parsePOIFromURL = () => {
   if (!poiParam) return null;
   
   try {
+    console.log('Parsing POI from URL parameter:', poiParam);
     const poiParams = new URLSearchParams(decodeURIComponent(poiParam));
-    return {
-      lat: parseFloat(poiParams.get('lat')),
-      lng: parseFloat(poiParams.get('lng')),
-      title: poiParams.get('title'),
-      category: poiParams.get('category')
-    };
+    
+    // Extract and parse coordinates
+    const lat = parseFloat(poiParams.get('lat'));
+    const lng = parseFloat(poiParams.get('lng'));
+    const title = poiParams.get('title');
+    const category = poiParams.get('category');
+    
+    console.log('Parsed POI values:', { lat, lng, title, category });
+    
+    // Validate coordinates
+    if (isNaN(lat) || isNaN(lng)) {
+      console.error('Invalid coordinates in POI URL parameter');
+      return null;
+    }
+    
+    return { lat, lng, title, category };
   } catch (error) {
     console.error('Error parsing POI from URL:', error);
     return null;

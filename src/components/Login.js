@@ -70,11 +70,23 @@ const Login = ({loginType, isRegister}) => {
         return;
       }
       
-      const result = await register(email, password, name, 'user');
-      if (!result.success) {
-        setError(result.error);
-      } else {
-        // window.location.reload(); // Reload to get latest user data
+      try {
+        const result = await register(email, password, name, 'user');
+        if (!result.success) {
+          setError(result.error || result.message || 'Registration failed');
+          setLoading(false);
+          return;
+        }
+        
+        // User created successfully - show success message
+        setError('');
+        alert('Account created successfully! You can now log in.');
+        
+        // Automatically switch to login mode
+        setMode('login');
+        resetForm();
+      } catch (error) {
+        setError(error.message || 'An unexpected error occurred');
       }
     } else {
       const result = await authenticate(email, password);

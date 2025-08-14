@@ -66,28 +66,23 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password, name, role = 'user', navigate) => {
-    const result = await localDB.registerUser(email, password, name);
-    if (result.success) {
-      // Auto-login after registration
-      // const loginResult = await localDB.loginUser(email, password);
-      // if (loginResult.success) {
-      //   setUser(loginResult.user);
-      //   if (navigate) {
-      //     navigate('/maps', { replace: true });
-      //   }
-      // }
-      const authenticated = await authenticateUser(email, password);
-      localStorage.setItem('imaps_current_user', JSON.stringify(authenticated.user));
-      if (authenticated.success) {
-        setUser(authenticated.user);
-        if (navigate) {
-          navigate('/maps', { replace: true });
-        }
-      } else {
-        return { success: false, message: authenticated.message };
+    try {
+      // First attempt to register the user
+      const result = await localDB.registerUser(email, password, name);
+      if (!result.success) {
+        return result; // Return failure with the error message
       }
+      
+      // Registration successful - don't auto-login anymore
+      // Just return success
+      return { success: true };
+      
+      // Note: We've removed the auto-login logic because it was causing confusion
+      // The user will now need to explicitly log in after registration
+    } catch (error) {
+      console.error('Registration error:', error);
+      return { success: false, error: error.message || 'Registration failed' };
     }
-    return result;
   };
 
   const logout = () => {

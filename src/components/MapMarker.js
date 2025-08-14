@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Marker, Popup } from "react-leaflet";
+import { Marker, Popup, Tooltip } from "react-leaflet";
+import L from "leaflet";
 import { 
   Box, 
   Typography, 
   Button, 
   Chip, 
   Stack,
-  useTheme 
+  useTheme
 } from "@mui/material";
 import {
   Share as ShareIcon,
@@ -44,6 +45,14 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
   const subCategory = isNewStructure ? 
     subCategories.find(sub => sub.id === poi.sub_category_id) : null;
 
+  // Get display values based on structure
+  const displayName = isNewStructure ? poi.name : (marker?.title || "Untitled POI");
+  const displayDescription = isNewStructure ? poi.description : marker?.description;
+  const displayCategory = isNewStructure ? subCategory?.name : marker?.category;
+  const position = isNewStructure ? poi.position || poi.coords : marker?.position;
+  const iconImageUrl = isNewStructure ? subCategory?.icon_image_url : null;
+  const poiImageUrl = isNewStructure ? poi.image_url : null;
+
   // Debug logging for new structure
   useEffect(() => {
     if (isNewStructure) {
@@ -56,13 +65,50 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
 
   // Auto-open popup when focused
   useEffect(() => {
-    if (isFocused && popupRef) {
-      console.log('Opening popup for focused POI');
-      setTimeout(() => {
-        popupRef.openPopup();
-      }, 500);
+    if (isFocused) {
+      console.log('POI is focused - attempting to open popup:', currentItem);
+      
+      // Get position safely based on structure
+      const markerPosition = isNewStructure ? 
+        (poi.position || poi.coords) : 
+        (marker?.position || [0, 0]);
+      
+      // Try multiple approaches with increasing delays
+      const delays = [500, 1000, 2000, 3000];
+      
+      delays.forEach((delay) => {
+        setTimeout(() => {
+          try {
+            // Approach 1: Use popup ref
+            if (popupRef && typeof popupRef.openPopup === 'function') {
+              console.log(`Approach 1: Attempting to open popup via ref after ${delay}ms`);
+              popupRef.openPopup();
+            }
+            
+            // Approach 2: Use global map instance and coordinates
+            if (window.leafletMap && markerPosition) {
+              console.log(`Approach 2: Attempting to open popup via map.openPopup() after ${delay}ms`);
+              
+              // Create a temporary popup if needed
+              const tempPopup = L.popup()
+                .setLatLng(markerPosition)
+                .setContent(`<div id="temp-popup-${currentItem.id}">Loading...</div>`)
+                .openOn(window.leafletMap);
+              
+              // Click the marker programmatically
+              window.leafletMap.fire('click', {
+                latlng: L.latLng(markerPosition[0], markerPosition[1]),
+                layerPoint: window.leafletMap.latLngToLayerPoint(L.latLng(markerPosition[0], markerPosition[1])),
+                containerPoint: window.leafletMap.latLngToContainerPoint(L.latLng(markerPosition[0], markerPosition[1]))
+              });
+            }
+          } catch (error) {
+            console.error('Error opening popup:', error);
+          }
+        }, delay);
+      });
     }
-  }, [isFocused, popupRef]);
+  }, [isFocused, popupRef, currentItem, isNewStructure, poi, marker]);
   
   const handleShare = async () => {
     // For new POI structure, pass the current POI with subcategory name
@@ -115,14 +161,6 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
     return colors[category] || "default";
   };
 
-  // Get display values based on structure
-  const displayName = isNewStructure ? poi.name : (marker.title || "Untitled POI");
-  const displayDescription = isNewStructure ? poi.description : marker.description;
-  const displayCategory = isNewStructure ? subCategory?.name : marker.category;
-  const position = isNewStructure ? poi.position || poi.coords : marker.position;
-  const iconImageUrl = isNewStructure ? subCategory?.icon_image_url : null;
-  const poiImageUrl = isNewStructure ? poi.image_url : null;
-
   // Debug the POI structure and values
   useEffect(() => {
     if (isNewStructure) {
@@ -132,7 +170,7 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
       console.log('MapMarker - subCategory:', subCategory);
       console.log('MapMarker - Position format:', position, typeof position, Array.isArray(position));
     }
-  }, [position, isNewStructure, poi, subCategory]);
+  }, [isNewStructure, poi, subCategory, position]);
 
   return (
     <Marker 
@@ -149,6 +187,7 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
         createCategoryIcon(marker.category, marker.customIcon, marker.selectedIcon, marker.iconColor)
       }
     >
+      <Tooltip>{displayName}</Tooltip>
       <Popup className="custom-popup" ref={popupRef}>
         <Box sx={{ minWidth: 250, p: 1 }}>
           {/* POI Image - Only show for new structure if image exists */}

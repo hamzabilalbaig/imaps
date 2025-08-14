@@ -88,7 +88,7 @@ function Sidebar({
   } = usePOIsStore();
 
   // User store
-  const { isadmin } = useUserStore();
+  const { isadmin, id: currentUserId } = useUserStore();
 
   const [unapprovedPois, setUnapprovedPois] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -319,7 +319,56 @@ function Sidebar({
     setEditingPoi(null);
     setImagePreview('');
     setSelectedImage(null);
-  };  return (
+  };
+
+  // User POI management handlers
+  const handleEditUserPOI = (poi) => {
+    // For users, we don't auto-approve, just allow editing
+    setEditingPoi(poi);
+    setImagePreview(poi.image_url || '');
+    setSelectedImage(null);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteUserPOI = async (poi) => {
+    if (window.confirm(`Are you sure you want to delete "${poi.name}"? This action cannot be undone.`)) {
+      setActionLoading(true);
+      try {
+        const result = await deletePOI(poi.id);
+        if (result.success) {
+          // Refresh POIs to update the list
+          await fetchPOIs();
+        }
+      } catch (error) {
+        console.error('Error deleting POI:', error);
+      } finally {
+        setActionLoading(false);
+      }
+    }
+  };
+
+  const handleUserEditSave = async (updatedPOI) => {
+    setActionLoading(true);
+    try {
+      // For users, we don't auto-approve - keep the current approval status
+      const result = await updatePOI(editingPoi.id, { 
+        ...updatedPOI, 
+        is_approved: editingPoi.is_approved // Keep existing approval status
+      });
+      if (result.success) {
+        setEditDialogOpen(false);
+        setEditingPoi(null);
+        // Refresh POIs to update the list
+        await fetchPOIs();
+      }
+    } catch (error) {
+      console.error('Error updating POI:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  return (
     <Box
       sx={{
         width: '100%',
@@ -823,6 +872,165 @@ function Sidebar({
           </Box>
         )}
 
+        {/* User POIs Management Section - Only for non-admin users */}
+        {!isadmin && currentUserId && (
+          <Box sx={{ mt: 3, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                mb: 2, 
+                display: 'block', 
+                fontWeight: 'bold', 
+                color: 'primary.main',
+                fontSize: '0.75rem'
+              }}
+            >
+              My POIs ({pois.filter(poi => poi.user_id === currentUserId).length})
+            </Typography>
+            
+            {pois.filter(poi => poi.user_id === currentUserId).length === 0 ? (
+              <Box sx={{ 
+                p: 2, 
+                textAlign: 'center',
+                backgroundColor: alpha(theme.palette.info.main, 0.05),
+                borderRadius: 1,
+                border: `1px dashed ${alpha(theme.palette.info.main, 0.2)}`
+              }}>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ fontSize: '0.8rem' }}
+                >
+                  You haven't created any POIs yet
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                {pois.filter(poi => poi.user_id === currentUserId).map((poi) => (
+                <Box
+                  key={poi.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    p: 1.5,
+                    mb: 1,
+                    borderRadius: 1,
+                    backgroundColor: poi.is_approved 
+                      ? alpha(theme.palette.success.main, 0.05)
+                      : alpha(theme.palette.warning.main, 0.05),
+                    border: poi.is_approved 
+                      ? `1px solid ${alpha(theme.palette.success.main, 0.2)}`
+                      : `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                    '&:hover': {
+                      backgroundColor: poi.is_approved 
+                        ? alpha(theme.palette.success.main, 0.1)
+                        : alpha(theme.palette.warning.main, 0.1),
+                    }
+                  }}
+                >
+                  {/* POI Info */}
+                  <Box sx={{ flex: 1, mr: 1 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: theme.palette.text.primary,
+                        lineHeight: 1.2,
+                        mb: 0.5
+                      }}
+                    >
+                      {poi.name}
+                    </Typography>
+                    
+                    {poi.description && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.7rem',
+                          color: theme.palette.text.secondary,
+                          display: 'block',
+                          lineHeight: 1.2,
+                          mb: 0.5,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {poi.description}
+                      </Typography>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip
+                        size="small"
+                        label={poi.is_approved ? "Approved" : "Pending"}
+                        color={poi.is_approved ? "success" : "warning"}
+                        variant="outlined"
+                        sx={{ 
+                          fontSize: '0.65rem', 
+                          height: 20,
+                          '& .MuiChip-label': { px: 1 }
+                        }}
+                      />
+                      <LocationIcon sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
+                        ID: {poi.id}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Action Buttons - Only Edit and Delete for users */}
+                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0.5 }}>
+                    <Tooltip title="Edit POI">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditUserPOI(poi)}
+                        disabled={actionLoading}
+                        sx={{
+                          backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                          color: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.primary.main, 0.2),
+                          },
+                          width: 28,
+                          height: 28
+                        }}
+                      >
+                        <EditIcon sx={{ fontSize: '0.9rem' }} />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title="Delete POI">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteUserPOI(poi)}
+                        disabled={actionLoading}
+                        sx={{
+                          backgroundColor: alpha(theme.palette.error.main, 0.1),
+                          color: 'error.main',
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.error.main, 0.2),
+                          },
+                          width: 28,
+                          height: 28
+                        }}
+                      >
+                        {actionLoading ? (
+                          <CircularProgress size={14} />
+                        ) : (
+                          <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+              ))}
+              </Box>
+            )}
+          </Box>
+        )}
+
         {/* Edit POI Dialog */}
         <Dialog
           open={editDialogOpen}
@@ -843,7 +1051,7 @@ function Sidebar({
             pb: 1
           }}>
             <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
-              Edit & Approve POI
+              {isadmin ? 'Edit & Approve POI' : 'Edit POI'}
             </Typography>
             <IconButton onClick={handleEditCancel} size="small">
               <CloseIcon />
@@ -951,13 +1159,13 @@ function Sidebar({
                     Cancel
                   </Button>
                   <Button
-                    onClick={() => handleEditSave(editingPoi)}
+                    onClick={() => isadmin ? handleEditSave(editingPoi) : handleUserEditSave(editingPoi)}
                     disabled={actionLoading || !editingPoi.name || !editingPoi.sub_category_id}
                     variant="contained"
                     size="small"
-                    startIcon={actionLoading ? <CircularProgress size={16} /> : <ApproveIcon />}
+                    startIcon={actionLoading ? <CircularProgress size={16} /> : <EditIcon />}
                   >
-                    Update & Approve
+                    {isadmin ? 'Update & Approve' : 'Update POI'}
                   </Button>
                 </Box>
               </Box>

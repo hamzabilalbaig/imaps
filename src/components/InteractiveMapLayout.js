@@ -1,19 +1,26 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import L from "leaflet";
 import { 
   Box, 
-  useTheme, 
+  Typography, 
+  Container,
+  useTheme,
   useMediaQuery,
-  Drawer,
+  Grid,
   IconButton,
-  Fab,
-  Paper,
-  Typography,
+  Snackbar,
+  Alert,
+  TextField,
+  InputAdornment,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button
-} from '@mui/material';
+  Button,
+  Drawer,
+  Fab,
+  Paper
+} from "@mui/material";
 import { 
   Menu as MenuIcon,
   Close as CloseIcon,
@@ -138,10 +145,39 @@ function InteractiveMapLayout(props) {
     if (poiFromURL) {
       console.log('Focusing on POI from URL:', poiFromURL);
       setFocusedPOI(poiFromURL);
-      // Clear the URL parameter after processing
-      const url = new URL(window.location);
-      url.searchParams.delete('poi');
-      window.history.replaceState({}, '', url);
+      
+      // Wait for map to be available
+      const checkMapAndTriggerClick = () => {
+        if (window.leafletMap) {
+          console.log('Map is available, triggering direct marker click');
+          
+          // First try with a small delay to ensure the map is fully loaded
+          setTimeout(() => {
+            window.leafletMap.fire('directMarkerClick', {
+              latlng: L.latLng(poiFromURL.lat, poiFromURL.lng)
+            });
+          }, 1500);
+          
+          // Try again with a larger delay as a fallback
+          setTimeout(() => {
+            window.leafletMap.fire('directMarkerClick', {
+              latlng: L.latLng(poiFromURL.lat, poiFromURL.lng)
+            });
+          }, 3000);
+        } else {
+          console.log('Map not available yet, waiting...');
+          setTimeout(checkMapAndTriggerClick, 500);
+        }
+      };
+      
+      checkMapAndTriggerClick();
+      
+      // Only clear the URL parameter after a longer delay
+      setTimeout(() => {
+        const url = new URL(window.location);
+        url.searchParams.delete('poi');
+        window.history.replaceState({}, '', url);
+      }, 5000);
     }
   }, []);
 
@@ -149,19 +185,74 @@ function InteractiveMapLayout(props) {
   useEffect(() => {
     if (focusedPOI && filteredPOIs.length > 0) {
       console.log('Looking for focused POI in filtered POIs:', focusedPOI);
-      const matchingPOI = filteredPOIs.find(poi => {
-        const position = poi.position || poi.coords;
-        return position && 
-               Math.abs(position[0] - focusedPOI.lat) < 0.001 && 
-               Math.abs(position[1] - focusedPOI.lng) < 0.001;
-      });
+      console.log('Available POIs:', filteredPOIs.map(poi => ({
+        id: poi.id,
+        position: poi.position || poi.coords,
+        title: poi.title || poi.name,
+        category: poi.category || poi.subcategory_name
+      })));
       
-      if (matchingPOI) {
-        console.log('Found matching POI:', matchingPOI);
-        // Optionally trigger marker click to open popup
-        setTimeout(() => onMarkerClick && onMarkerClick(matchingPOI), 1000);
-      } else {
-        console.log('No matching POI found in current filtered POIs');
+      // Find matching POI for debugging
+      const tolerances = [0.0001, 0.001, 0.01, 0.1];
+      let matchingPOI = null;
+      
+      for (const tolerance of tolerances) {
+        matchingPOI = filteredPOIs.find(poi => {
+          const position = poi.position || poi.coords;
+          
+          // Handle different coordinate formats
+          let lat, lng;
+          if (Array.isArray(position)) {
+            lat = position[0];
+            lng = position[1];
+          } else if (typeof position === 'string') {
+            const coords = position.split(',').map(coord => parseFloat(coord.trim()));
+            lat = coords[0];
+            lng = coords[1];
+          } else {
+            return false;
+          }
+          
+          const latDiff = Math.abs(lat - focusedPOI.lat);
+          const lngDiff = Math.abs(lng - focusedPOI.lng);
+          
+          console.log('Comparing with tolerance', tolerance, ':', { 
+            poiId: poi.id,
+            poiTitle: poi.title || poi.name,
+            poiLat: lat, 
+            poiLng: lng, 
+            focusedLat: focusedPOI.lat, 
+            focusedLng: focusedPOI.lng,
+            latDiff,
+            lngDiff,
+            matches: latDiff < tolerance && lngDiff < tolerance
+          });
+          
+          return latDiff < tolerance && lngDiff < tolerance;
+        });
+        
+        if (matchingPOI) {
+          console.log('Found matching POI with tolerance', tolerance, ':', matchingPOI);
+          console.log('This POI should have its popup auto-opened via isFocused prop');
+          
+          // Directly try to open the popup using onMarkerClick as a fallback
+          if (onMarkerClick) {
+            console.log('Also triggering marker click as a fallback');
+            
+            // Try multiple times with increasing delays
+            [500, 1500, 3000, 5000].forEach(delay => {
+              setTimeout(() => {
+                onMarkerClick(matchingPOI);
+              }, delay);
+            });
+          }
+          
+          break;
+        }
+      }
+      
+      if (!matchingPOI) {
+        console.log('No matching POI found in current filtered POIs - the map will center but no popup will open');
       }
     }
   }, [focusedPOI, filteredPOIs, onMarkerClick]);
@@ -473,9 +564,36 @@ function InteractiveMapLayout(props) {
           {/* POI Markers */}
           {filteredPOIs.map((poi) => {
             // Check if this POI is the focused one
-            const isFocused = focusedPOI && poi.position && 
-              Math.abs(poi.position[0] - focusedPOI.lat) < 0.001 && 
-              Math.abs(poi.position[1] - focusedPOI.lng) < 0.001;
+            let isFocused = false;
+            
+            if (focusedPOI) {
+              const position = poi.position || poi.coords;
+              let lat, lng;
+              
+              if (Array.isArray(position)) {
+                lat = position[0];
+                lng = position[1];
+              } else if (typeof position === 'string') {
+                const coords = position.split(',').map(coord => parseFloat(coord.trim()));
+                lat = coords[0];
+                lng = coords[1];
+              }
+              
+              if (lat !== undefined && lng !== undefined) {
+                // Use multiple tolerance levels (from smallest to largest)
+                const tolerances = [0.0001, 0.001, 0.01, 0.1];
+                
+                for (const tolerance of tolerances) {
+                  if (Math.abs(lat - focusedPOI.lat) < tolerance && 
+                      Math.abs(lng - focusedPOI.lng) < tolerance) {
+                    isFocused = true;
+                    console.log(`POI ${poi.id} is focused with tolerance ${tolerance}`);
+                    console.log('POI position:', [lat, lng], 'Focus position:', [focusedPOI.lat, focusedPOI.lng]);
+                    break;
+                  }
+                }
+              }
+            }
             
             return (
               <MapMarker

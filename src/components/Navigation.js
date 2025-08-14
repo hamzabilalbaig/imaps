@@ -1,4 +1,7 @@
-import React from "react";
+// Replace all checks for `user` with `isLoggedIn` state
+// Also, update isLoggedIn when user.id changes
+
+import React, { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   AppBar,
@@ -36,14 +39,16 @@ function Navigation() {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { id, name, email, role, logout, initializeUser, isUserAdmin } = useUserStore();
+  const user = useUserStore(state => state);
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   React.useEffect(() => {
     initializeUser();
   }, []); // Only run once on mount
 
-  const user = { id, name, email, role };
+  // const user = { id, name, email, role };
+  const { id, name, email, role, logout, initializeUser, isUserAdmin } = user;
+
   const isAdmin = isUserAdmin();
 
   const handleMenu = (event) => {
@@ -58,6 +63,13 @@ function Navigation() {
     logout();
     handleClose();
   };
+
+  // Use isLoggedIn state and update when user.id changes
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+  React.useEffect(() => {
+    setIsLoggedIn(id !== null);
+    console.log('User:', user);
+  }, [id]);
 
   return (
     <AppBar 
@@ -107,7 +119,7 @@ function Navigation() {
             {location.pathname !== '/' && (
               <Button
                 component={Link}
-                to={user ? "/map" : "/"}
+                to={isLoggedIn ? "/map" : "/"}
                 color="inherit"
                 variant={location.pathname === "/" || location.pathname === "/map" ? "contained" : "text"}
                 sx={{
@@ -132,7 +144,7 @@ function Navigation() {
             )}
             
             {/* Show Admin Panel for admins, Pricing for regular users - only when authenticated */}
-            {user && (isAdmin ? (
+            {isLoggedIn && (isAdmin ? (
               <Button
                 component={Link}
                 to="/admin"
@@ -158,34 +170,13 @@ function Navigation() {
                 {isMobile ? "Admin" : "Admin Panel"}
               </Button>
             ) : (
-              <Button
-                component={Link}
-                to="/pricing"
-                color="inherit"
-                variant={location.pathname === "/pricing" ? "contained" : "text"}
-                sx={{
-                  backgroundColor: location.pathname === "/pricing" ? "rgba(255,255,255,0.2)" : "transparent",
-                  borderRadius: 2,
-                  px: { xs: 1, sm: 2, md: 3 },
-                  py: 1,
-                  fontWeight: 600,
-                  fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
-                  backdropFilter: location.pathname === "/pricing" ? 'blur(10px)' : 'none',
-                  border: location.pathname === "/pricing" ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
-                  '&:hover': {
-                    backgroundColor: "rgba(255,255,255,0.15)",
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255,255,255,0.2)'
-                  }
-                }}
-                startIcon={!isMobile ? <PricingIcon /> : null}
-              >
-                {isMobile ? "Pricing" : "Pricing"}
-              </Button>
+              <>
+                
+              </>
             ))}
 
             {/* Authentication buttons for non-authenticated users */}
-            {!user && (
+            {!isLoggedIn && (
               <>
                 <Button
                   component={Link}
@@ -236,7 +227,7 @@ function Navigation() {
             )}
 
             {/* User Menu */}
-            {user && (
+            {isLoggedIn && (
               <>
                 <IconButton
                   size="large"
@@ -244,8 +235,6 @@ function Navigation() {
                   color="inherit"
                   sx={{
                     ml: 1,
-                    // backgroundColor: "rgba(255,255,255,0.1)",
-                    // border: '1px solid rgba(255,255,255,0.2)',
                     '&:hover': {
                       backgroundColor: "rgba(255,255,255,0.2)",
                     }

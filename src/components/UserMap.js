@@ -20,6 +20,13 @@ function UserMap() {
     initializeUser();
     initializePOIs();
     initializeSubCategories();
+    
+    // Debug: Check for POI parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const poiParam = urlParams.get('poi');
+    if (poiParam) {
+      console.log('UserMap detected POI parameter:', poiParam);
+    }
   }, []); // Only run once on mount
 
   const user = { id, name, email, role };
@@ -155,8 +162,17 @@ function UserMap() {
   };
 
   const handleMarkerClick = (marker) => {
-    // Users can click markers to edit them
-    handleEditPOI(marker);
+    // Check for URL parameter - if present, just let the popup show
+    const urlParams = new URLSearchParams(window.location.search);
+    const poiParam = urlParams.get('poi');
+    
+    if (!poiParam) {
+      // Normal behavior - open edit form for user's own markers
+      handleEditPOI(marker);
+    } else {
+      console.log('POI was opened from a shared link - showing popup only');
+      // Do nothing, let the popup be displayed by MapMarker
+    }
   };
 
   return (

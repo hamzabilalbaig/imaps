@@ -416,9 +416,16 @@ function ProgressTracker({
                   <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
                     Total POIs
                   </Typography>
+                  {
+                    user?.role === 'admin' ?
+                    <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
+                      {userMarkerCount} / ∞ 
+                    </Typography>
+                     :
                   <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
                     {userMarkerCount} / {maxMarkers === Infinity ? '∞' : maxMarkers}
                   </Typography>
+}
                 </Box>
                 {maxMarkers !== Infinity && (
                   <LinearProgress 

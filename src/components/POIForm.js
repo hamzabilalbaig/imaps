@@ -195,6 +195,14 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
 
       <DialogContent sx={{ pb: 0 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, md: 3 }, pt: 1 }}>
+              {/* Info message for non-admin users */}
+          {!isAdmin && (
+            <Alert severity="info" sx={{ mt: 1 }}>
+              <Typography variant="body2">
+                You are suggesting a new POI. An admin will review your submission before it appears on the map.
+              </Typography>
+            </Alert>
+          )}
           <TextField
             name="name"
             label="POI Name"
@@ -309,14 +317,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
             </Box>
           )}
 
-          {/* Info message for non-admin users */}
-          {!isAdmin && (
-            <Alert severity="info" sx={{ mt: 1 }}>
-              <Typography variant="body2">
-                You are suggesting a new POI. An admin will review your submission before it appears on the map.
-              </Typography>
-            </Alert>
-          )}
+      
         </Box>
       </DialogContent>
 

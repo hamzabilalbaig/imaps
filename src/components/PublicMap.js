@@ -46,7 +46,15 @@ function PublicMap() {
 
   // If user is authenticated, redirect them to their dashboard
   if (isAuthenticated()) {
-    return <Navigate to="/map" replace />;
+    // Preserve the POI parameter during redirection
+    const urlParams = new URLSearchParams(window.location.search);
+    const poiParam = urlParams.get('poi');
+    if (poiParam) {
+      console.log('Preserving POI parameter during redirection:', poiParam);
+      return <Navigate to={`/map?poi=${poiParam}`} replace />;
+    } else {
+      return <Navigate to="/map" replace />;
+    }
   }
 
   const handleMapClick = (latlng) => {

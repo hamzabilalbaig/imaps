@@ -73,7 +73,10 @@ const useUserStore = create((set, get) => ({
   authenticate: async (email, password) => {
     try {
       const res = await authenticateUser(email, password);
-      if (!res.success) throw new Error(res.error || 'Failed to authenticate user');
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to authenticate user');
+      }
+      
       const user = res.user;
       set({ 
         id: user.id,
@@ -88,7 +91,13 @@ const useUserStore = create((set, get) => ({
       return { success: true, user };
     } catch (error) {
       console.error('Error authenticating user:', error);
-      return { success: false, error: error.message };
+      
+      // Handle specific error cases more gracefully
+      if (error.message && error.message.includes('401')) {
+        return { success: false, error: 'Invalid email or password' };
+      }
+      
+      return { success: false, error: error.message || 'Authentication failed' };
     }
   },
 
