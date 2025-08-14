@@ -940,11 +940,11 @@ function AdminDashboard() {
                               <EditIcon />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="View Details">
+                          {/* <Tooltip title="View Details">
                             <IconButton size="small">
                               <ViewIcon />
                             </IconButton>
-                          </Tooltip>
+                          </Tooltip> */}
                         </Box>
                       </TableCell>
                     </TableRow>

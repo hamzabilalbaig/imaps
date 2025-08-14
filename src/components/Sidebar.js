@@ -603,8 +603,8 @@ function Sidebar({
                                 alignItems: 'center',
                                 p: 1,
                                 borderRadius: 1,
-                                backgroundColor: alpha(categoryColor, 0.03),
-                                border: `1px solid ${alpha(categoryColor, 0.1)}`,
+                                // backgroundColor: alpha(categoryColor, 0.03),
+                                // border: `1px solid ${alpha(categoryColor, 0.1)}`,
                                 cursor: 'pointer',
                                 opacity: shouldShowStrikethrough ? 0.6 : 1,
                                 '&:hover': {
@@ -654,7 +654,7 @@ function Sidebar({
                               </Box>
 
                               {/* Content */}
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Typography
                                   variant="body2"
                                   sx={{
