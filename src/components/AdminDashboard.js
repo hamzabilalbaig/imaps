@@ -924,7 +924,7 @@ function AdminDashboard() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {new Date(user.createdAt).toLocaleDateString()}
+                          {new Date(user.createdat).toLocaleDateString()}
                         </Typography>
                       </TableCell>
                       <TableCell>
