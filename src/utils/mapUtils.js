@@ -20,6 +20,8 @@ import {
   GiBeachBall,
   GiCaravan
 } from 'react-icons/gi';
+import useSubCategoriesStore from "../stores/subCategories";
+import usePOIsStore from "../stores/pois";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -201,65 +203,6 @@ export const getCustomIcons = () => {
 
 // Create custom icon for a category
 export const createCategoryIcon = (category, customIcon = null, selectedIcon = null, iconColor = null) => {
-  let IconComponent;
-  let iconHtml;
-  
-  // Handle different formats of customIcon
-  if (customIcon && typeof customIcon === 'string') {
-    // Check if it's a URL (starts with http or https)
-    if (customIcon.startsWith('http') || customIcon.startsWith('https')) {
-      // It's a URL, convert to object format
-      customIcon = { url: customIcon, name: category };
-    } else {
-      // It's JSON string, parse it
-      try {
-        customIcon = JSON.parse(customIcon);
-      } catch (error) {
-        console.error('Failed to parse customIcon JSON:', error);
-        customIcon = null;
-      }
-    }
-  }
-  // Check if we should use a custom icon
-  if (selectedIcon && customIcon) {
-    // Use custom uploaded icon
-    iconHtml = `<img src="${customIcon?.url}" style="width: 24px; height: 24px; object-fit: contain;" alt="${customIcon.name}" />`;
-  } else if (selectedIcon && selectedIcon.startsWith('custom_')) {
-    // Try to find custom icon in localStorage
-    const customIcons = getCustomIcons();
-    const foundCustomIcon = customIcons.find(icon => icon.id === selectedIcon);
-    if (foundCustomIcon) {
-      iconHtml = `<img src="${foundCustomIcon.url}" style="width: 24px; height: 24px; object-fit: contain;" alt="${foundCustomIcon.name}" />`;
-    } else {
-      // Fallback to category-based icon if custom icon not found
-      IconComponent = CATEGORY_ICONS[category] || CATEGORY_ICONS["Other"];
-      iconHtml = ReactDOMServer.renderToString(
-        React.createElement(IconComponent, {
-          size: 24,
-          color: "white"
-        })
-      );
-    }
-  } else if (selectedIcon && CATEGORY_ICONS[selectedIcon]) {
-    // Use selected built-in icon
-    IconComponent = CATEGORY_ICONS[selectedIcon];
-    iconHtml = ReactDOMServer.renderToString(
-      React.createElement(IconComponent, {
-        size: 24,
-        color: "white"
-      })
-    );
-  } else {
-    // Fallback to category-based icon
-    IconComponent = CATEGORY_ICONS[category] || CATEGORY_ICONS["Other"];
-    iconHtml = ReactDOMServer.renderToString(
-      React.createElement(IconComponent, {
-        size: 24,
-        color: "white"
-      })
-    );
-  }
-  
   // Use custom icon color if provided, otherwise use category color
   const color = iconColor || CATEGORY_COLORS[category] || CATEGORY_COLORS["Other"];
   
@@ -276,7 +219,7 @@ export const createCategoryIcon = (category, customIcon = null, selectedIcon = n
         justify-content: center;
         box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       ">
-        ${iconHtml}
+        <img src="${customIcon}" style="width: 24px; height: 24px; object-fit: contain;" alt="${category}" />
       </div>
     `,
     className: 'custom-div-icon',
