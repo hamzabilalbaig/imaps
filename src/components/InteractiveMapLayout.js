@@ -520,7 +520,7 @@ function InteractiveMapLayout(props) {
               }
           }}
         >
-          <ChevronRight />
+          <ChevronRight sx={{ml:1}} />
         </IconButton>
         </>
       )}
