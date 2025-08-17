@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
+import { getAllMapLayers } from "../api/functions/apiFunctions";
 
 const LAYERS_STORAGE_KEY = "map-layers";
+const ACTIVE_LAYER_KEY = "active-layer-id";
 const LAYERS_VERSION_KEY = "map-layers-version";
-const CURRENT_VERSION = "3.0"; // Updated version for local maps
+const CURRENT_VERSION = "4.0"; // Updated version for database layers
 
-// Custom local layers using images from public/maps
-const DEFAULT_LAYERS = [
+// Fallback local layers using images from public/maps (in case API fails)
+const FALLBACK_LAYERS = [
   {
     id: "atlas",
     name: "Atlas",
@@ -41,44 +43,81 @@ const DEFAULT_LAYERS = [
 ];
 
 /**
- * Custom hook for managing local map layers with localStorage persistence
+ * Custom hook for managing map layers from database with localStorage persistence for active layer
  */
 export function useMapLayers() {
-  const [layers, setLayers] = useState(() => {
-    try {
-      // Check version and reset if outdated
-      const savedVersion = localStorage.getItem(LAYERS_VERSION_KEY);
-      if (savedVersion !== CURRENT_VERSION) {
-        localStorage.removeItem(LAYERS_STORAGE_KEY);
-        localStorage.setItem(LAYERS_VERSION_KEY, CURRENT_VERSION);
-        return DEFAULT_LAYERS;
-      }
+  const [layers, setLayers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-      const savedLayers = localStorage.getItem(LAYERS_STORAGE_KEY);
-      if (savedLayers) {
-        const parsed = JSON.parse(savedLayers);
-        // Ensure at least one layer is active
-        const hasActive = parsed.some(layer => layer.isActive);
-        if (!hasActive && parsed.length > 0) {
-          parsed[0].isActive = true;
-        }
-        return parsed;
-      }
-      return DEFAULT_LAYERS;
-    } catch (error) {
-      console.error("Error loading layers from localStorage:", error);
-      return DEFAULT_LAYERS;
-    }
-  });
-
-  // Save layers to localStorage whenever layers change
+  // Load layers from database
   useEffect(() => {
-    try {
-      localStorage.setItem(LAYERS_STORAGE_KEY, JSON.stringify(layers));
-    } catch (error) {
-      console.error("Error saving layers to localStorage:", error);
-    }
-  }, [layers]);
+    const loadLayers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Check version and reset if outdated
+        const savedVersion = localStorage.getItem(LAYERS_VERSION_KEY);
+        if (savedVersion !== CURRENT_VERSION) {
+          localStorage.removeItem(LAYERS_STORAGE_KEY);
+          localStorage.removeItem(ACTIVE_LAYER_KEY);
+          localStorage.setItem(LAYERS_VERSION_KEY, CURRENT_VERSION);
+        }
+
+        // Try to get layers from database
+        const dbLayers = await getAllMapLayers();
+        
+        if (dbLayers && dbLayers.length > 0) {
+          // Convert database layers to the expected format
+          const formattedLayers = dbLayers.map(layer => ({
+            id: layer.id.toString(),
+            name: layer.name,
+            type: "database",
+            imageUrl: layer.image_url,
+            description: layer.description,
+            isActive: false,
+            isDefault: false,
+            created_at: layer.created_at
+          }));
+
+          // Get saved active layer ID
+          const savedActiveLayerId = localStorage.getItem(ACTIVE_LAYER_KEY);
+          let hasActiveLayer = false;
+
+          // Set active layer
+          const layersWithActive = formattedLayers.map(layer => {
+            if (savedActiveLayerId && layer.id === savedActiveLayerId) {
+              hasActiveLayer = true;
+              return { ...layer, isActive: true };
+            }
+            return layer;
+          });
+
+          // If no saved active layer or saved layer not found, make first layer active
+          if (!hasActiveLayer && layersWithActive.length > 0) {
+            layersWithActive[0].isActive = true;
+            localStorage.setItem(ACTIVE_LAYER_KEY, layersWithActive[0].id);
+          }
+
+          setLayers(layersWithActive);
+        } else {
+          // Fallback to local layers if no database layers
+          console.log('No database layers found, using fallback layers');
+          setLayers(FALLBACK_LAYERS);
+        }
+      } catch (error) {
+        console.error("Error loading layers from database:", error);
+        setError(error);
+        // Fallback to local layers on error
+        setLayers(FALLBACK_LAYERS);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadLayers();
+  }, []);
 
   const setActiveLayer = (layerId) => {
     setLayers(prev =>
@@ -87,10 +126,14 @@ export function useMapLayers() {
         isActive: layer.id === layerId
       }))
     );
+    
+    // Save active layer to localStorage
+    localStorage.setItem(ACTIVE_LAYER_KEY, layerId);
   };
 
   const resetToDefaults = () => {
-    setLayers(DEFAULT_LAYERS);
+    setLayers(FALLBACK_LAYERS);
+    localStorage.removeItem(ACTIVE_LAYER_KEY);
   };
 
   const getActiveLayer = () => {
@@ -102,7 +145,47 @@ export function useMapLayers() {
   };
 
   const getCustomLayers = () => {
-    return []; // No custom layers for local maps
+    return layers.filter(layer => layer.type === "database");
+  };
+
+  const refreshLayers = async () => {
+    try {
+      setLoading(true);
+      const dbLayers = await getAllMapLayers();
+      
+      if (dbLayers && dbLayers.length > 0) {
+        const formattedLayers = dbLayers.map(layer => ({
+          id: layer.id.toString(),
+          name: layer.name,
+          type: "database",
+          imageUrl: layer.image_url,
+          description: layer.description,
+          isActive: false,
+          isDefault: false,
+          created_at: layer.created_at
+        }));
+
+        // Preserve active layer
+        const activeLayerId = getActiveLayer()?.id;
+        const layersWithActive = formattedLayers.map(layer => ({
+          ...layer,
+          isActive: layer.id === activeLayerId
+        }));
+
+        // If active layer was removed, make first layer active
+        if (!layersWithActive.some(layer => layer.isActive) && layersWithActive.length > 0) {
+          layersWithActive[0].isActive = true;
+          localStorage.setItem(ACTIVE_LAYER_KEY, layersWithActive[0].id);
+        }
+
+        setLayers(layersWithActive);
+      }
+    } catch (error) {
+      console.error("Error refreshing layers:", error);
+      setError(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
@@ -112,5 +195,8 @@ export function useMapLayers() {
     customLayers: getCustomLayers(),
     setActiveLayer,
     resetToDefaults,
+    refreshLayers,
+    loading,
+    error
   };
 }

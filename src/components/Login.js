@@ -327,11 +327,11 @@ const Login = ({loginType, isRegister}) => {
             </Box>
           )}
 
-          {mode === 'login' && (
+          {/* {mode === 'login' && (
             <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 2 }}>
               Use the buttons above to switch between User and Admin login modes
             </Typography>
-          )}
+          )} */}
 
           {mode === 'register' && (
             <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 2 }}>

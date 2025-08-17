@@ -70,7 +70,14 @@ function InteractiveMapLayout(props) {
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const user = useUserStore(state => state);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(!isMobile);
+  // Initialize right sidebar open only for authenticated users on desktop
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(() => {
+    try {
+      return !isMobile && !!user?.id;
+    } catch (e) {
+      return !isMobile;
+    }
+  });
   const [visibleCategories, setVisibleCategories] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showAd, setShowAd] = useState(true);
@@ -383,6 +390,18 @@ function InteractiveMapLayout(props) {
     });
   }, []);
 
+  // Close right sidebar when user is not authenticated
+  useEffect(() => {
+    try {
+      const authenticated = !!user?.id;
+      if (!authenticated && rightSidebarOpen) {
+        setRightSidebarOpen(false);
+      }
+    } catch (err) {
+      console.error('Error checking authentication for sidebar visibility', err);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     console.log('Hidden categories updated:', hiddenCategories);
   }, [hiddenCategories]);
@@ -471,10 +490,14 @@ function InteractiveMapLayout(props) {
             sx={{
               position: 'absolute',
               top: 16,
-              right: -20,
+              right: -28,
               zIndex: 1000,
               display: leftSidebarOpen ? 'block' : 'none',
               backgroundColor: 'background.paper',
+              borderRadius: '1px',
+              "&:hover": {
+                backgroundColor: 'background.paper'
+              }
             }}
           >
             <ChevronLeft />
@@ -485,11 +508,16 @@ function InteractiveMapLayout(props) {
           onClick={() => setLeftSidebarOpen(true)}
           sx={{ 
             position: 'absolute',
-            top: 100,
+            // top: 100,
+            top: 16,
             left: -15,
             zIndex: 1000,
             display: leftSidebarOpen ? 'none' : 'block',
-            backgroundColor: 'background.paper',
+             backgroundColor: 'background.paper',
+              borderRadius: '1px',
+              "&:hover": {
+                backgroundColor: 'background.paper'
+              }
           }}
         >
           <ChevronRight />
@@ -818,9 +846,11 @@ function InteractiveMapLayout(props) {
         {/* Desktop Progress Tracker Toggle Button */}
         {!isMobile && !rightSidebarOpen && (
           <Fab
-            color="secondary"
-            size="medium"
-            onClick={() => setRightSidebarOpen(true)}
+              color="secondary"
+              size="medium"
+              onClick={() => {
+                if (user?.id) setRightSidebarOpen(true);
+              }}
             sx={{
               position: 'absolute',
               top: 20,
@@ -835,10 +865,10 @@ function InteractiveMapLayout(props) {
 
       {/* Mobile Right Drawer */}
       {isMobile && (
-        <Drawer
-          anchor="right"
-          open={rightSidebarOpen}
-          onClose={() => setRightSidebarOpen(false)}
+      <Drawer
+        anchor="right"
+        open={rightSidebarOpen && !!user?.id}
+        onClose={() => setRightSidebarOpen(false)}
           variant="temporary"
           sx={{
             '& .MuiDrawer-paper': {
@@ -853,12 +883,14 @@ function InteractiveMapLayout(props) {
         </Drawer>
       )}
 
-      {/* Mobile Right Sidebar Toggle Button */}
-      {isMobile && (
+      {/* Mobile Right Sidebar Toggle Button (only show for authenticated users) */}
+      {isMobile && user?.id && (
         <Fab
           color="secondary"
           size="medium"
-          onClick={() => setRightSidebarOpen(true)}
+          onClick={() => {
+            setRightSidebarOpen(true);
+          }}
           sx={{
             position: 'absolute',
             top: 20,

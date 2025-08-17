@@ -69,7 +69,8 @@ import useUserStore, { PLAN_LIMITS } from '../stores/user';
 import usePOIsStore from '../stores/pois';
 import useCategoriesStore from '../stores/categories';
 import useSubCategoriesStore from '../stores/subCategories';
-import { getAllUsers, updateUserPlan, getAdminStats, bulkApprovePOIs, bulkRejectPOIs, getAllPlanConfigurations, updatePlanConfiguration, createPlanConfiguration, deletePlanConfiguration, getPlanUsageStats } from '../api/functions/apiFunctions';
+import { getAllUsers, updateUserPlan, getAdminStats, bulkApprovePOIs, bulkRejectPOIs, getAllPlanConfigurations, updatePlanConfiguration, createPlanConfiguration, deletePlanConfiguration, getPlanUsageStats, getAllMapLayers, createMapLayer, updateMapLayer, deleteMapLayer, uploadMapLayerImage } from '../api/functions/apiFunctions';
+import uploadFile from '../aws/fileUpload';
 
 /**
  * Comprehensive Admin Dashboard Component
@@ -139,6 +140,20 @@ function AdminDashboard() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [planUsageStats, setPlanUsageStats] = useState([]);
 
+  // Map Layers management state
+  const [mapLayers, setMapLayers] = useState([]);
+  const [mapLayerDialogOpen, setMapLayerDialogOpen] = useState(false);
+  const [selectedMapLayer, setSelectedMapLayer] = useState(null);
+  const [mapLayerFormData, setMapLayerFormData] = useState({
+    name: '',
+    description: '',
+    image_url: ''
+  });
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  const [imageUploadLoading, setImageUploadLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Initialize data
   useEffect(() => {
     const initializeData = async () => {
@@ -155,7 +170,8 @@ function AdminDashboard() {
           initializeCategories(),
           initializeSubCategories(),
           loadUsers(),
-          loadPlanConfigurations()
+          loadPlanConfigurations(),
+          loadMapLayers()
         ]);
         
         calculateStats();
@@ -190,6 +206,16 @@ function AdminDashboard() {
       setPlanUsageStats(usageStats);
     } catch (error) {
       console.error('Error loading plan configurations:', error);
+    }
+  };
+
+  // Load map layers from API
+  const loadMapLayers = async () => {
+    try {
+      const layersData = await getAllMapLayers();
+      setMapLayers(layersData);
+    } catch (error) {
+      console.error('Error loading map layers:', error);
     }
   };
 
@@ -1554,6 +1580,504 @@ function AdminDashboard() {
     );
   };
 
+  // Render Map Layers management
+  const renderMapLayersManagement = () => {
+    const filteredLayers = mapLayers.filter(layer => 
+      layer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (layer.description && layer.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    const handleImageFileSelect = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        setSelectedImageFile(file);
+        // Create preview URL
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreviewUrl(e.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    const handleCreateMapLayer = async () => {
+      if (!mapLayerFormData.name) {
+        alert('Layer name is required');
+        return;
+      }
+
+      try {
+        setImageUploadLoading(true);
+        let imageUrl = '';
+
+        if (selectedImageFile) {
+          // Convert file to base64
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            try {
+              const base64Data = e.target.result;
+              
+              // Try S3 upload first, fallback to base64 storage
+              const uploadResult = await uploadMapLayerImage(
+                base64Data,
+                selectedImageFile.name,
+                selectedImageFile.type,
+                mapLayerFormData.name
+              );
+              
+              imageUrl = uploadResult.imageUrl;
+
+              // Create the layer
+              const layerData = {
+                name: mapLayerFormData.name,
+                description: mapLayerFormData.description,
+                image_url: imageUrl,
+                created_by: id
+              };
+
+              await createMapLayer(layerData);
+              await loadMapLayers();
+              
+              // Reset form
+              setMapLayerFormData({ name: '', description: '', image_url: '' });
+              setSelectedImageFile(null);
+              setImagePreviewUrl(null);
+              setMapLayerDialogOpen(false);
+              
+              alert('Map layer created successfully!');
+            } catch (error) {
+              console.error('Error creating map layer:', error);
+              alert('Failed to create map layer');
+            } finally {
+              setImageUploadLoading(false);
+            }
+          };
+          reader.readAsDataURL(selectedImageFile);
+        } else {
+          alert('Please select an image file');
+          setImageUploadLoading(false);
+        }
+      } catch (error) {
+        console.error('Error creating map layer:', error);
+        alert('Failed to create map layer');
+        setImageUploadLoading(false);
+      }
+    };
+
+    const handleUpdateMapLayer = async () => {
+      if (!selectedMapLayer || !mapLayerFormData.name) {
+        alert('Layer name is required');
+        return;
+      }
+
+      try {
+        setImageUploadLoading(true);
+        let imageUrl = mapLayerFormData.image_url;
+
+        if (selectedImageFile) {
+          // Convert file to base64
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            try {
+              const base64Data = e.target.result;
+              
+              // Try S3 upload first, fallback to base64 storage
+              const uploadResult = await uploadMapLayerImage(
+                base64Data,
+                selectedImageFile.name,
+                selectedImageFile.type,
+                mapLayerFormData.name
+              );
+              
+              imageUrl = uploadResult.imageUrl;
+
+              // Update the layer
+              const layerData = {
+                name: mapLayerFormData.name,
+                description: mapLayerFormData.description,
+                image_url: imageUrl
+              };
+
+              await updateMapLayer(selectedMapLayer.id, layerData);
+              await loadMapLayers();
+              
+              // Reset form
+              setMapLayerFormData({ name: '', description: '', image_url: '' });
+              setSelectedImageFile(null);
+              setImagePreviewUrl(null);
+              setSelectedMapLayer(null);
+              setMapLayerDialogOpen(false);
+              
+              alert('Map layer updated successfully!');
+            } catch (error) {
+              console.error('Error updating map layer:', error);
+              alert('Failed to update map layer');
+            } finally {
+              setImageUploadLoading(false);
+            }
+          };
+          reader.readAsDataURL(selectedImageFile);
+        } else {
+          // No new image, just update text fields
+          const layerData = {
+            name: mapLayerFormData.name,
+            description: mapLayerFormData.description,
+            image_url: imageUrl
+          };
+
+          await updateMapLayer(selectedMapLayer.id, layerData);
+          await loadMapLayers();
+          
+          // Reset form
+          setMapLayerFormData({ name: '', description: '', image_url: '' });
+          setSelectedMapLayer(null);
+          setMapLayerDialogOpen(false);
+          setImageUploadLoading(false);
+          
+          alert('Map layer updated successfully!');
+        }
+      } catch (error) {
+        console.error('Error updating map layer:', error);
+        alert('Failed to update map layer');
+        setImageUploadLoading(false);
+      }
+    };
+
+    const handleDeleteMapLayer = async (layer) => {
+      if (window.confirm(`Are you sure you want to delete "${layer.name}"?`)) {
+        try {
+          await deleteMapLayer(layer.id);
+          await loadMapLayers();
+          alert('Map layer deleted successfully!');
+        } catch (error) {
+          console.error('Error deleting map layer:', error);
+          alert('Failed to delete map layer');
+        }
+      }
+    };
+
+    const handleEditMapLayer = (layer) => {
+      setSelectedMapLayer(layer);
+      setMapLayerFormData({
+        name: layer.name,
+        description: layer.description || '',
+        image_url: layer.image_url
+      });
+      setImagePreviewUrl(layer.image_url);
+      setMapLayerDialogOpen(true);
+    };
+
+    return (
+      <Box>
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box>
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+                Map Layers Management
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Manage base map images for the application ({mapLayers.length} total)
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  setSelectedMapLayer(null);
+                  setMapLayerFormData({ name: '', description: '', image_url: '' });
+                  setSelectedImageFile(null);
+                  setImagePreviewUrl(null);
+                  setMapLayerDialogOpen(true);
+                }}
+                sx={{ height: 36 }}
+              >
+                Add Layer
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={loadMapLayers}
+                sx={{ height: 36 }}
+              >
+                Refresh
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Search */}
+          <TextField
+            fullWidth
+            placeholder="Search layers by name or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <ViewIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ mb: 2 }}
+          />
+        </Box>
+
+        <Card 
+          elevation={0}
+          sx={{
+            border: 1,
+            borderColor: 'divider',
+            overflow: 'hidden'
+          }}
+        >
+          {filteredLayers.length === 0 ? (
+            <Box sx={{ p: 6, textAlign: 'center' }}>
+              <ImageIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                {searchTerm ? 'No layers match your search' : 'No map layers found'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {searchTerm ? 'Try adjusting your search terms' : 'Add your first map layer to get started'}
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Preview</TableCell>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell>Upload Method</TableCell>
+                    <TableCell>Created</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredLayers.map((layer) => {
+                    const isBase64 = layer.image_url && layer.image_url.startsWith('data:');
+                    return (
+                      <TableRow key={layer.id} hover>
+                        <TableCell>
+                          <Box
+                            sx={{
+                              width: 60,
+                              height: 40,
+                              border: 1,
+                              borderColor: 'divider',
+                              borderRadius: 1,
+                              overflow: 'hidden',
+                              backgroundColor: 'grey.100'
+                            }}
+                          >
+                            <img
+                              src={layer.image_url}
+                              alt={layer.name}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <Box
+                              sx={{
+                                display: 'none',
+                                width: '100%',
+                                height: '100%',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: 'grey.200'
+                              }}
+                            >
+                              <ImageIcon sx={{ color: 'grey.400', fontSize: 20 }} />
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="subtitle2" fontWeight={600}>
+                            {layer.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {layer.description || 'No description'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={isBase64 ? 'Base64' : 'S3'}
+                            size="small"
+                            color={isBase64 ? 'warning' : 'success'}
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {new Date(layer.created_at).toLocaleDateString()}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleEditMapLayer(layer)}
+                              color="primary"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteMapLayer(layer)}
+                              color="error"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Card>
+
+        {/* Add/Edit Map Layer Dialog */}
+        <Dialog
+          open={mapLayerDialogOpen}
+          onClose={() => {
+            if (!imageUploadLoading) {
+              setMapLayerDialogOpen(false);
+              setSelectedMapLayer(null);
+              setMapLayerFormData({ name: '', description: '', image_url: '' });
+              setSelectedImageFile(null);
+              setImagePreviewUrl(null);
+            }
+          }}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            {selectedMapLayer ? 'Edit Map Layer' : 'Add New Map Layer'}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <TextField
+                label="Layer Name"
+                value={mapLayerFormData.name}
+                onChange={(e) => setMapLayerFormData(prev => ({ ...prev, name: e.target.value }))}
+                fullWidth
+                required
+                disabled={imageUploadLoading}
+              />
+              
+              <TextField
+                label="Description"
+                value={mapLayerFormData.description}
+                onChange={(e) => setMapLayerFormData(prev => ({ ...prev, description: e.target.value }))}
+                fullWidth
+                multiline
+                rows={3}
+                disabled={imageUploadLoading}
+              />
+
+              {/* Image Upload */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2 }}>
+                  Map Image *
+                </Typography>
+                
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<UploadIcon />}
+                    disabled={imageUploadLoading}
+                    sx={{ minWidth: 150 }}
+                  >
+                    Choose Image
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleImageFileSelect}
+                    />
+                  </Button>
+                  
+                  {(imagePreviewUrl || selectedImageFile) && (
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Preview:
+                      </Typography>
+                      <Box
+                        sx={{
+                          width: '100%',
+                          maxWidth: 400,
+                          height: 200,
+                          border: 1,
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          overflow: 'hidden',
+                          backgroundColor: 'grey.100'
+                        }}
+                      >
+                        <img
+                          src={imagePreviewUrl}
+                          alt="Preview"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+                
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {selectedMapLayer 
+                    ? 'Leave empty to keep current image. Upload new image to replace.'
+                    : 'Select a PNG, JPG, or other image file for the map layer.'
+                  }
+                </Typography>
+              </Box>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => {
+                if (!imageUploadLoading) {
+                  setMapLayerDialogOpen(false);
+                  setSelectedMapLayer(null);
+                  setMapLayerFormData({ name: '', description: '', image_url: '' });
+                  setSelectedImageFile(null);
+                  setImagePreviewUrl(null);
+                }
+              }}
+              disabled={imageUploadLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={selectedMapLayer ? handleUpdateMapLayer : handleCreateMapLayer}
+              variant="contained"
+              disabled={imageUploadLoading || !mapLayerFormData.name || (!selectedMapLayer && !selectedImageFile)}
+              startIcon={imageUploadLoading ? <LinearProgress size={20} /> : <SaveIcon />}
+            >
+              {imageUploadLoading ? 'Uploading...' : (selectedMapLayer ? 'Update' : 'Create')}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    );
+  };
+
   // Tab panel content
   const getTabContent = () => {
     switch (activeTab) {
@@ -1594,6 +2118,12 @@ function AdminDashboard() {
         return (
           <Box>
             {renderPOIsManagement()}
+          </Box>
+        );
+      case 6:
+        return (
+          <Box>
+            {renderMapLayersManagement()}
           </Box>
         );
       default:
@@ -1705,6 +2235,11 @@ function AdminDashboard() {
             <Tab
               icon={<LocationIcon />}
               label="POIs"
+              iconPosition="start"
+            />
+            <Tab
+              icon={<ImageIcon />}
+              label="Map Layers"
               iconPosition="start"
             />
           </Tabs>

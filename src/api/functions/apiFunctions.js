@@ -338,3 +338,39 @@ export async function getPlanUsageStats() {
     const { data } = await apiClient.get('/admin/plans/stats/usage');
     return data;
 }
+
+// Map Layers API Functions
+export async function getAllMapLayers() {
+    const { data } = await apiClient.get('/admin/map-layers');
+    return data;
+}
+
+export async function getMapLayer(id) {
+    const { data } = await apiClient.get(`/admin/map-layers/${id}`);
+    return data;
+}
+
+export async function createMapLayer(layerData) {
+    const { data } = await apiClient.post('/admin/map-layers', layerData);
+    return data;
+}
+
+export async function updateMapLayer(id, layerData) {
+    const { data } = await apiClient.put(`/admin/map-layers/${id}`, layerData);
+    return data;
+}
+
+export async function deleteMapLayer(id) {
+    const { data } = await apiClient.delete(`/admin/map-layers/${id}`);
+    return data;
+}
+
+export async function uploadMapLayerImage(imageData, fileName, contentType, layerName) {
+    const { data } = await apiClient.post('/admin/map-layers/upload-image', {
+        imageData,
+        fileName,
+        contentType,
+        layerName
+    });
+    return data;
+}
