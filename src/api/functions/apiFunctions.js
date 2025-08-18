@@ -166,7 +166,7 @@ export async function requestPasswordReset(email) {
     } catch (error) {
         return { 
             success: false, 
-            error: error.response?.data?.message || 'Failed to send reset email' 
+            error: error.response?.data?.error || error.response?.data?.message || 'Failed to send reset email' 
         };
     }
 }
@@ -179,7 +179,7 @@ export async function resetPassword(token, newPassword) {
     } catch (error) {
         return { 
             success: false, 
-            error: error.response?.data?.message || 'Failed to reset password' 
+            error: error.response?.data?.error || error.response?.data?.message || 'Failed to reset password' 
         };
     }
 }
