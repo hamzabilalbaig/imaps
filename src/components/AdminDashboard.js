@@ -1848,7 +1848,7 @@ function AdminDashboard() {
                     <TableCell>Preview</TableCell>
                     <TableCell>Name</TableCell>
                     <TableCell>Description</TableCell>
-                    <TableCell>Upload Method</TableCell>
+                    {/* <TableCell>Upload Method</TableCell> */}
                     <TableCell>Created</TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
@@ -1907,14 +1907,14 @@ function AdminDashboard() {
                             {layer.description || 'No description'}
                           </Typography>
                         </TableCell>
-                        <TableCell>
+                        {/* <TableCell>
                           <Chip
                             label={isBase64 ? 'Base64' : 'S3'}
                             size="small"
                             color={isBase64 ? 'warning' : 'success'}
                             variant="outlined"
                           />
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
                             {new Date(layer.created_at).toLocaleDateString()}
