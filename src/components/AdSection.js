@@ -11,9 +11,11 @@ import {
   Upgrade as UpgradeIcon,
   Close as CloseIcon 
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 function AdSection({ onClose, showCloseButton = false, leftOffset = 0 }) {
   const theme = useTheme();
+  const navigate = useNavigate();
 
   return (
     <Paper
@@ -116,6 +118,9 @@ function AdSection({ onClose, showCloseButton = false, leftOffset = 0 }) {
             fontSize: '0.75rem',
             fontWeight: 'bold',
             py: 1
+          }}
+          onClick={()=>{
+            navigate('/pricing')
           }}
         >
           UPGRADE TO PRO

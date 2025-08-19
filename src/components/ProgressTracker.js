@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import { localDB } from '../utils/localStorage';
 import useUserStore from '../stores/user';
+import { useNavigate } from 'react-router-dom';
 
 function ProgressTracker({ 
   // user, 
@@ -51,7 +52,7 @@ function ProgressTracker({
 }) {
   const theme = useTheme();
   const { getRemainingCategories, canUseCustomIcons, id, name, email, plan, role, initializeUser } = useUserStore();
-  
+  const navigate = useNavigate();
   useEffect(() => {
     initializeUser();
   }, []); // Only run once on mount
@@ -492,6 +493,7 @@ function ProgressTracker({
                     fontSize: '0.75rem',
                     fontWeight: 'bold'
                   }}
+                  onClick={()=> navigate('/pricing')}
                 >
                   UPGRADE TO PRO
                 </Button>
