@@ -30,7 +30,7 @@ import {
 } from '@mui/icons-material';
 import useUserStore from '../stores/user';
 import { handleCheckout } from '../stripe/handleCheckout';
-import { getAllPlanConfigurations } from '../api/functions/apiFunctions';
+import { getAllPlanConfigurations, changeUserPlan } from '../api/functions/apiFunctions';
 
 const Pricing = () => {
   const { id, name, email, plan, initializeUser, upgradePlan } = useUserStore();
@@ -38,6 +38,8 @@ const Pricing = () => {
   const [plans, setPlans] = useState([]);
   const [plansLoading, setPlansLoading] = useState(true);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, plan: null });
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelResult, setCancelResult] = useState({ open: false, success: false, message: '' });
 
   // Load plans from API
   const loadPlans = async () => {
@@ -112,6 +114,31 @@ const Pricing = () => {
     setConfirmDialog({ open: true, plan: plans.find(p => p.id === planId) });
   };
 
+  const handleCancelClick = () => {
+    setCancelDialogOpen(true);
+  };
+
+  const confirmCancelPlan = async () => {
+    if (!id) {
+  setCancelDialogOpen(false);
+  setCancelResult({ open: true, success: false, message: 'Please login to cancel your plan.' });
+      return;
+    }
+
+    try {
+      // change server-side plan to 'free'
+      await changeUserPlan(id, 'free');
+      // update local store
+      upgradePlan('free');
+  setCancelResult({ open: true, success: true, message: 'Your plan has been cancelled and reverted to Free.' });
+    } catch (error) {
+      console.error('Failed to cancel plan:', error);
+  setCancelResult({ open: true, success: false, message: 'Failed to cancel plan. Please try again later.' });
+    } finally {
+  setCancelDialogOpen(false);
+    }
+  };
+
   const confirmUpgrade = async () => {
     if (confirmDialog.plan) {
       // upgradePlan(confirmDialog.plan.id);
@@ -164,6 +191,13 @@ const Pricing = () => {
             <Alert severity="info" sx={{ maxWidth: 600, mx: 'auto' }}>
               Current Plan: <strong>{plans.find(p => p.id === user.plan)?.name || 'Free'}</strong>
             </Alert>
+          )}
+          {user?.plan && user.plan !== 'free' && (
+            <Box sx={{ mt: 2 }}>
+              <Button variant="outlined" color="error" onClick={handleCancelClick}>
+                Cancel Plan
+              </Button>
+            </Box>
           )}
         </Box>
 
@@ -316,6 +350,34 @@ const Pricing = () => {
           </Button>
           <Button onClick={confirmUpgrade} variant="contained">
             Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Cancel Plan Dialog */}
+      <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)}>
+        <DialogTitle>Cancel Plan</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to cancel your subscription and revert to the Free plan?</Typography>
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Cancelling will immediately set your account to the Free plan and limits may apply.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelDialogOpen(false)}>No, keep my plan</Button>
+          <Button onClick={confirmCancelPlan} variant="contained" color="error">Yes, cancel plan</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Cancel Result Dialog */}
+      <Dialog open={cancelResult.open} onClose={() => { setCancelResult({ open: false, success: false, message: '' }); window.location.reload(); }}>
+        <DialogTitle>{cancelResult.success ? 'Cancelled' : 'Action required'}</DialogTitle>
+        <DialogContent>
+          <Typography>{cancelResult.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setCancelResult({ open: false, success: false, message: '' }); window.location.reload(); }} autoFocus>
+            Close
           </Button>
         </DialogActions>
       </Dialog>

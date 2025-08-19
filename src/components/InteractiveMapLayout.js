@@ -469,21 +469,25 @@ function InteractiveMapLayout(props) {
       overflow: 'hidden',
       minHeight: 0,
     }}>
-      {/* Desktop Left Sidebar */}
+      {/* Desktop Left Sidebar (overlay) */}
       {!isMobile && (
         <>
         <Box sx={{ 
           width: { lg: 320, xl: 350 }, 
           minWidth: 280,
           maxWidth: 400,
-          height: '100%', 
-          flexShrink: 0,
+          // Make the sidebar overlay the map instead of occupying layout space
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          height: '100%',
+          zIndex: 1200,
           overflow: 'visible',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          display: leftSidebarOpen ? 'block' : 'none'
-          
+          // Keep the element in the DOM and slide it in/out for smooth animation
+          transform: leftSidebarOpen ? 'translateX(0)' : 'translateX(-110%)',
+          transition: 'transform 300ms ease',
+          pointerEvents: leftSidebarOpen ? 'auto' : 'none',
+          displayPrint: 'none'
         }}>
           <IconButton
             onClick={() => setLeftSidebarOpen(false)}
@@ -581,7 +585,8 @@ function InteractiveMapLayout(props) {
           layerSelectorPosition="bottom-center"
           isAdmin={isAdmin}
           streetsVisible={streetsVisible}
-          className={JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'atlas' ? 'atlas-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'road' ? 'road-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'satellite' ? 'satellite-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'uv' ? 'uv-image' : 'default-image'}
+          // className={JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'atlas' ? 'atlas-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'road' ? 'road-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'satellite' ? 'satellite-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'uv' ? 'uv-image' : 'default-image !border-[0px]'}
+          className="w-full h-full !border-[0px] !rounded-none"
           isRightSidebarVisible={rightSidebarOpen}
         >
           {/* Map Click Handler */}
@@ -798,6 +803,8 @@ function InteractiveMapLayout(props) {
           <AdSection 
             onClose={() => setShowAd(false)}
             showCloseButton={true}
+            // When desktop left sidebar is open, push the ad to the right so it isn't hidden behind the sidebar
+            leftOffset={(!isMobile && leftSidebarOpen) ? 340 : 0}
           />
         )}
 
@@ -827,7 +834,7 @@ function InteractiveMapLayout(props) {
         )}
 
         {/* Progress Tracker Overlay - Desktop */}
-        {!isMobile && rightSidebarOpen && (
+        {!isMobile && (
           <Box sx={{
             position: 'absolute',
             top: 0,
@@ -836,7 +843,10 @@ function InteractiveMapLayout(props) {
             maxWidth: 400,
             maxHeight: '100%',
             zIndex: 1000,
-            pointerEvents: 'auto',
+            // Keep in DOM and slide
+            transform: rightSidebarOpen ? 'translateX(0)' : 'translateX(110%)',
+            transition: 'transform 300ms ease',
+            pointerEvents: rightSidebarOpen ? 'auto' : 'none',
             height: '100%',
           }}>
             {rightSidebarContent}

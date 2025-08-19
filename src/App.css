@@ -61,7 +61,7 @@
 
 .zoomControlsAfterRightSidebarOpen {
   position: absolute !important;
-  bottom: 10px !important;
+  bottom: 55px !important;
   right: 350px !important; /* Move left to avoid sidebar overlap */
   transition: right 0.3s ease !important; /* Smooth transition */
 }
@@ -71,3 +71,7 @@
   bottom: 10px !important;
   left: -400px !important;
 } */
+
+.leaflet-control-zoom {
+  bottom: 55px;
+}

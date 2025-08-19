@@ -51,9 +51,37 @@ function LayerSelector({ position = "bottom-center", showInPublic = true, isAdmi
     // Set the new layer
     setActiveLayer(layerId);
     
-    // Reload the page to ensure the new image loads properly
+    // Instead of reloading the whole page, trigger a gentle map refresh so the new
+    // image overlay is loaded and the view is preserved.
     setTimeout(() => {
-      window.location.reload();
+      try {
+        const map = window.leafletMap;
+        if (map && map._container && map._loaded) {
+          // Force a redraw/invalidation
+          map.invalidateSize({ animate: false });
+
+          // Preserve current view (center + zoom) to avoid jumpiness
+          let center, zoom;
+          try {
+            center = map.getCenter();
+            zoom = map.getZoom();
+          } catch (e) {
+            // ignore
+          }
+
+          if (center && zoom !== undefined) {
+            setTimeout(() => {
+              try {
+                if (map && map._loaded) map.setView(center, zoom, { animate: false });
+              } catch (err) {
+                // no-op
+              }
+            }, 100);
+          }
+        }
+      } catch (err) {
+        console.warn('Map refresh after layer change failed', err);
+      }
     }, 100);
   };
 

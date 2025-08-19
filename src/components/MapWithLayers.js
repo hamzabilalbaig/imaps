@@ -190,7 +190,7 @@ function MapWithLayers({
   children, 
   center, 
   zoom, 
-  className = "w-full h-full",
+  className = "w-full h-full !border-[0px]",
   showLayerSelector = true,
   layerSelectorPosition = "bottom-center",
   isAdmin = false,
@@ -298,7 +298,7 @@ function MapWithLayers({
         className={className}
         key={`map-${activeLayer.id}`} // Only re-render when layer changes
         crs={L.CRS.Simple} // Use simple CRS for local images
-        minZoom={10}
+        minZoom={12}
         maxZoom={15}
         zoomControl={false}
         attributionControl={false}

@@ -12,7 +12,7 @@ import {
   Close as CloseIcon 
 } from '@mui/icons-material';
 
-function AdSection({ onClose, showCloseButton = false }) {
+function AdSection({ onClose, showCloseButton = false, leftOffset = 0 }) {
   const theme = useTheme();
 
   return (
@@ -21,7 +21,12 @@ function AdSection({ onClose, showCloseButton = false }) {
       sx={{
         position: 'absolute',
         bottom: { xs: 90, sm: 80, md: 20 },
-        left: { xs: 8, sm: 16, md: 20 },
+        // Respect leftOffset on desktop so the ad sits next to the left sidebar instead of behind it
+        left: {
+          xs: 8,
+          sm: 16,
+          md: `calc(${leftOffset}px + 20px)`
+        },
         width: { xs: 'calc(100vw - 16px)', sm: 280, md: 300 },
         maxWidth: { xs: 'calc(100vw - 16px)', sm: 300, md: 320 },
         backgroundColor: alpha(theme.palette.background.paper, 0.95),
@@ -30,7 +35,8 @@ function AdSection({ onClose, showCloseButton = false }) {
         overflow: 'hidden',
         zIndex: 1000,
         border: `1px solid ${theme.palette.divider}`,
-        boxSizing: 'border-box'
+  boxSizing: 'border-box',
+  transition: 'left 220ms ease'
       }}
     >
       {showCloseButton && (

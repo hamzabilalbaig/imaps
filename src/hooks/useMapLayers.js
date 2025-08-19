@@ -129,7 +129,35 @@ export function useMapLayers() {
     
     // Save active layer to localStorage
     localStorage.setItem(ACTIVE_LAYER_KEY, layerId);
+    // Broadcast the change so other hook instances (in other components) can sync
+    try {
+      if (typeof window !== 'undefined' && window?.CustomEvent) {
+        window.dispatchEvent(new CustomEvent('mapLayerChanged', { detail: { layerId } }));
+      }
+    } catch (err) {
+      // ignore
+    }
   };
+
+  // Listen for global layer change events so multiple components using this hook
+  // stay in sync (avoids requiring a full page reload when one component updates)
+  useEffect(() => {
+    const handler = (e) => {
+      const incomingId = e?.detail?.layerId || localStorage.getItem(ACTIVE_LAYER_KEY);
+      if (!incomingId) return;
+      setLayers(prev => prev.map(layer => ({ ...layer, isActive: layer.id === incomingId })));
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('mapLayerChanged', handler);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('mapLayerChanged', handler);
+      }
+    };
+  }, []);
 
   const resetToDefaults = () => {
     setLayers(FALLBACK_LAYERS);

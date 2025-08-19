@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { verifyCheckoutSession } from '../api/functions/apiFunctions';
+import { verifyCheckoutSession, changeUserPlan } from '../api/functions/apiFunctions';
 import { Container, Typography, Box, CircularProgress, Paper, Button } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
@@ -29,7 +29,16 @@ export default function SuccessPage() {
 
     setPaymentStatus(result?.payment_status);
     if( result?.payment_status === 'paid') {
-      const result = await upgradePlan(plan?.replace('plan=', ''));
+      const planName = plan?.replace('plan=', '');
+      try {
+        if (id) {
+          await changeUserPlan(id, planName);
+        }
+        // update local store
+        upgradePlan(planName);
+      } catch (err) {
+        console.error('Failed to update user plan after payment:', err);
+      }
     }
   };
 

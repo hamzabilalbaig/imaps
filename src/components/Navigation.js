@@ -171,7 +171,30 @@ function Navigation() {
               </Button>
             ) : (
               <>
-                
+                <Button
+                  component={Link}
+                  to="/pricing"
+                  color="inherit"
+                  variant={location.pathname === "/pricing" ? "contained" : "text"}
+                  sx={{
+                    backgroundColor: location.pathname === "/pricing" ? "rgba(255,255,255,0.2)" : "transparent",
+                    borderRadius: 2,
+                    px: { xs: 1, sm: 2, md: 3 },
+                    py: 1,
+                    fontWeight: 600,
+                    fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+                    backdropFilter: location.pathname === "/pricing" ? 'blur(10px)' : 'none',
+                    border: location.pathname === "/pricing" ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+                    '&:hover': {
+                      backgroundColor: "rgba(255,255,255,0.15)",
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255,255,255,0.2)'
+                    }
+                  }}
+                  startIcon={!isMobile ? <PricingIcon /> : null}
+                >
+                  {isMobile ? "Pricing" : "Pricing"}
+                </Button>
               </>
             ))}
 
