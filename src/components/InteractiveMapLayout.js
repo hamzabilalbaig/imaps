@@ -853,14 +853,12 @@ function InteractiveMapLayout(props) {
           </Box>
         )}
 
-        {/* Desktop Progress Tracker Toggle Button */}
-        {!isMobile && !rightSidebarOpen && (
+  {/* Desktop Progress Tracker Toggle Button (only show when user is logged in) */}
+  {!isMobile && !rightSidebarOpen && user?.id && (
           <Fab
-              color="secondary"
-              size="medium"
-              onClick={() => {
-                if (user?.id) setRightSidebarOpen(true);
-              }}
+            color="secondary"
+            size="medium"
+            onClick={() => setRightSidebarOpen(true)}
             sx={{
               position: 'absolute',
               top: 20,
