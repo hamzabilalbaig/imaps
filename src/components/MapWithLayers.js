@@ -200,6 +200,9 @@ function MapWithLayers({
   const { activeLayer } = useMapLayers();
   const mapRef = useRef(null);
   const [isMounted, setIsMounted] = useState(false);
+  // Keep initial center/zoom stable to avoid resetting view on re-renders
+  const initialCenterRef = useRef(center);
+  const initialZoomRef = useRef(zoom);
   
   useEffect(() => {
     // Function to update zoom control position
@@ -246,6 +249,24 @@ function MapWithLayers({
       setIsMounted(false);
     };
   }, []);
+  // If parent changes the center/zoom (for example focusing a POI), update the map view
+  React.useEffect(() => {
+    try {
+      const mapInstance = mapRef.current || window.leafletMap;
+      if (!mapInstance) return;
+      if (center && typeof center[0] === 'number' && typeof center[1] === 'number' && zoom !== undefined) {
+        if (mapInstance && mapInstance._loaded) {
+          mapInstance.setView(center, zoom, { animate: false });
+          // update refs to keep them in sync
+          initialCenterRef.current = center;
+          initialZoomRef.current = zoom;
+        }
+      }
+    } catch (err) {
+      // noop
+    }
+  }, [center, zoom]);
+
   if (!isMounted) {
     return null; // Prevent rendering during initial mount
   }
@@ -293,10 +314,9 @@ function MapWithLayers({
     }}>
       <MapContainer
         ref={mapRef}
-        center={center}
-        zoom={zoom}
+        center={initialCenterRef.current}
+        zoom={initialZoomRef.current}
         className={className}
-        key={`map-${activeLayer.id}`} // Only re-render when layer changes
         crs={L.CRS.Simple} // Use simple CRS for local images
         minZoom={11}
         maxZoom={15}
