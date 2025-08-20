@@ -1611,48 +1611,38 @@ function AdminDashboard() {
         let imageUrl = '';
 
         if (selectedImageFile) {
-          // Convert file to base64
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-            try {
-              const base64Data = e.target.result;
-              
-              // Try S3 upload first, fallback to base64 storage
-              const uploadResult = await uploadMapLayerImage(
-                base64Data,
-                selectedImageFile.name,
-                selectedImageFile.type,
-                mapLayerFormData.name
-              );
-              
-              imageUrl = uploadResult.imageUrl;
-
-              // Create the layer
-              const layerData = {
-                name: mapLayerFormData.name,
-                description: mapLayerFormData.description,
-                image_url: imageUrl,
-                created_by: id
-              };
-
-              await createMapLayer(layerData);
-              await loadMapLayers();
-              
-              // Reset form
-              setMapLayerFormData({ name: '', description: '', image_url: '' });
-              setSelectedImageFile(null);
-              setImagePreviewUrl(null);
-              setMapLayerDialogOpen(false);
-              
-              alert('Map layer created successfully!');
-            } catch (error) {
-              console.error('Error creating map layer:', error);
-              alert('Failed to create map layer');
-            } finally {
-              setImageUploadLoading(false);
+          try {
+            // Upload file directly to S3 from the client and get back a public URL
+            const fileUrl = await uploadFile(selectedImageFile, setImageUploadLoading);
+            if (!fileUrl) {
+              throw new Error('S3 upload failed or returned empty URL');
             }
-          };
-          reader.readAsDataURL(selectedImageFile);
+            imageUrl = fileUrl;
+
+            // Create the layer with the S3 URL (no base64)
+            const layerData = {
+              name: mapLayerFormData.name,
+              description: mapLayerFormData.description,
+              image_url: imageUrl,
+              created_by: id
+            };
+
+            await createMapLayer(layerData);
+            await loadMapLayers();
+
+            // Reset form
+            setMapLayerFormData({ name: '', description: '', image_url: '' });
+            setSelectedImageFile(null);
+            setImagePreviewUrl(null);
+            setMapLayerDialogOpen(false);
+
+            alert('Map layer created successfully!');
+          } catch (error) {
+            console.error('Error creating map layer:', error);
+            alert('Failed to create map layer');
+          } finally {
+            setImageUploadLoading(false);
+          }
         } else {
           alert('Please select an image file');
           setImageUploadLoading(false);
@@ -1675,48 +1665,38 @@ function AdminDashboard() {
         let imageUrl = mapLayerFormData.image_url;
 
         if (selectedImageFile) {
-          // Convert file to base64
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-            try {
-              const base64Data = e.target.result;
-              
-              // Try S3 upload first, fallback to base64 storage
-              const uploadResult = await uploadMapLayerImage(
-                base64Data,
-                selectedImageFile.name,
-                selectedImageFile.type,
-                mapLayerFormData.name
-              );
-              
-              imageUrl = uploadResult.imageUrl;
-
-              // Update the layer
-              const layerData = {
-                name: mapLayerFormData.name,
-                description: mapLayerFormData.description,
-                image_url: imageUrl
-              };
-
-              await updateMapLayer(selectedMapLayer.id, layerData);
-              await loadMapLayers();
-              
-              // Reset form
-              setMapLayerFormData({ name: '', description: '', image_url: '' });
-              setSelectedImageFile(null);
-              setImagePreviewUrl(null);
-              setSelectedMapLayer(null);
-              setMapLayerDialogOpen(false);
-              
-              alert('Map layer updated successfully!');
-            } catch (error) {
-              console.error('Error updating map layer:', error);
-              alert('Failed to update map layer');
-            } finally {
-              setImageUploadLoading(false);
+          try {
+            // Upload file directly to S3 from the client and get back a public URL
+            const fileUrl = await uploadFile(selectedImageFile, setImageUploadLoading);
+            if (!fileUrl) {
+              throw new Error('S3 upload failed or returned empty URL');
             }
-          };
-          reader.readAsDataURL(selectedImageFile);
+            imageUrl = fileUrl;
+
+            // Update the layer with the S3 URL (no base64)
+            const layerData = {
+              name: mapLayerFormData.name,
+              description: mapLayerFormData.description,
+              image_url: imageUrl
+            };
+
+            await updateMapLayer(selectedMapLayer.id, layerData);
+            await loadMapLayers();
+
+            // Reset form
+            setMapLayerFormData({ name: '', description: '', image_url: '' });
+            setSelectedImageFile(null);
+            setImagePreviewUrl(null);
+            setSelectedMapLayer(null);
+            setMapLayerDialogOpen(false);
+
+            alert('Map layer updated successfully!');
+          } catch (error) {
+            console.error('Error updating map layer:', error);
+            alert('Failed to update map layer');
+          } finally {
+            setImageUploadLoading(false);
+          }
         } else {
           // No new image, just update text fields
           const layerData = {

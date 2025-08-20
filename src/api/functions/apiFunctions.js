@@ -87,13 +87,58 @@ export async function deleteAdminNote(id) {
     return data;
 }
 
-export async function checkout(planId) {
-    const { data } = await apiClient.post('/stripe/checkout',  {plan:planId} );
+export async function checkout(planId, customerId, userEmail) {
+    const { data } = await apiClient.post('/stripe/checkout', { 
+        plan: planId, 
+        customerId, 
+        userEmail 
+    });
     return data;
 }
 
 export async function verifyCheckoutSession(sessionId) {
     const { data } = await apiClient.get(`/stripe/session/${sessionId}`);
+    return data;
+}
+
+export async function cancelSubscription(subscriptionId, userId) {
+    const { data } = await apiClient.post('/stripe/cancel-subscription', { 
+        subscriptionId, 
+        userId 
+    });
+    return data;
+}
+
+export async function cancelSubscriptionAtPeriodEnd(subscriptionId) {
+    const { data } = await apiClient.post('/stripe/cancel-subscription-period-end', { 
+        subscriptionId 
+    });
+    return data;
+}
+
+export async function reactivateSubscription(subscriptionId) {
+    const { data } = await apiClient.post('/stripe/reactivate-subscription', { 
+        subscriptionId 
+    });
+    return data;
+}
+
+export async function getSubscriptionDetails(subscriptionId) {
+    const { data } = await apiClient.get(`/stripe/subscription/${subscriptionId}`);
+    return data;
+}
+
+export async function getUserSubscription(userId) {
+    const { data } = await apiClient.get(`/users/${userId}/subscription`);
+    return data;
+}
+
+export async function updateUserPlan(userId, plan, stripeSubscriptionId, stripeCustomerId) {
+    const { data } = await apiClient.put(`/users/${userId}/plan`, { 
+        plan, 
+        stripeSubscriptionId, 
+        stripeCustomerId 
+    });
     return data;
 }
 
@@ -251,11 +296,11 @@ export async function deletePOIById(id) {
     return data;
 }
 
-// User management API functions for admin
-export async function updateUserPlan(userId, newPlan) {
-    const { data } = await apiClient.put(`/users/${userId}/plan`, { plan: newPlan });
-    return data;
-}
+// // User management API functions for admin
+// export async function updateUserPlan(userId, newPlan) {
+//     const { data } = await apiClient.put(`/users/${userId}/plan`, { plan: newPlan });
+//     return data;
+// }
 
 export async function getUserById(userId) {
     const { data } = await apiClient.get(`/users/${userId}`);
@@ -366,11 +411,19 @@ export async function deleteMapLayer(id) {
 }
 
 export async function uploadMapLayerImage(imageData, fileName, contentType, layerName) {
-    const { data } = await apiClient.post('/admin/map-layers/upload-image', {
-        imageData,
-        fileName,
-        contentType,
-        layerName
-    });
+    // Prefer sending an already-uploaded S3 URL as `imageUrl`.
+    // Back-end rejects base64 payloads. If you have imageData as a base64 string, upload to S3 first (client-side) and then call this function with imageUrl.
+    const payload = {};
+    if (imageData && typeof imageData === 'string' && (imageData.startsWith('http://') || imageData.startsWith('https://'))) {
+        payload.imageUrl = imageData;
+    } else if (imageData) {
+        // If caller passed raw base64, include it but backend will reject it. Caller should upload to S3 instead.
+        payload.imageData = imageData;
+    }
+    if (fileName) payload.fileName = fileName;
+    if (contentType) payload.contentType = contentType;
+    if (layerName) payload.layerName = layerName;
+
+    const { data } = await apiClient.post('/admin/map-layers/upload-image', payload);
     return data;
 }

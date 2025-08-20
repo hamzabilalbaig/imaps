@@ -18,7 +18,12 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel
 } from '@mui/material';
 import {
   Check as CheckIcon,
@@ -30,7 +35,13 @@ import {
 } from '@mui/icons-material';
 import useUserStore from '../stores/user';
 import { handleCheckout } from '../stripe/handleCheckout';
-import { getAllPlanConfigurations, changeUserPlan } from '../api/functions/apiFunctions';
+import { 
+  getAllPlanConfigurations, 
+  changeUserPlan, 
+  getUserSubscription, 
+  cancelSubscription, 
+  cancelSubscriptionAtPeriodEnd 
+} from '../api/functions/apiFunctions';
 
 const Pricing = () => {
   const { id, name, email, plan, initializeUser, upgradePlan } = useUserStore();
@@ -40,6 +51,8 @@ const Pricing = () => {
   const [confirmDialog, setConfirmDialog] = useState({ open: false, plan: null });
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelResult, setCancelResult] = useState({ open: false, success: false, message: '' });
+  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
+  const [cancelType, setCancelType] = useState('immediate'); // 'immediate' or 'period_end'
 
   // Load plans from API
   const loadPlans = async () => {
@@ -103,10 +116,28 @@ const Pricing = () => {
     return features;
   };
 
+  // Load subscription info for the current user
+  const loadSubscriptionInfo = async () => {
+    if (id && plan !== 'free') {
+      try {
+        const subInfo = await getUserSubscription(id);
+        setSubscriptionInfo(subInfo);
+      } catch (error) {
+        console.error('Error loading subscription info:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     initializeUser();
     loadPlans();
   }, []); // Only run once on mount
+
+  useEffect(() => {
+    if (id) {
+      loadSubscriptionInfo();
+    }
+  }, [id, plan]);
 
   const user = { id, name, email, plan };
 
@@ -120,29 +151,69 @@ const Pricing = () => {
 
   const confirmCancelPlan = async () => {
     if (!id) {
-  setCancelDialogOpen(false);
-  setCancelResult({ open: true, success: false, message: 'Please login to cancel your plan.' });
+      setCancelDialogOpen(false);
+      setCancelResult({ open: true, success: false, message: 'Please login to cancel your plan.' });
       return;
     }
 
     try {
-      // change server-side plan to 'free'
-      await changeUserPlan(id, 'free');
-      // update local store
-      upgradePlan('free');
-  setCancelResult({ open: true, success: true, message: 'Your plan has been cancelled and reverted to Free.' });
+      if (subscriptionInfo?.stripeSubscriptionId) {
+        // Cancel the Stripe subscription
+        if (cancelType === 'immediate') {
+          await cancelSubscription(subscriptionInfo.stripeSubscriptionId, id);
+          setCancelResult({ 
+            open: true, 
+            success: true, 
+            message: 'Your subscription has been cancelled immediately. You now have access to the Free plan.' 
+          });
+        } else {
+          await cancelSubscriptionAtPeriodEnd(subscriptionInfo.stripeSubscriptionId);
+          setCancelResult({ 
+            open: true, 
+            success: true, 
+            message: 'Your subscription will be cancelled at the end of the current billing period.' 
+          });
+        }
+        // Refresh subscription info
+        await loadSubscriptionInfo();
+      } else {
+        // Fallback to just changing the plan in database
+        await changeUserPlan(id, 'free');
+        setCancelResult({ 
+          open: true, 
+          success: true, 
+          message: 'Your plan has been cancelled and reverted to Free.' 
+        });
+      }
+      
+      // Update local store if immediate cancellation
+      if (cancelType === 'immediate') {
+        upgradePlan('free');
+      }
     } catch (error) {
       console.error('Failed to cancel plan:', error);
-  setCancelResult({ open: true, success: false, message: 'Failed to cancel plan. Please try again later.' });
+      setCancelResult({ 
+        open: true, 
+        success: false, 
+        message: 'Failed to cancel plan. Please try again later.' 
+      });
     } finally {
-  setCancelDialogOpen(false);
+      setCancelDialogOpen(false);
     }
   };
 
   const confirmUpgrade = async () => {
     if (confirmDialog.plan) {
-      // upgradePlan(confirmDialog.plan.id);
-      const stripeResult = await handleCheckout(confirmDialog.plan.id, setLoading);
+      // Create customer ID if user doesn't have one (use email as fallback)
+      const customerId = subscriptionInfo?.stripeCustomerId || `customer_${id}`;
+      
+      const stripeResult = await handleCheckout(
+        confirmDialog.plan.id, 
+        setLoading,
+        customerId,
+        email
+      );
+      
       if (stripeResult.url) {
         setConfirmDialog({ open: false, plan: null });
         window.location.href = stripeResult.url; // Redirect to Stripe checkout
@@ -356,16 +427,65 @@ const Pricing = () => {
 
       {/* Cancel Plan Dialog */}
       <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)}>
-        <DialogTitle>Cancel Plan</DialogTitle>
+        <DialogTitle>Cancel Subscription</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to cancel your subscription and revert to the Free plan?</Typography>
-          <Alert severity="info" sx={{ mt: 2 }}>
-            Cancelling will immediately set your account to the Free plan and limits may apply.
+          <Typography gutterBottom>
+            Choose how you would like to cancel your subscription:
+          </Typography>
+          
+          <FormControl component="fieldset" sx={{ mt: 2, mb: 2 }}>
+            <FormLabel component="legend">Cancellation Options</FormLabel>
+            <RadioGroup
+              value={cancelType}
+              onChange={(e) => setCancelType(e.target.value)}
+            >
+              <FormControlLabel 
+                value="immediate" 
+                control={<Radio />} 
+                label={
+                  <Box>
+                    <Typography variant="body1" fontWeight="bold">
+                      Cancel Immediately
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Your subscription will end right now and you'll be switched to the Free plan.
+                      You'll lose access to premium features immediately.
+                    </Typography>
+                  </Box>
+                }
+              />
+              <FormControlLabel 
+                value="period_end" 
+                control={<Radio />} 
+                label={
+                  <Box>
+                    <Typography variant="body1" fontWeight="bold">
+                      Cancel at End of Billing Period
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Continue using premium features until your current billing period ends, 
+                      then switch to the Free plan. No further charges will be made.
+                    </Typography>
+                  </Box>
+                }
+              />
+            </RadioGroup>
+          </FormControl>
+          
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            {cancelType === 'immediate' 
+              ? 'You will lose access to premium features immediately.'
+              : 'Your subscription will not renew, but you can continue using premium features until the end of your current billing period.'
+            }
           </Alert>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCancelDialogOpen(false)}>No, keep my plan</Button>
-          <Button onClick={confirmCancelPlan} variant="contained" color="error">Yes, cancel plan</Button>
+          <Button onClick={() => setCancelDialogOpen(false)}>
+            Keep My Plan
+          </Button>
+          <Button onClick={confirmCancelPlan} variant="contained" color="error">
+            {cancelType === 'immediate' ? 'Cancel Now' : 'Cancel at Period End'}
+          </Button>
         </DialogActions>
       </Dialog>
 
