@@ -298,7 +298,7 @@ function MapWithLayers({
         className={className}
         key={`map-${activeLayer.id}`} // Only re-render when layer changes
         crs={L.CRS.Simple} // Use simple CRS for local images
-        minZoom={12}
+        minZoom={11}
         maxZoom={15}
         zoomControl={false}
         attributionControl={false}
