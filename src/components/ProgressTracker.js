@@ -152,44 +152,40 @@ function ProgressTracker({
           
           {user ? (
             <>
-              <Button
-                variant={isSuggestMode ? "contained" : "outlined"}
-                startIcon={<LocationSearchingIcon />}
-                onClick={onSuggestLocation}
-                fullWidth
-                disabled={!canCreateMore}
-                sx={{ 
-                  mb: 1,
-                  textTransform: 'uppercase',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  backgroundColor: isSuggestMode ? theme.palette.primary.main : 'transparent',
-                  color: isSuggestMode ? 'white' : theme.palette.primary.main,
-                  '&:hover': {
-                    backgroundColor: isSuggestMode ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.1)
-                  },
-                  '&:disabled': {
-                    backgroundColor: 'grey.200',
-                    color: 'grey.400'
+              {canCreateMore ? (
+                <Button
+                  variant={isSuggestMode ? "contained" : "outlined"}
+                  startIcon={<LocationSearchingIcon />}
+                  onClick={onSuggestLocation}
+                  fullWidth
+                  sx={{ 
+                    mb: 1,
+                    textTransform: 'uppercase',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    backgroundColor: isSuggestMode ? theme.palette.primary.main : 'transparent',
+                    color: isSuggestMode ? 'white' : theme.palette.primary.main,
+                    '&:hover': {
+                      backgroundColor: isSuggestMode ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.1)
+                    }
+                  }}
+                >
+                  {isSuggestMode 
+                    ? (isAdmin ? 'Cancel Add' : 'Cancel Suggest') 
+                    : (isAdmin ? 'Add Location' : 'Suggest Location')
                   }
-                }}
-              >
-                {isSuggestMode 
-                  ? (isAdmin ? 'Cancel Add' : 'Cancel Suggest') 
-                  : (isAdmin ? 'Add Location' : 'Suggest Location')
-                }
-              </Button>
-              
-              {!canCreateMore && (
-                <Typography variant="caption" color="error" sx={{ 
-                  display: 'block',
-                  textAlign: 'center',
-                  fontSize: '0.7rem',
-                  fontStyle: 'italic',
-                  mb: 1
-                }}>
-                  POI limit reached. Upgrade to add more.
-                </Typography>
+                </Button>
+              ) : (
+                // <Typography variant="caption" color="error" sx={{ 
+                //   display: 'block',
+                //   textAlign: 'center',
+                //   fontSize: '0.7rem',
+                //   fontStyle: 'italic',
+                //   mb: 1
+                // }}>
+                //   POI limit reached. Upgrade to add more.
+                // </Typography>
+                <></>
               )}
               
               <Button

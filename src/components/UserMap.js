@@ -51,6 +51,22 @@ function UserMap() {
   const [isSuggestMode, setIsSuggestMode] = useState(false);
   const [isNoteMode, setIsNoteMode] = useState(false);
 
+  // If user hits their POI limit, clear any pending suggestion so it isn't visible/usable.
+  // Do NOT disable suggest mode here — keep the toggle state, but prevent creating more POIs.
+  useEffect(() => {
+    if (!canCreateMore) {
+      // Only clear pending location (so a previously selected suggestion cannot be submitted).
+      if (pendingLocation) {
+        setPendingLocation(null);
+        setSnackbar({
+          open: true,
+          message: 'POI limit reached — pending suggestion cleared. Suggest mode remains enabled but adding is disabled.',
+          severity: 'warning'
+        });
+      }
+    }
+  }, [canCreateMore, pendingLocation]);
+
   const handleMapClick = (latlng) => {
     if (canCreateMore) {
       setPendingLocation(latlng);

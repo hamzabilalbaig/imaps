@@ -71,6 +71,7 @@ import useCategoriesStore from '../stores/categories';
 import useSubCategoriesStore from '../stores/subCategories';
 import { getAllUsers, updateUserPlan, getAdminStats, bulkApprovePOIs, bulkRejectPOIs, getAllPlanConfigurations, updatePlanConfiguration, createPlanConfiguration, deletePlanConfiguration, getPlanUsageStats, getAllMapLayers, createMapLayer, updateMapLayer, deleteMapLayer, uploadMapLayerImage } from '../api/functions/apiFunctions';
 import uploadFile from '../aws/fileUpload';
+import { generateShareableLink } from '../utils/mapUtils';
 
 /**
  * Comprehensive Admin Dashboard Component
@@ -1548,7 +1549,10 @@ function AdminDashboard() {
                             <Tooltip title="View POI">
                               <IconButton
                                 size="small"
-                                onClick={() => setSelectedPOI(poi)}
+                                onClick={()=>{
+                                  const link = generateShareableLink(poi);
+                                  window.location.href = link;
+                                }}
                               >
                                 <ViewIcon fontSize="small" />
                               </IconButton>

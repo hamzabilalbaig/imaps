@@ -678,8 +678,8 @@ function InteractiveMapLayout(props) {
           
         </MapWithLayers>
 
-        {/* Suggest Mode Indicator */}
-        {isSuggestMode && !isAdmin && (
+  {/* Suggest Mode Indicator */}
+  {isSuggestMode && !isAdmin && canCreateMore && (
           <Box
             sx={{
               position: 'absolute',
