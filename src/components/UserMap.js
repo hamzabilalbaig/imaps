@@ -12,7 +12,7 @@ import useSubCategoriesStore from "../stores/subCategories";
  */
 function UserMap() {
   // Use new POI stores
-  const { pois, createPOI, updatePOI, deletePOI, initializePOIs } = usePOIsStore();
+  const { pois, myPois, createPOI, updatePOI, deletePOI, initializePOIs, fetchMyPOIs } = usePOIsStore();
   const { subCategories, initializeSubCategories } = useSubCategoriesStore();
   const { id, name, email, role, initializeUser, isUserAdmin } = useUserStore();
 
@@ -29,13 +29,63 @@ function UserMap() {
     }
   }, []); // Only run once on mount
 
+  // Fetch user's custom POIs when user ID is available
+  useEffect(() => {
+    if (id) {
+      fetchMyPOIs(id);
+    }
+  }, [id, fetchMyPOIs]);
+
   const user = { id, name, email, role };
   const isAdmin = isUserAdmin();
 
-  // Filter POIs for current user (admins see all, users see their own + approved)
+  // Filter POIs for current user (admins see all, users see only approved POIs)
   const userPOIs = isAdmin ? 
     pois : 
-    pois.filter(poi => poi.user_id === id || poi.is_approved === true);
+    [
+      ...pois.filter(poi => {
+        // Only show approved POIs to normal users (not their own unapproved ones)
+        const isApproved = poi.is_approved === true || poi.is_approved === 1 || poi.is_approved === 'true';
+        return isApproved;
+      }),
+      ...myPois
+    ];
+
+  // Debug logging for POI filtering
+  useEffect(() => {
+    if (pois.length > 0) {
+      console.log('UserMap - POI Filtering Debug:');
+      console.log('- Total POIs from store:', pois.length);
+      console.log('- User ID:', id);
+      console.log('- Is Admin:', isAdmin);
+      console.log('- Filtered POIs for user:', userPOIs.length);
+      console.log('- My POIs count:', myPois.length);
+      
+      if (!isAdmin) {
+        const approvedPOIs = pois.filter(poi => {
+          const isApproved = poi.is_approved === true || poi.is_approved === 1 || poi.is_approved === 'true';
+          return isApproved;
+        });
+        const unapprovedPOIs = pois.filter(poi => {
+          const isApproved = poi.is_approved === true || poi.is_approved === 1 || poi.is_approved === 'true';
+          return !isApproved;
+        });
+        
+        console.log('- Approved POIs (visible):', approvedPOIs.length);
+        console.log('- Unapproved POIs (hidden from all users):', unapprovedPOIs.length);
+        
+        if (unapprovedPOIs.length > 0) {
+          console.log('- Hidden unapproved POIs:', unapprovedPOIs.map(p => ({
+            id: p.id, 
+            name: p.name, 
+            user_id: p.user_id, 
+            is_approved: p.is_approved,
+            approval_type: typeof p.is_approved
+          })));
+        }
+      }
+    }
+  }, [pois, userPOIs, myPois, id, isAdmin]);
 
   // Calculate POI limits for regular users
   const userOwnedPOIs = pois.filter(poi => poi.user_id === id);
@@ -50,6 +100,8 @@ function UserMap() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [isSuggestMode, setIsSuggestMode] = useState(false);
   const [isNoteMode, setIsNoteMode] = useState(false);
+  const [isPOIMode, setIsPOIMode] = useState(false);
+  const [myPOIMapClickHandler, setMyPOIMapClickHandler] = useState(null);
 
   // If user hits their POI limit, clear any pending suggestion so it isn't visible/usable.
   // Do NOT disable suggest mode here — keep the toggle state, but prevent creating more POIs.
@@ -68,6 +120,13 @@ function UserMap() {
   }, [canCreateMore, pendingLocation]);
 
   const handleMapClick = (latlng) => {
+    // Handle My POI map clicks first
+    if (myPOIMapClickHandler) {
+      myPOIMapClickHandler(latlng);
+      return;
+    }
+
+    // Regular POI creation logic
     if (canCreateMore) {
       setPendingLocation(latlng);
       setEditingPOI(null);
@@ -88,6 +147,10 @@ function UserMap() {
 
   const handleAddNote = () => {
     setIsNoteMode(!isNoteMode);
+  };
+
+  const handleAddPOI = () => {
+    setIsPOIMode(!isPOIMode);
   };
 
   const handleEditPOI = (poi) => {
@@ -117,13 +180,20 @@ function UserMap() {
         const poiData = {
           ...formData,
           coords: [pendingLocation.lat, pendingLocation.lng],
-          user_id: id
+          user_id: id,
+          is_approved: isAdmin ? true : false // Admin POIs are auto-approved, user POIs need approval
         };
+        
+        console.log('UserMap - Creating POI with approval status:', {
+          isAdmin,
+          is_approved: poiData.is_approved,
+          user_id: id
+        });
         const result = await createPOI(poiData);
         if (result.success) {
           setSnackbar({
             open: true,
-            message: 'POI created successfully!',
+            message: isAdmin ? 'POI created successfully!' : 'POI submitted for approval! It will be visible once approved by an admin.',
             severity: 'success'
           });
         } else {
@@ -214,6 +284,10 @@ function UserMap() {
         isSuggestMode={isSuggestMode}
         onAddNote={handleAddNote}
         isNoteMode={isNoteMode}
+        onAddPOI={handleAddPOI}
+        isPOIMode={isPOIMode}
+        onMyPOIMapClickRegister={setMyPOIMapClickHandler}
+        isMyPOIMapClickMode={!!myPOIMapClickHandler}
       />
 
       {/* Snackbar for notifications */}

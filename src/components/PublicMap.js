@@ -31,7 +31,10 @@ function PublicMap() {
   }, []); // Only run once on mount
 
   // Filter only approved POIs for public view
-  const approvedPOIs = pois.filter(poi => poi.is_approved === true);
+  const approvedPOIs = pois.filter(poi => {
+    const isApproved = poi.is_approved === true || poi.is_approved === 1 || poi.is_approved === 'true';
+    return isApproved;
+  });
 
   // Debug logging
   useEffect(() => {

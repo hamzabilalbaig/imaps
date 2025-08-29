@@ -427,3 +427,29 @@ export async function uploadMapLayerImage(imageData, fileName, contentType, laye
     const { data } = await apiClient.post('/admin/map-layers/upload-image', payload);
     return data;
 }
+
+// My POI API functions
+export async function getMyPOISubcategories(userId) {
+    const { data } = await apiClient.get(`/my-pois/subcategories/${userId}`);
+    return data;
+}
+
+export async function createMyPOISubcategory(subcategoryData) {
+    const { data } = await apiClient.post('/my-pois/subcategories', subcategoryData);
+    return data;
+}
+
+export async function getMyPOIs(userId) {
+    const { data } = await apiClient.get(`/my-pois/pois/${userId}`);
+    return data;
+}
+
+export async function createMyPOI(poiData) {
+    const { data } = await apiClient.post('/my-pois/pois', poiData);
+    return data;
+}
+
+export async function getMyPOICategory(userId) {
+    const { data } = await apiClient.get(`/my-pois/category/${userId}`);
+    return data;
+}

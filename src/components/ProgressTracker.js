@@ -23,7 +23,8 @@ import {
   Minimize as MinimizeIcon,
   Expand as ExpandIcon,
   Upgrade as UpgradeIcon,
-  LocationSearching as LocationSearchingIcon
+  LocationSearching as LocationSearchingIcon,
+  PushPin as PushPinIcon
 } from '@mui/icons-material';
 import { localDB } from '../utils/localStorage';
 import useUserStore from '../stores/user';
@@ -44,9 +45,12 @@ function ProgressTracker({
   onSuggestLocation,
   isSuggestMode = false,
   isNoteMode = false,
+  onAddPOI,
+  isPOIMode = false,
   readOnly = false,
   isAdmin = false,
   userMarkerCount = 0,
+  userCategoryCount = 0,
   maxMarkers = Infinity,
   canCreateMore = true
 }) {
@@ -61,7 +65,7 @@ function ProgressTracker({
   
   // Get current category count from localStorage
   // const currentCategoryCount = user ? (user.usercategories?.length || 0) : 0;
-  const currentCategoryCount = user?.role === 'admin' ? JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]').length : user?.role === 'user' ? (user.usercategories?.length || 0) : 0;
+  const currentCategoryCount = user?.role === 'admin' ? JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]').length : user?.role === 'user' ? userCategoryCount : 0;
   const remainingCategories = user ? getRemainingCategories(currentCategoryCount) : 0;
   
   const progress = maxMarkers === Infinity ? 100 : (userMarkerCount / maxMarkers) * 100;
@@ -194,7 +198,7 @@ function ProgressTracker({
                 onClick={onAddNote}
                 fullWidth
                 sx={{ 
-                  mb: 2,
+                  mb: 1,
                   textTransform: 'uppercase',
                   fontSize: '0.75rem',
                   fontWeight: 'bold',
@@ -208,6 +212,28 @@ function ProgressTracker({
                 }}
               >
                 {isNoteMode ? 'Cancel Note' : 'Add Note'}
+              </Button>
+
+              <Button
+                variant={isPOIMode ? "contained" : "outlined"}
+                startIcon={<PushPinIcon />}
+                onClick={onAddPOI}
+                fullWidth
+                sx={{ 
+                  mb: 2,
+                  textTransform: 'uppercase',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  backgroundColor: isPOIMode ? theme.palette.warning.main : 'transparent',
+                  color: isPOIMode ? 'white' : theme.palette.warning.main,
+                  borderColor: theme.palette.warning.main,
+                  '&:hover': {
+                    backgroundColor: isPOIMode ? theme.palette.warning.dark : alpha(theme.palette.warning.main, 0.1),
+                    borderColor: theme.palette.warning.main
+                  }
+                }}
+              >
+                {isPOIMode ? 'Cancel POI' : 'Add POI'}
               </Button>
             </>
           ) : (
@@ -262,13 +288,16 @@ function ProgressTracker({
               textAlign: 'center',
               py: 2
             }}>
-              {isNoteMode 
-                ? "Click anywhere on the map to add a new note."
-                : (isSuggestMode 
-                    ? (isAdmin 
-                        ? "Click anywhere on the map to add a new location." 
-                        : "Click anywhere on the map to suggest a new location.")
-                    : "No notes yet. Click 'Add Note' to get started."
+              {isPOIMode 
+                ? "Click anywhere on the map to add a new POI."
+                : (isNoteMode 
+                    ? "Click anywhere on the map to add a new note."
+                    : (isSuggestMode 
+                        ? (isAdmin 
+                            ? "Click anywhere on the map to add a new location." 
+                            : "Click anywhere on the map to suggest a new location.")
+                        : "No notes yet. Click 'Add Note' to get started."
+                      )
                   )
               }
             </Typography>

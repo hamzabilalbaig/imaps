@@ -37,10 +37,11 @@ import AdSection from './AdSection';
 import ProgressTracker from './ProgressTracker';
 import POIForm from './POIForm';
 import NoteForm from './NoteForm';
+import MyPOIForm from './MyPOIForm';
 import { MAP_CONFIG, parsePOIFromURL } from '../utils/mapUtils';
-import { addUserNote, createAdminNote, getUserNotes } from '../api/functions/apiFunctions';
+import { addUserNote, createAdminNote, getMyPOIs, getUserNotes, getMyPOISubcategories } from '../api/functions/apiFunctions';
 import localDB from '../utils/localStorage';
-import useUserStore from '../stores/user';
+import useUserStore, { PLAN_LIMITS } from '../stores/user';
 
 function InteractiveMapLayout(props) {
   const {
@@ -64,7 +65,11 @@ function InteractiveMapLayout(props) {
     onSuggestLocation,
     isSuggestMode = false,
     onAddNote,
-    isNoteMode = false
+    isNoteMode = false,
+    onAddPOI,
+    isPOIMode = false,
+    onMyPOIMapClickRegister,
+    isMyPOIMapClickMode = false
   } = props;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
@@ -87,9 +92,31 @@ function InteractiveMapLayout(props) {
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [pendingNoteLocation, setPendingNoteLocation] = useState(null);
+  const [showMyPOIForm, setShowMyPOIForm] = useState(false);
+  const [pendingPOILocation, setPendingPOILocation] = useState(null);
   const [hideAll, setHideAll] = useState(false);
   const [hiddenCategories, setHiddenCategories] = useState([]);
   const [focusedPOI, setFocusedPOI] = useState(null);
+  const [myPois, setMyPOIs] = useState([]);
+  const [myCategories, setMyCategories] = useState([]);
+
+  const {id: currentUserId} = useUserStore()
+
+ const fetchMyPOIs = async () => {
+  const mypois = await getMyPOIs(currentUserId);
+  setMyPOIs(mypois)
+ }
+
+ const fetchMyCategories = async () => {
+  const mycategories = await getMyPOISubcategories(currentUserId);
+  console.log('My Categories:', mycategories)
+  setMyCategories(mycategories)
+ }
+
+ useEffect(()=>{
+  fetchMyPOIs();
+  fetchMyCategories();
+ },[user, currentUserId])
 
   // New sidebar visibility state
   const [sidebarVisibilityState, setSidebarVisibilityState] = useState({
@@ -139,12 +166,14 @@ function InteractiveMapLayout(props) {
         console.log(`POI "${poi.title || poi.name}" - Category Hidden: ${isCategoryHidden}, SubCategory Hidden: ${isSubCategoryHidden}, Matches Search: ${matchesSearch}, Show: ${shouldShow}`);
       }
 
-      return shouldShow;
+      return shouldShow
     }) || [];
     
     console.log('InteractiveMapLayout - Filtered POIs:', filtered.length);
-    return filtered;
-  }, [pois, subCategories, sidebarVisibilityState, searchTerm]);
+    console.log('InteractiveMapLayout - Filtered POIs Details:', filtered)
+    console.log('InteractiveMapLayout - My POIs:', myPois)
+    return [...filtered, ...myPois];
+  }, [pois, subCategories, sidebarVisibilityState, searchTerm, myPois]);
 
   // Handle POI from URL parameter
   useEffect(() => {
@@ -296,10 +325,35 @@ function InteractiveMapLayout(props) {
     }
   };
 
+  const handleAddPOI = () => {
+    setShowMyPOIForm(false);
+    setPendingPOILocation(null);
+    // Trigger POI mode instead of directly adding a POI
+    if (onAddPOI) {
+      onAddPOI();
+    }
+  };
+
   const handleNoteMapClick = (latlng) => {
     setPendingNoteLocation(latlng);
     setEditingNote(null);
     setShowNoteForm(true);
+  };
+
+  const handlePOIMapClick = (latlng) => {
+    // Check My POI limits before allowing map click
+    const currentUserPlan = user?.plan || 'free';
+    const planLimits = PLAN_LIMITS[currentUserPlan];
+    const currentMyPOIsCount = myPois?.length || 0;
+    const canCreateMoreMyPOIs = currentMyPOIsCount < (planLimits?.totalPOILimit || 0);
+    
+    if (!canCreateMoreMyPOIs) {
+      alert(`You have reached your My POI limit (${currentMyPOIsCount}/${planLimits?.totalPOILimit || 0}). Please upgrade your plan to add more POIs.`);
+      return;
+    }
+    
+    setPendingPOILocation(latlng);
+    setShowMyPOIForm(true);
   };
 
   const handleSaveNote = async (formData) => {
@@ -423,6 +477,7 @@ function InteractiveMapLayout(props) {
       hiddenCategories={hiddenCategories}
       setHiddenCategories={setHiddenCategories}
       onVisibilityChange={handleSidebarVisibilityChange}
+      onMapClick={onMyPOIMapClickRegister}
     />
   );
 
@@ -440,9 +495,12 @@ function InteractiveMapLayout(props) {
       onSuggestLocation={onSuggestLocation}
       isSuggestMode={isSuggestMode}
       isNoteMode={isNoteMode}
+      onAddPOI={handleAddPOI}
+      isPOIMode={isPOIMode}
       readOnly={readOnly}
       isAdmin={isAdmin}
-      userMarkerCount={userMarkerCount}
+      userMarkerCount={isAdmin ? userMarkerCount : myPois.length }
+      userCategoryCount={myCategories?.length}
       maxMarkers={maxMarkers}
       canCreateMore={canCreateMore}
     />
@@ -590,8 +648,11 @@ function InteractiveMapLayout(props) {
           isRightSidebarVisible={rightSidebarOpen}
         >
           {/* Map Click Handler */}
-          {((canCreateMore && isSuggestMode) || isNoteMode) && (
-            <MapClickHandler onMapClick={isNoteMode ? handleNoteMapClick : onMapClick} />
+          {((canCreateMore && isSuggestMode) || isNoteMode || isPOIMode || isMyPOIMapClickMode) && (
+            <MapClickHandler onMapClick={
+              isPOIMode ? handlePOIMapClick : 
+              (isNoteMode ? handleNoteMapClick : onMapClick)
+            } />
           )}
           
           {/* POI Markers */}
@@ -798,6 +859,66 @@ function InteractiveMapLayout(props) {
           </Box>
         )}
 
+        {/* POI Mode Indicator */}
+        {isPOIMode && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              pointerEvents: 'none',
+              zIndex: 999,
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)',
+              border: '3px solid',
+              borderColor: 'warning.main',
+              borderStyle: 'dashed',
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Paper
+              elevation={8}
+              sx={{
+                p: 2,
+                backgroundColor: 'warning.main',
+                color: 'white',
+                borderRadius: 3,
+                pointerEvents: 'auto',
+                '@keyframes pulse': {
+                  '0%': {
+                    transform: 'scale(1)',
+                    opacity: 1,
+                  },
+                  '50%': {
+                    transform: 'scale(1.05)',
+                    opacity: 0.8,
+                  },
+                  '100%': {
+                    transform: 'scale(1)',
+                    opacity: 1,
+                  },
+                },
+                animation: 'pulse 2s ease-in-out infinite'
+              }}
+            >
+              <Typography variant="h6" fontWeight="bold" align="center" sx={{ 
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+                fontSize: '1rem'
+              }}>
+                📍 POI Mode Active
+              </Typography>
+              <Typography variant="body2" align="center" sx={{ mt: 1, opacity: 0.9 }}>
+                Click anywhere on the map to add a new POI
+              </Typography>
+            </Paper>
+          </Box>
+        )}
+
         {/* Ad Section - Bottom Left */}
         {showAd && (
           <AdSection 
@@ -830,6 +951,28 @@ function InteractiveMapLayout(props) {
             onSave={handleSaveNote}
             onCancel={handleCancelNoteForm}
             isEdit={!!editingNote}
+          />
+        )}
+
+        {/* My POI Form */}
+        {showMyPOIForm && (
+          <MyPOIForm
+            open={showMyPOIForm}
+            onClose={() => {
+              setShowMyPOIForm(false);
+              setPendingPOILocation(null);
+            }}
+            mapClickCoords={pendingPOILocation}
+            myPois={myPois}
+            myCategories={myCategories}
+            onSuccess={(newPOI) => {
+              console.log('My POI created successfully:', newPOI);
+              setShowMyPOIForm(false);
+              setPendingPOILocation(null);
+              // Refresh My POIs and categories on the map
+              fetchMyPOIs();
+              fetchMyCategories();
+            }}
           />
         )}
 

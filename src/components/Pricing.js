@@ -397,6 +397,21 @@ const Pricing = () => {
             All plans include category management and basic map features. Upgrade anytime to increase your limits.
           </Typography>
         </Box>
+
+        {/* Terms of Service */}
+        <Box sx={{ mt: 4, textAlign: 'center', pb: 4 }}>
+          <Typography variant="body2" color="text.secondary">
+            By continuing, you agree to our{' '}
+            <a 
+              href="/tos.pdf" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: '#1976d2', textDecoration: 'underline' }}
+            >
+              Terms of Service
+            </a>
+          </Typography>
+        </Box>
       </Container>
 
       {/* Confirmation Dialog */}

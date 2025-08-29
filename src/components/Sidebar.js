@@ -23,7 +23,8 @@ import {
   DialogContent,
   DialogActions,
   Tooltip,
-  Chip
+  Chip,
+  Alert
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -37,7 +38,8 @@ import {
   LocationOn as LocationIcon,
   Close as CloseIcon,
   CloudUpload as UploadIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 import { CATEGORY_COLORS } from '../utils/mapUtils';
 import useCategoriesStore from '../stores/categories';
@@ -45,6 +47,7 @@ import useSubCategoriesStore from '../stores/subCategories';
 import usePOIsStore from '../stores/pois';
 import useUserStore from '../stores/user';
 import uploadFile from '../aws/fileUpload';
+import MyPOIForm from './MyPOIForm';
 
 /**
  * Simple sidebar component displaying categories
@@ -52,7 +55,8 @@ import uploadFile from '../aws/fileUpload';
 function Sidebar({ 
   searchTerm = '', 
   onSearchChange,
-  onVisibilityChange
+  onVisibilityChange,
+  onMapClick
 }) {
   const theme = useTheme();
   
@@ -77,6 +81,7 @@ function Sidebar({
   // POIs store
   const { 
     pois,
+    myPois,
     loading: poisLoading, 
     error: poisError, 
     initializePOIs,
@@ -84,7 +89,11 @@ function Sidebar({
     approvePOI,
     updatePOI,
     deletePOI,
-    fetchPOIs
+    fetchPOIs,
+    fetchMyPOIs,
+    createMyPOI,
+    getAllPOIsForDisplay,
+    getMyPOICount
   } = usePOIsStore();
 
   // User store
@@ -106,6 +115,12 @@ function Sidebar({
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
 
+  // My POI form state
+  const [showMyPOIForm, setShowMyPOIForm] = useState(false);
+  const [myPOIMapClickCoords, setMyPOIMapClickCoords] = useState(null);
+  const [isMyPOIMapClickMode, setIsMyPOIMapClickMode] = useState(false);
+  const [waitingForMyPOILocation, setWaitingForMyPOILocation] = useState(false);
+
   useEffect(()=>{
     setUnapprovedPois(pois.filter(poi => !poi.is_approved));
   },[pois])
@@ -116,6 +131,11 @@ function Sidebar({
     initializeSubCategories();
     initializePOIs();
     
+    // Initialize My POIs for the current user
+    if (currentUserId && !isadmin) {
+      fetchMyPOIs(currentUserId);
+    }
+    
     // Set all categories as expanded by default (non-collapsible)
     if (categories.length > 0) {
       const allExpanded = {};
@@ -124,7 +144,7 @@ function Sidebar({
       });
       setExpandedCategories(allExpanded);
     }
-  }, [initializeCategories, initializeSubCategories, initializePOIs, categories]);
+  }, [initializeCategories, initializeSubCategories, initializePOIs, fetchMyPOIs, categories, currentUserId, isadmin]);
 
   // Auto-expand all categories when they are loaded
   useEffect(() => {
@@ -347,6 +367,37 @@ function Sidebar({
     }
   };
 
+  const handleMyPOIEnableMapClick = () => {
+    setIsMyPOIMapClickMode(true);
+    setMyPOIMapClickCoords(null);
+  };
+
+  const handleMyPOIMapClick = (coords) => {
+    // Follow the exact same pattern as note and suggest location
+    setMyPOIMapClickCoords(coords);
+    setIsMyPOIMapClickMode(false);
+    setWaitingForMyPOILocation(false);
+    setShowMyPOIForm(true);
+  };
+
+  // Expose map click handler for external use
+  React.useEffect(() => {
+    if (onMapClick) {
+      if (isMyPOIMapClickMode) {
+        onMapClick(handleMyPOIMapClick);
+      } else {
+        onMapClick(null); // Clear the handler when not in map click mode
+      }
+    }
+  }, [onMapClick, isMyPOIMapClickMode]);
+
+  const handleMyPOIFormClose = () => {
+    setShowMyPOIForm(false);
+    setIsMyPOIMapClickMode(false);
+    setMyPOIMapClickCoords(null);
+    setWaitingForMyPOILocation(false);
+  };
+
   const handleUserEditSave = async (updatedPOI) => {
     setActionLoading(true);
     try {
@@ -373,7 +424,8 @@ function Sidebar({
       sx={{
         width: '100%',
         height: '100%',
-        backgroundColor: alpha(theme.palette.background.paper, 0.95),
+        // backgroundColor: alpha(theme.palette.background.paper, 0.95),
+        backgroundColor: theme.palette.background.paper,
         borderRight: `1px solid ${theme.palette.divider}`,
         display: 'flex',
         flexDirection: 'column',
@@ -875,18 +927,198 @@ function Sidebar({
         {/* User POIs Management Section - Only for non-admin users */}
         {!isadmin && currentUserId && (
           <Box sx={{ mt: 3, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                mb: 2, 
-                display: 'block', 
-                fontWeight: 'bold', 
-                color: 'primary.main',
-                fontSize: '0.75rem'
-              }}
-            >
-              My POIs ({pois.filter(poi => poi.user_id === currentUserId).length})
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  color: 'primary.main',
+                  fontSize: '0.75rem'
+                }}
+              >
+                My POIs ({myPois.length})
+              </Typography>
+            </Box>
+
+            {/* Show map click prompt when waiting for location */}
+            {waitingForMyPOILocation && (
+              <Alert 
+                severity="info" 
+                sx={{ mt: 1, fontSize: '0.75rem' }}
+                action={
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setWaitingForMyPOILocation(false);
+                      setIsMyPOIMapClickMode(false);
+                    }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                }
+              >
+                Click anywhere on the map to add a new location
+              </Alert>
+            )}
+            
+            {myPois.length === 0 ? (
+              <Box sx={{ 
+                p: 2, 
+                textAlign: 'center',
+                backgroundColor: alpha(theme.palette.info.main, 0.05),
+                borderRadius: 1,
+                border: `1px dashed ${alpha(theme.palette.info.main, 0.2)}`
+              }}>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ fontSize: '0.8rem' }}
+                >
+                  You haven't created any POIs yet
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                {myPois.map((poi) => (
+                <Box
+                  key={poi.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    p: 1.5,
+                    mb: 1,
+                    borderRadius: 1,
+                    backgroundColor: poi.is_approved 
+                      ? alpha(theme.palette.success.main, 0.05)
+                      : alpha(theme.palette.warning.main, 0.05),
+                    border: poi.is_approved 
+                      ? `1px solid ${alpha(theme.palette.success.main, 0.2)}`
+                      : `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                    '&:hover': {
+                      backgroundColor: poi.is_approved 
+                        ? alpha(theme.palette.success.main, 0.1)
+                        : alpha(theme.palette.warning.main, 0.1),
+                    }
+                  }}
+                >
+                  {/* POI Info */}
+                  <Box sx={{ flex: 1, mr: 1 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: theme.palette.text.primary,
+                        lineHeight: 1.2,
+                        mb: 0.5
+                      }}
+                    >
+                      {poi.name}
+                    </Typography>
+                    
+                    {poi.description && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.7rem',
+                          color: theme.palette.text.secondary,
+                          display: 'block',
+                          lineHeight: 1.2,
+                          mb: 0.5,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {poi.description}
+                      </Typography>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {/* <Chip
+                        size="small"
+                        label={poi.is_approved ? "Approved" : "Pending"}
+                        color={poi.is_approved ? "success" : "warning"}
+                        variant="outlined"
+                        sx={{ 
+                          fontSize: '0.65rem', 
+                          height: 20,
+                          '& .MuiChip-label': { px: 1 }
+                        }}
+                      /> */}
+                      <LocationIcon sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
+                        ID: {poi.id}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Action Buttons - Only Edit and Delete for users */}
+                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0.5 }}>
+                    <Tooltip title="Edit POI">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditUserPOI(poi)}
+                        disabled={actionLoading}
+                        sx={{
+                          backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                          color: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.primary.main, 0.2),
+                          },
+                          width: 28,
+                          height: 28
+                        }}
+                      >
+                        <EditIcon sx={{ fontSize: '0.9rem' }} />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title="Delete POI">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteUserPOI(poi)}
+                        disabled={actionLoading}
+                        sx={{
+                          backgroundColor: alpha(theme.palette.error.main, 0.1),
+                          color: 'error.main',
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.error.main, 0.2),
+                          },
+                          width: 28,
+                          height: 28
+                        }}
+                      >
+                        {actionLoading ? (
+                          <CircularProgress size={14} />
+                        ) : (
+                          <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+              ))}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {/* My Suggested POIs Section - Only for non-admin users */}
+        {!isadmin && currentUserId && (
+          <Box sx={{ mt: 3, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  color: 'secondary.main',
+                  fontSize: '0.75rem'
+                }}
+              >
+                My Suggested POIs ({pois.filter(poi => poi.user_id === currentUserId).length})
+              </Typography>
+            </Box>
             
             {pois.filter(poi => poi.user_id === currentUserId).length === 0 ? (
               <Box sx={{ 
@@ -901,7 +1133,7 @@ function Sidebar({
                   color="text.secondary" 
                   sx={{ fontSize: '0.8rem' }}
                 >
-                  You haven't created any POIs yet
+                  No Pending POIs
                 </Typography>
               </Box>
             ) : (
@@ -1172,6 +1404,18 @@ function Sidebar({
             )}
           </DialogContent>
         </Dialog>
+
+        {/* My POI Form */}
+        <MyPOIForm
+          open={showMyPOIForm}
+          onClose={handleMyPOIFormClose}
+          mapClickCoords={myPOIMapClickCoords}
+          onSuccess={(newPOI) => {
+            // Refresh My POIs after successful creation
+            fetchMyPOIs(currentUserId);
+            handleMyPOIFormClose();
+          }}
+        />
       </Box>
 
       {/* Footer */}

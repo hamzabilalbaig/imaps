@@ -4,12 +4,15 @@ import {
   getPOIById, 
   createPOI, 
   updatePOIById,
-  deletePOIById 
+  deletePOIById,
+  getMyPOIs,
+  createMyPOI
 } from '../api/functions/apiFunctions';
 
 const usePOIsStore = create((set, get) => ({
   // State
   pois: [],
+  myPois: [],
   currentPOI: null,
   loading: false,
   error: null,
@@ -341,6 +344,92 @@ const usePOIsStore = create((set, get) => ({
       console.error('Error toggling POI approval:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  // My POI Actions
+  
+  // Fetch My POIs for a specific user
+  fetchMyPOIs: async (userId) => {
+    try {
+      set({ loading: true, error: null });
+      const myPois = await getMyPOIs(userId);
+      
+      // Transform coords to position for map compatibility
+      const transformedMyPOIs = (myPois || []).map(poi => ({
+        ...poi,
+        position: poi.coords // Add position field for map marker compatibility
+      }));
+      
+      set({ 
+        myPois: transformedMyPOIs,
+        loading: false 
+      });
+      return { success: true, myPois: transformedMyPOIs };
+    } catch (error) {
+      console.error('Error fetching My POIs:', error);
+      set({ 
+        error: error.message,
+        loading: false 
+      });
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Create a new My POI
+  createMyPOI: async (poiData) => {
+    try {
+      set({ loading: true, error: null });
+      const newMyPOI = await createMyPOI(poiData);
+      
+      // Add to local My POI state
+      const currentMyPOIs = get().myPois;
+      const transformedPOI = {
+        ...newMyPOI,
+        position: newMyPOI.coords
+      };
+      
+      set({ 
+        myPois: [...currentMyPOIs, transformedPOI],
+        loading: false 
+      });
+      
+      return { success: true, poi: transformedPOI };
+    } catch (error) {
+      console.error('Error creating My POI:', error);
+      set({ 
+        error: error.message,
+        loading: false 
+      });
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Get all POIs including My POIs for display
+  getAllPOIsForDisplay: (userId = null, isAdmin = false) => {
+    const regularPOIs = get().pois;
+    const myPois = get().myPois;
+    
+    let filteredRegularPOIs = regularPOIs;
+    
+    if (!isAdmin) {
+      // For all non-admin users (including authenticated users), only show approved POIs
+      filteredRegularPOIs = regularPOIs.filter(poi => {
+        const isApproved = poi.is_approved === true || poi.is_approved === 1 || poi.is_approved === 'true';
+        return isApproved;
+      });
+    }
+    
+    // For admin, show all regular POIs
+    // For users, show both filtered regular POIs and their My POIs
+    if (userId && !isAdmin) {
+      return [...filteredRegularPOIs, ...myPois];
+    }
+    return filteredRegularPOIs;
+  },
+
+  // Get My POI count for a user
+  getMyPOICount: (userId) => {
+    return get().myPois.filter(poi => poi.user_id === userId).length;
   },
 }));
 
