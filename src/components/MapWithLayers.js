@@ -216,10 +216,10 @@ function MapWithLayers({
         if (zoomControl) {
           if (isRightSidebarVisible) {
             zoomControl.classList.add("zoomControlsAfterRightSidebarOpen");
-            console.log('Added zoom control class'); // Debug log
+            console.log('Added zoom control class for right sidebar'); // Debug log
           } else {
             zoomControl.classList.remove("zoomControlsAfterRightSidebarOpen");
-            console.log('Removed zoom control class'); // Debug log
+            console.log('Removed zoom control class for right sidebar'); // Debug log
           }
         } else {
           console.log('Zoom control not found'); // Debug log
@@ -229,8 +229,18 @@ function MapWithLayers({
       }
     };
 
-    // Try multiple times with increasing delays to ensure the control is rendered
-    const timeouts = [300, 600, 900, 1200].map(delay => 
+    // Update immediately if component is mounted
+    if (isMounted) {
+      updateZoomControlPosition();
+    }
+
+    // Also update immediately when sidebar visibility changes
+    if (isRightSidebarVisible !== undefined) {
+      updateZoomControlPosition();
+    }
+
+    // Also try with delays to ensure the control is rendered
+    const timeouts = [100, 300, 600, 900].map(delay => 
       setTimeout(updateZoomControlPosition, delay)
     );
 
@@ -238,6 +248,41 @@ function MapWithLayers({
       timeouts.forEach(clearTimeout);
     };
   }, [isRightSidebarVisible, isMounted]);
+  
+  // Separate effect to handle initial positioning when component mounts
+  useEffect(() => {
+    if (!isMounted) return;
+    
+    const initializeZoomControlPosition = () => {
+      try {
+        const mapContainer = mapRef.current?._container;
+        if (!mapContainer) return;
+        
+        const zoomControl = mapContainer.querySelector('.leaflet-control-zoom');
+        
+        if (zoomControl) {
+          if (isRightSidebarVisible) {
+            zoomControl.classList.add("zoomControlsAfterRightSidebarOpen");
+            console.log('Initialized zoom control with sidebar positioning');
+          } else {
+            zoomControl.classList.remove("zoomControlsAfterRightSidebarOpen");
+            console.log('Initialized zoom control without sidebar positioning');
+          }
+        }
+      } catch (err) {
+        console.log("Zoom control initialization error:", err);
+      }
+    };
+
+    // Initialize immediately
+    initializeZoomControlPosition();
+    
+    // Also try after a short delay
+    const timeoutId = setTimeout(initializeZoomControlPosition, 200);
+    
+    return () => clearTimeout(timeoutId);
+  }, [isMounted, isRightSidebarVisible]);
+  
   useEffect(() => {
     // Allow time for DOM to be fully ready before marking component as mounted
     const timeoutId = setTimeout(() => {
@@ -330,18 +375,19 @@ function MapWithLayers({
             // Set the global map instance as a fallback
             window.leafletMap = mapInstance;
             
+            // Apply zoom control styling immediately if sidebar is visible
+            if (isRightSidebarVisible) {
+              const zoomControl = mapInstance._container?.querySelector('.leaflet-control-zoom');
+              if (zoomControl) {
+                zoomControl.classList.add("zoomControlsAfterRightSidebarOpen");
+                console.log('Applied zoom control positioning on map creation');
+              }
+            }
+            
             // Safely refresh map after it's fully loaded
             setTimeout(() => {
               if (mapInstance && mapInstance._container && mapInstance._loaded) {
                 mapInstance.invalidateSize({ animate: false });
-                
-                // Apply zoom control styling if sidebar is visible
-                if (isRightSidebarVisible) {
-                  const zoomControl = mapInstance._container?.querySelector('.leaflet-control-zoom');
-                  if (zoomControl) {
-                    zoomControl.classList.add("zoomControlsAfterRightSidebarOpen");
-                  }
-                }
               }
             }, 300);
           } catch (err) {

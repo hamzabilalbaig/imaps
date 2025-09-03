@@ -53,7 +53,7 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
     const user = JSON.parse(localStorage.getItem('imaps_current_user'));
     if(user?.role === 'admin') {}
     else {
-      // Save map state before triggering reload
+      // Save map state before updating
       const mapInstance = window.leafletMap; // This will be set in MapWithLayers
       if (mapInstance) {
         saveMapState(mapInstance);
@@ -65,7 +65,7 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
       });
       if (data) {
         localStorage.setItem('imaps_current_user', JSON.stringify(data));
-        window.location.reload(); // Reload to reflect changes
+        // Removed window.location.reload() to prevent page refresh
       }
     }
     if(isEdit){
@@ -75,7 +75,6 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
       });
     } else {
       onSave(formData);
-
     }
   };
 

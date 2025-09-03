@@ -64,14 +64,11 @@
   bottom: 55px !important;
   right: 350px !important; /* Move left to avoid sidebar overlap */
   transition: right 0.3s ease !important; /* Smooth transition */
+  z-index: 999 !important; /* Ensure it's below sidebar but above map */
 }
 
-/* .leaflet-control-zoom {
-  position: absolute !important;
-  bottom: 10px !important;
-  left: -400px !important;
-} */
-
+/* Default zoom control position when sidebar is closed */
 .leaflet-control-zoom {
   bottom: 55px;
+  z-index: 1000; /* Above map but below sidebar when sidebar is open */
 }

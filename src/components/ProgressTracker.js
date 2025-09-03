@@ -214,27 +214,29 @@ function ProgressTracker({
                 {isNoteMode ? 'Cancel Note' : 'Add Note'}
               </Button>
 
-              <Button
-                variant={isPOIMode ? "contained" : "outlined"}
-                startIcon={<PushPinIcon />}
-                onClick={onAddPOI}
-                fullWidth
-                sx={{ 
-                  mb: 2,
-                  textTransform: 'uppercase',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  backgroundColor: isPOIMode ? theme.palette.warning.main : 'transparent',
-                  color: isPOIMode ? 'white' : theme.palette.warning.main,
-                  borderColor: theme.palette.warning.main,
-                  '&:hover': {
-                    backgroundColor: isPOIMode ? theme.palette.warning.dark : alpha(theme.palette.warning.main, 0.1),
-                    borderColor: theme.palette.warning.main
-                  }
-                }}
-              >
-                {isPOIMode ? 'Cancel POI' : 'Add POI'}
-              </Button>
+              {!isAdmin && (
+                <Button
+                  variant={isPOIMode ? "contained" : "outlined"}
+                  startIcon={<PushPinIcon />}
+                  onClick={onAddPOI}
+                  fullWidth
+                  sx={{ 
+                    mb: 2,
+                    textTransform: 'uppercase',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    backgroundColor: isPOIMode ? theme.palette.warning.main : 'transparent',
+                    color: isPOIMode ? 'white' : theme.palette.warning.main,
+                    borderColor: theme.palette.warning.main,
+                    '&:hover': {
+                      backgroundColor: isPOIMode ? theme.palette.warning.dark : alpha(theme.palette.warning.main, 0.1),
+                      borderColor: theme.palette.warning.main
+                    }
+                  }}
+                >
+                  {isPOIMode ? 'Cancel POI' : 'Add POI'}
+                </Button>
+              )}
             </>
           ) : (
             <Box sx={{ textAlign: 'center', mb: 2 }}>
