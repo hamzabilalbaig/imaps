@@ -27,7 +27,7 @@ import {
   PushPin as PushPinIcon
 } from '@mui/icons-material';
 import { localDB } from '../utils/localStorage';
-import useUserStore from '../stores/user';
+import useUserStore, { PLAN_LIMITS } from '../stores/user';
 import { useNavigate } from 'react-router-dom';
 
 function ProgressTracker({ 
@@ -67,6 +67,14 @@ function ProgressTracker({
   // const currentCategoryCount = user ? (user.usercategories?.length || 0) : 0;
   const currentCategoryCount = user?.role === 'admin' ? JSON.parse(localStorage.getItem('imaps_admin_categories') || '[]').length : user?.role === 'user' ? userCategoryCount : 0;
   const remainingCategories = user ? getRemainingCategories(currentCategoryCount) : 0;
+  
+  // Calculate note limits
+  const currentNoteCount = notes?.length || 0;
+  const currentUserPlan = user?.plan || 'free';
+  const planLimits = PLAN_LIMITS[currentUserPlan] || PLAN_LIMITS.free;
+  const maxNotes = planLimits.maxNotes || 0;
+  const remainingNotes = maxNotes === Infinity ? '∞' : Math.max(0, maxNotes - currentNoteCount);
+  const canCreateMoreNotes = user?.role === 'admin' || maxNotes === Infinity || currentNoteCount < maxNotes;
   
   const progress = maxMarkers === Infinity ? 100 : (userMarkerCount / maxMarkers) * 100;
   const remainingPOIs = maxMarkers === Infinity ? '∞' : Math.max(0, maxMarkers - userMarkerCount);
@@ -192,27 +200,29 @@ function ProgressTracker({
                 <></>
               )}
               
-              <Button
-                variant={isNoteMode ? "contained" : "outlined"}
-                startIcon={<AddIcon />}
-                onClick={onAddNote}
-                fullWidth
-                sx={{ 
-                  mb: 1,
-                  textTransform: 'uppercase',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  backgroundColor: isNoteMode ? theme.palette.secondary.main : 'transparent',
-                  color: isNoteMode ? 'white' : theme.palette.secondary.main,
-                  borderColor: theme.palette.secondary.main,
-                  '&:hover': {
-                    backgroundColor: isNoteMode ? theme.palette.secondary.dark : alpha(theme.palette.secondary.main, 0.1),
-                    borderColor: theme.palette.secondary.main
-                  }
-                }}
-              >
-                {isNoteMode ? 'Cancel Note' : 'Add Note'}
-              </Button>
+              {canCreateMoreNotes && (
+                <Button
+                  variant={isNoteMode ? "contained" : "outlined"}
+                  startIcon={<AddIcon />}
+                  onClick={onAddNote}
+                  fullWidth
+                  sx={{ 
+                    mb: 1,
+                    textTransform: 'uppercase',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    backgroundColor: isNoteMode ? theme.palette.secondary.main : 'transparent',
+                    color: isNoteMode ? 'white' : theme.palette.secondary.main,
+                    borderColor: theme.palette.secondary.main,
+                    '&:hover': {
+                      backgroundColor: isNoteMode ? theme.palette.secondary.dark : alpha(theme.palette.secondary.main, 0.1),
+                      borderColor: theme.palette.secondary.main
+                    }
+                  }}
+                >
+                  {isNoteMode ? 'Cancel Note' : 'Add Note'}
+                </Button>
+              )}
 
               {!isAdmin && (
                 <Button
@@ -280,7 +290,7 @@ function ProgressTracker({
             color: theme.palette.text.secondary,
             letterSpacing: 1
           }}>
-            NOTES ({notes.length})
+            NOTES ({notes.length}{user?.role !== 'admin' ? `/${maxNotes === Infinity ? '∞' : maxNotes}` : ''})
           </Typography>
           
           {notes.length === 0 ? (
@@ -298,7 +308,9 @@ function ProgressTracker({
                         ? (isAdmin 
                             ? "Click anywhere on the map to add a new location." 
                             : "Click anywhere on the map to suggest a new location.")
-                        : "No notes yet. Click 'Add Note' to get started."
+                        : (user?.role === 'admin' 
+                            ? "No notes yet. Click 'Add Note' to get started."
+                            : `No notes yet. Click 'Add Note' to get started.`)
                       )
                   )
               }

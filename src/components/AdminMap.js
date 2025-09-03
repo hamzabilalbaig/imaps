@@ -120,6 +120,8 @@ function AdminMap() {
     setShowForm(false);
     setEditingPOI(null);
     setPendingLocation(null);
+    // Exit suggest mode when form is cancelled
+    setIsSuggestMode(false);
   };
 
   const handleRemovePOI = async (poiId) => {
@@ -175,6 +177,7 @@ function AdminMap() {
         canCreateMore={true}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}
+        onExitSuggestMode={() => setIsSuggestMode(false)}
       />
 
       {/* Floating Action Button to go back to Dashboard */}

@@ -69,12 +69,22 @@ function InteractiveMapLayout(props) {
     onAddPOI,
     isPOIMode = false,
     onMyPOIMapClickRegister,
-    isMyPOIMapClickMode = false
+    isMyPOIMapClickMode = false,
+    onExitNoteMode,
+    onExitPOIMode,
+    onExitSuggestMode
   } = props;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const user = useUserStore(state => state);
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
+  // Initialize left sidebar open for all users on desktop (just like right sidebar logic)
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(() => {
+    try {
+      return !isMobile;
+    } catch (e) {
+      return !isMobile;
+    }
+  });
   // Initialize right sidebar open only for authenticated users on desktop
   const [rightSidebarOpen, setRightSidebarOpen] = useState(() => {
     try {
@@ -316,6 +326,19 @@ function InteractiveMapLayout(props) {
   };
 
   const handleAddNote = () => {
+    // Check note limits before enabling note mode (only for non-admin users)
+    if (user?.role !== 'admin') {
+      const currentUserPlan = user?.plan || 'free';
+      const planLimits = PLAN_LIMITS[currentUserPlan];
+      const currentNotesCount = notes?.length || 0;
+      const canCreateMoreNotes = currentNotesCount < (planLimits?.maxNotes || 0);
+      
+      if (!canCreateMoreNotes) {
+        // Silently prevent note creation when limit is reached
+        return;
+      }
+    }
+    
     setShowNoteForm(false);
     setEditingNote(null);
     setPendingNoteLocation(null);
@@ -335,6 +358,19 @@ function InteractiveMapLayout(props) {
   };
 
   const handleNoteMapClick = (latlng) => {
+    // Check note limits before allowing note creation (only for non-admin users)
+    if (user.role !== 'admin') {
+      const currentUserPlan = user?.plan || 'free';
+      const planLimits = PLAN_LIMITS[currentUserPlan];
+      const currentNotesCount = notes?.length || 0;
+      const canCreateMoreNotes = currentNotesCount < (planLimits?.maxNotes || 0);
+      
+      if (!canCreateMoreNotes) {
+        // Silently prevent note creation when limit is reached
+        return;
+      }
+    }
+    
     setPendingNoteLocation(latlng);
     setEditingNote(null);
     setShowNoteForm(true);
@@ -366,6 +402,18 @@ function InteractiveMapLayout(props) {
             : note
         ));
       } else if (pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation?.lng === 'number') {
+        // Check note limits before creating new note
+        const currentUserPlan = user?.plan || 'free';
+        const planLimits = PLAN_LIMITS[currentUserPlan];
+        const currentNotesCount = notes?.length || 0;
+        const canCreateMoreNotes = currentNotesCount < (planLimits?.maxNotes || 0);
+        
+        if (!canCreateMoreNotes) {
+          // Silently prevent note creation when limit is reached
+          handleCancelNoteForm();
+          return;
+        }
+        
         // Create new note only if location is valid
         const newNote = {
           id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -418,6 +466,10 @@ function InteractiveMapLayout(props) {
     setShowNoteForm(false);
     setEditingNote(null);
     setPendingNoteLocation(null);
+    // Exit note mode when note form is cancelled
+    if (onExitNoteMode) {
+      onExitNoteMode();
+    }
   };
 
   const handleEditNote = (note) => {
@@ -462,23 +514,48 @@ function InteractiveMapLayout(props) {
   
 
   const leftSidebarContent = (
-    <Sidebar
-      pois={filteredPOIs}
-      subCategories={subCategories}
-      onMarkerClick={onMarkerClick}
-      onCategoryToggle={handleCategoryToggle}
-      visibleCategories={visibleCategories}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      onShowAll={handleShowAll}
-      onHideAll={handleHideAll}
-      streetsVisible={streetsVisible}
-      onStreetsToggle={handleStreetsToggle}
-      hiddenCategories={hiddenCategories}
-      setHiddenCategories={setHiddenCategories}
-      onVisibilityChange={handleSidebarVisibilityChange}
-      onMapClick={onMyPOIMapClickRegister}
-    />
+    <Box sx={{ 
+      height: '100%', 
+      backgroundColor: 'background.paper',
+      boxShadow: 3,
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        p: 2, 
+        borderBottom: `1px solid ${theme.palette.divider}` 
+      }}>
+        <Typography variant="h6" component="div">
+          Menu
+        </Typography>
+        <IconButton onClick={() => setLeftSidebarOpen(false)}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+      <Box sx={{ flex: 1, overflow: 'hidden' }}>
+        <Sidebar
+          pois={filteredPOIs}
+          subCategories={subCategories}
+          onMarkerClick={onMarkerClick}
+          onCategoryToggle={handleCategoryToggle}
+          visibleCategories={visibleCategories}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onShowAll={handleShowAll}
+          onHideAll={handleHideAll}
+          streetsVisible={streetsVisible}
+          onStreetsToggle={handleStreetsToggle}
+          hiddenCategories={hiddenCategories}
+          setHiddenCategories={setHiddenCategories}
+          onVisibilityChange={handleSidebarVisibilityChange}
+          onMapClick={onMyPOIMapClickRegister}
+          onRefreshMyCategories={fetchMyCategories}
+        />
+      </Box>
+    </Box>
   );
 
   const rightSidebarContent = !readOnly && (
@@ -527,64 +604,41 @@ function InteractiveMapLayout(props) {
       overflow: 'hidden',
       minHeight: 0,
     }}>
-      {/* Desktop Left Sidebar (overlay) */}
+      {/* Desktop Left Sidebar - exactly like right sidebar but on left */}
       {!isMobile && (
-        <>
-        <Box sx={{ 
-          width: { lg: 320, xl: 350 }, 
-          minWidth: 280,
-          maxWidth: 400,
-          // Make the sidebar overlay the map instead of occupying layout space
+        <Box sx={{
           position: 'absolute',
-          left: 0,
           top: 0,
-          height: '100%',
-          zIndex: 1200,
-          overflow: 'visible',
-          // Keep the element in the DOM and slide it in/out for smooth animation
+          left: 0,
+          width: { lg: 320, xl: 350 },
+          maxWidth: 400,
+          maxHeight: '100%',
+          zIndex: 1000,
+          // Keep in DOM and slide
           transform: leftSidebarOpen ? 'translateX(0)' : 'translateX(-110%)',
           transition: 'transform 300ms ease',
           pointerEvents: leftSidebarOpen ? 'auto' : 'none',
-          displayPrint: 'none'
+          height: '100%',
         }}>
-          <IconButton
-            onClick={() => setLeftSidebarOpen(false)}
-            sx={{
-              position: 'absolute',
-              top: 16,
-              right: -28,
-              zIndex: 1000,
-              display: leftSidebarOpen ? 'block' : 'none',
-              backgroundColor: 'background.paper',
-              borderRadius: '1px',
-              "&:hover": {
-                backgroundColor: 'background.paper'
-              }
-            }}
-          >
-            <ChevronLeft />
-          </IconButton>
           {leftSidebarContent}
         </Box>
-        <IconButton
+      )}
+
+      {/* Desktop Left Sidebar Toggle Button */}
+      {!isMobile && !leftSidebarOpen && (
+        <Fab
+          color="primary"
+          size="medium"
           onClick={() => setLeftSidebarOpen(true)}
-          sx={{ 
+          sx={{
             position: 'absolute',
-            // top: 100,
-            top: 16,
-            left: -15,
-            zIndex: 1000,
-            display: leftSidebarOpen ? 'none' : 'block',
-             backgroundColor: 'background.paper',
-              borderRadius: '1px',
-              "&:hover": {
-                backgroundColor: 'background.paper'
-              }
+            top: 20,
+            left: 20,
+            zIndex: 1000
           }}
         >
-          <ChevronRight sx={{ml:1}} />
-        </IconButton>
-        </>
+          <MenuIcon />
+        </Fab>
       )}
 
       {/* Mobile Left Drawer */}
@@ -600,10 +654,23 @@ function InteractiveMapLayout(props) {
                 width: { xs: '85vw', sm: '70vw', md: 320 },
                 maxWidth: 400,
                 height: '100%',
-                // overflow: 'hidden'
               }
             }}
           >
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              p: 2, 
+              borderBottom: `1px solid ${theme.palette.divider}` 
+            }}>
+              <Typography variant="h6" component="div">
+                Menu
+              </Typography>
+              <IconButton onClick={() => setLeftSidebarOpen(false)}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
             {leftSidebarContent}
           </Drawer>
 
@@ -693,7 +760,7 @@ function InteractiveMapLayout(props) {
               <MapMarker
                 key={poi.id}
                 poi={poi}
-                subCategories={subCategories}
+                subCategories={[...subCategories, ...myCategories]}
                 onRemove={onMarkerRemove}
                 onEdit={onMarkerEdit}
                 isAdmin={ user?.isadmin }
@@ -961,6 +1028,10 @@ function InteractiveMapLayout(props) {
             onClose={() => {
               setShowMyPOIForm(false);
               setPendingPOILocation(null);
+              // Exit POI mode when My POI form is closed
+              if (onExitPOIMode) {
+                onExitPOIMode();
+              }
             }}
             mapClickCoords={pendingPOILocation}
             myPois={myPois}
@@ -969,6 +1040,10 @@ function InteractiveMapLayout(props) {
               console.log('My POI created successfully:', newPOI);
               setShowMyPOIForm(false);
               setPendingPOILocation(null);
+              // Exit POI mode when My POI is successfully created
+              if (onExitPOIMode) {
+                onExitPOIMode();
+              }
               // Refresh My POIs and categories on the map
               fetchMyPOIs();
               fetchMyCategories();

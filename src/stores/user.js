@@ -7,18 +7,21 @@ export const PLAN_LIMITS = {
     maxCustomCategories: 10,
     maxPOIsPerCategory: 10,
     totalPOILimit: 100,
+    maxNotes: 5,
     allowCustomIcons: false
   },
   premium: { 
     maxCustomCategories: 20,
     maxPOIsPerCategory: 20,
     totalPOILimit: 400,
+    maxNotes: 50,
     allowCustomIcons: false
   },
   unlimited: { 
     maxCustomCategories: Infinity,
     maxPOIsPerCategory: Infinity,
     totalPOILimit: Infinity,
+    maxNotes: Infinity,
     allowCustomIcons: true
   }
 };
@@ -289,6 +292,20 @@ const useUserStore = create((set, get) => ({
     if (!id) return 0;
     const limit = PLAN_LIMITS[plan]?.maxPOIsPerCategory || 0;
     return limit === Infinity ? Infinity : Math.max(0, limit - currentPOICountInCategory);
+  },
+
+  canCreateNote: (currentNoteCount) => {
+    const { id, plan } = get();
+    if (!id) return false;
+    const limit = PLAN_LIMITS[plan]?.maxNotes || 0;
+    return limit === Infinity || currentNoteCount < limit;
+  },
+
+  getRemainingNotes: (currentNoteCount) => {
+    const { id, plan } = get();
+    if (!id) return 0;
+    const limit = PLAN_LIMITS[plan]?.maxNotes || 0;
+    return limit === Infinity ? Infinity : Math.max(0, limit - currentNoteCount);
   },
 }));
 

@@ -56,7 +56,8 @@ function Sidebar({
   searchTerm = '', 
   onSearchChange,
   onVisibilityChange,
-  onMapClick
+  onMapClick,
+  onRefreshMyCategories
 }) {
   const theme = useTheme();
   
@@ -424,9 +425,7 @@ function Sidebar({
       sx={{
         width: '100%',
         height: '100%',
-        // backgroundColor: alpha(theme.palette.background.paper, 0.95),
         backgroundColor: theme.palette.background.paper,
-        borderRight: `1px solid ${theme.palette.divider}`,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -1256,6 +1255,10 @@ function Sidebar({
           onSuccess={(newPOI) => {
             // Refresh My POIs after successful creation
             fetchMyPOIs(currentUserId);
+            // Also refresh My Categories in case a new subcategory was created
+            if (onRefreshMyCategories) {
+              onRefreshMyCategories();
+            }
             handleMyPOIFormClose();
           }}
         />

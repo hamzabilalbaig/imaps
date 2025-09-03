@@ -218,6 +218,8 @@ function UserMap() {
     setShowForm(false);
     setEditingPOI(null);
     setPendingLocation(null);
+    // Exit suggest mode when POI form is cancelled
+    setIsSuggestMode(false);
   };
 
   const handleRemovePOI = async (poiId) => {
@@ -288,6 +290,9 @@ function UserMap() {
         isPOIMode={isPOIMode}
         onMyPOIMapClickRegister={setMyPOIMapClickHandler}
         isMyPOIMapClickMode={!!myPOIMapClickHandler}
+        onExitNoteMode={() => setIsNoteMode(false)}
+        onExitPOIMode={() => setIsPOIMode(false)}
+        onExitSuggestMode={() => setIsSuggestMode(false)}
       />
 
       {/* Snackbar for notifications */}
