@@ -67,7 +67,6 @@ const Pricing = () => {
         price: config.price_cents === 0 ? '$0' : `$${(config.price_cents / 100).toFixed(0)}`,
         period: config.price_cents === 0 ? 'forever' : 'month',
         maxCustomCategories: config.max_custom_categories === -1 ? 'Unlimited' : config.max_custom_categories,
-        maxPOIsPerCategory: config.max_pois_per_category === -1 ? 'Unlimited' : config.max_pois_per_category,
         totalPOILimit: config.total_poi_limit === -1 ? Infinity : config.total_poi_limit,
         allowCustomIcons: config.allow_custom_icons,
         features: generateFeatures(config),
@@ -94,23 +93,26 @@ const Pricing = () => {
       features.push(`${config.max_custom_categories} Custom Categories`);
     }
     
-    if (config.max_pois_per_category === -1) {
-      features.push('Unlimited POIs per Category');
+    if (config.total_poi_limit === -1) {
+      features.push('Unlimited POIs');
     } else {
-      const totalPois = config.total_poi_limit === -1 ? 'unlimited' : config.total_poi_limit;
-      features.push(`${config.max_pois_per_category} POIs per Category (${totalPois} total)`);
+      features.push(`${config.total_poi_limit} POIs Total`);
     }
     
     // Add common features based on plan type
     if (config.plan_name === 'free') {
-      features.push('View public maps', 'Basic map layers', 'Community support');
+      // features.push('View public maps', 'Basic map layers');
+      features.push('upto 5 notes') 
     } else if (config.plan_name === 'premium') {
-      features.push('Advanced map layers', 'Export map data', 'Priority support', 'Analytics dashboard');
+      // features.push('Advanced map layers', 'Export map data', 'Priority support', 'Analytics dashboard');
+      features.push('upto 50 notes')
     } else if (config.plan_name === 'unlimited') {
       if (config.allow_custom_icons) {
-        features.push('Custom Icon Upload');
+        // features.push('Custom Icon Upload');
+        features.push() // empty as no need for these features
       }
-      features.push('All premium features', 'API access', 'White-label options', 'Dedicated support', 'Custom integrations');
+      // features.push('All premium features', 'API access', 'White-label options', 'Dedicated support', 'Custom integrations');
+      features.push('unlimited notes')
     }
     
     return features;
@@ -338,7 +340,7 @@ const Pricing = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
                       <LocationIcon color="secondary" sx={{ mr: 1 }} />
                       <Typography variant="body1" fontWeight="medium">
-                        {plan.maxPOIsPerCategory} POIs per Category
+                        {plan.totalPOILimit === -1 ? 'Unlimited' : plan.totalPOILimit} Total POIs
                       </Typography>
                     </Box>
                     {plan.allowCustomIcons && (
@@ -392,11 +394,11 @@ const Pricing = () => {
         )}
 
         {/* FAQ or Additional Info */}
-        <Box sx={{ mt: 6, textAlign: 'center' }}>
+        {/* <Box sx={{ mt: 6, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
             All plans include category management and basic map features. Upgrade anytime to increase your limits.
           </Typography>
-        </Box>
+        </Box> */}
 
         {/* Terms of Service */}
         <Box sx={{ mt: 4, textAlign: 'center', pb: 4 }}>

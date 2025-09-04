@@ -81,7 +81,7 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
   const currentMyPOIsCount = myPois?.length || 0;
   const currentSubcategoriesCount = myCategories?.length || 0;
   
-  // Check if user can create more My POIs
+  // Check if user can create more My POIs (based on total plan limit only)
   const canCreateMorePOIs = currentMyPOIsCount < (planLimits?.totalPOILimit || 0);
   const remainingPOIs = planLimits?.totalPOILimit === Infinity ? 
     Infinity : 

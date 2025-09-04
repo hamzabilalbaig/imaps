@@ -1072,9 +1072,9 @@ function AdminDashboard() {
                     
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary">
-                        POIs per Category
+                        POIs per Category (Deprecated)
                       </Typography>
-                      <Typography variant="body2" fontWeight={500}>
+                      <Typography variant="body2" fontWeight={500} color="text.disabled">
                         {plan.max_pois_per_category === -1 ? '∞' : plan.max_pois_per_category}
                       </Typography>
                     </Box>
@@ -2598,14 +2598,15 @@ function AdminDashboard() {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="POIs per Category"
+                  label="POIs per Category (Deprecated)"
                   type="number"
+                  disabled
                   value={planFormData.max_pois_per_category === -1 ? '' : planFormData.max_pois_per_category || ''}
                   onChange={(e) => setPlanFormData({
                     ...planFormData,
                     max_pois_per_category: e.target.value === '' ? -1 : parseInt(e.target.value) || 0
                   })}
-                  helperText="Leave empty for unlimited"
+                  helperText="No longer used - POI limits are now plan-based only"
                 />
               </Grid>
               <Grid item xs={12} md={6}>

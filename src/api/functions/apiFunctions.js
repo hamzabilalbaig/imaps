@@ -453,3 +453,9 @@ export async function getMyPOICategory(userId) {
     const { data } = await apiClient.get(`/my-pois/category/${userId}`);
     return data;
 }
+
+// Get user POI statistics (total count and plan limits)
+export async function getUserPOIStats(userId) {
+    const { data } = await apiClient.get(`/users/${userId}/poi-stats`);
+    return data;
+}

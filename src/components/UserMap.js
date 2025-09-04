@@ -6,6 +6,7 @@ import InteractiveMapLayout from "./InteractiveMapLayout";
 import useUserStore from "../stores/user";
 import usePOIsStore from "../stores/pois";
 import useSubCategoriesStore from "../stores/subCategories";
+import { PLAN_LIMITS } from "../stores/user";
 
 /**
  * User Map component with full editing capabilities for authenticated users
@@ -14,7 +15,7 @@ function UserMap() {
   // Use new POI stores
   const { pois, myPois, createPOI, updatePOI, deletePOI, initializePOIs, fetchMyPOIs } = usePOIsStore();
   const { subCategories, initializeSubCategories } = useSubCategoriesStore();
-  const { id, name, email, role, initializeUser, isUserAdmin } = useUserStore();
+  const { id, name, email, role, plan, initializeUser, isUserAdmin } = useUserStore();
 
   useEffect(() => {
     initializeUser();
@@ -87,12 +88,12 @@ function UserMap() {
     }
   }, [pois, userPOIs, myPois, id, isAdmin]);
 
-  // Calculate POI limits for regular users
+  // Calculate POI limits for regular users based on user's plan
   const userOwnedPOIs = pois.filter(poi => poi.user_id === id);
   const userMarkerCount = userOwnedPOIs.length;
-  const MAX_USER_POIS = 10; // Adjust as needed
-  const canCreateMore = isAdmin || userMarkerCount < MAX_USER_POIS;
-  const remainingPOIs = isAdmin ? Infinity : Math.max(0, MAX_USER_POIS - userMarkerCount);
+  const userPlanLimit = PLAN_LIMITS[plan]?.totalPOILimit || 0;
+  const canCreateMore = isAdmin || (userPlanLimit === Infinity || userMarkerCount < userPlanLimit);
+  const remainingPOIs = isAdmin ? Infinity : (userPlanLimit === Infinity ? Infinity : Math.max(0, userPlanLimit - userMarkerCount));
 
   const [showForm, setShowForm] = useState(false);
   const [editingPOI, setEditingPOI] = useState(null);
@@ -280,7 +281,7 @@ function UserMap() {
         user={user}
         isAdmin={isAdmin}
         userMarkerCount={userMarkerCount}
-        maxMarkers={MAX_USER_POIS}
+        maxMarkers={userPlanLimit}
         canCreateMore={canCreateMore}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}

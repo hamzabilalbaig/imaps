@@ -5,21 +5,18 @@ import { localDB } from '../utils/localStorage';
 export const PLAN_LIMITS = {
   free: { 
     maxCustomCategories: 10,
-    maxPOIsPerCategory: 10,
     totalPOILimit: 100,
     maxNotes: 5,
     allowCustomIcons: false
   },
   premium: { 
     maxCustomCategories: 20,
-    maxPOIsPerCategory: 20,
     totalPOILimit: 400,
     maxNotes: 50,
     allowCustomIcons: false
   },
   unlimited: { 
     maxCustomCategories: Infinity,
-    maxPOIsPerCategory: Infinity,
     totalPOILimit: Infinity,
     maxNotes: Infinity,
     allowCustomIcons: true
@@ -258,19 +255,18 @@ const useUserStore = create((set, get) => ({
     return limit === Infinity || currentCategoryCount < limit;
   },
 
-  canAddPOItoCategory: async (categoryName) => {
+  canAddPOI: async () => {
     const { id, plan } = get();
     if (!id) return false;
-    const limit = PLAN_LIMITS[plan]?.maxPOIsPerCategory || 0;
+    const limit = PLAN_LIMITS[plan]?.totalPOILimit || 0;
 
     const userPois = await localDB.getUserPOIs();
-    const filteredPois = userPois.filter(poi => poi.category === categoryName);
-    const lengthOfPoisBelongingToCategoryName = filteredPois.length;
+    const totalPoisCount = userPois.length;
 
     if (limit === Infinity) {
       return true;
     }
-    const result = (lengthOfPoisBelongingToCategoryName >= PLAN_LIMITS[plan]?.maxPOIsPerCategory) ? false : true;
+    const result = totalPoisCount < limit;
     return result;
   },
 
@@ -287,11 +283,17 @@ const useUserStore = create((set, get) => ({
     return limit === Infinity ? Infinity : Math.max(0, limit - currentCategoryCount);
   },
 
-  getRemainingPOIsForCategory: (currentPOICountInCategory) => {
+  getRemainingPOIs: async () => {
     const { id, plan } = get();
     if (!id) return 0;
-    const limit = PLAN_LIMITS[plan]?.maxPOIsPerCategory || 0;
-    return limit === Infinity ? Infinity : Math.max(0, limit - currentPOICountInCategory);
+    const limit = PLAN_LIMITS[plan]?.totalPOILimit || 0;
+    
+    if (limit === Infinity) return Infinity;
+    
+    const userPois = await localDB.getUserPOIs();
+    const totalPoisCount = userPois.length;
+    
+    return Math.max(0, limit - totalPoisCount);
   },
 
   canCreateNote: (currentNoteCount) => {

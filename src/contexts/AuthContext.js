@@ -16,19 +16,16 @@ export const useAuth = () => {
 export const PLAN_LIMITS = {
   free: { 
     maxCustomCategories: 10,
-    maxPOIsPerCategory: 10,
     totalPOILimit: 100,
     allowCustomIcons: false
   },
   premium: { 
     maxCustomCategories: 20,
-    maxPOIsPerCategory: 20,
     totalPOILimit: 400,
     allowCustomIcons: false
   },
   unlimited: { 
     maxCustomCategories: Infinity,
-    maxPOIsPerCategory: Infinity,
     totalPOILimit: Infinity,
     allowCustomIcons: true
   }
@@ -101,16 +98,26 @@ export const AuthProvider = ({ children }) => {
     return { success: false, message: 'No user logged in' };
   };
 
-  const canCreatePOI = (currentPOICount) => {
+  const canCreatePOI = async () => {
     if (!user) return false;
     const limit = PLAN_LIMITS[user.plan]?.totalPOILimit || 0;
-    return currentPOICount < limit;
+
+    const userPois = await localDB.getUserPOIs();
+    const totalPoisCount = userPois.length;
+
+    return totalPoisCount < limit;
   };
 
-  const getRemainingPOIs = (currentPOICount) => {
+  const getRemainingPOIs = async () => {
     if (!user) return 0;
     const limit = PLAN_LIMITS[user.plan]?.totalPOILimit || 0;
-    return limit === Infinity ? Infinity : Math.max(0, limit - currentPOICount);
+    
+    if (limit === Infinity) return Infinity;
+    
+    const userPois = await localDB.getUserPOIs();
+    const totalPoisCount = userPois.length;
+    
+    return Math.max(0, limit - totalPoisCount);
   };
 
   const canCreateCategory = (currentCategoryCount) => {
@@ -119,36 +126,18 @@ export const AuthProvider = ({ children }) => {
     return limit === Infinity || currentCategoryCount < limit;
   };
 
-  const canAddPOItoCategory = async (categoryName) => {
-    // if (!user) return false;
-    const limit = PLAN_LIMITS[user.plan]?.maxPOIsPerCategory || 0;
-    // return limit === Infinity || currentPOICountInCategory < limit;
-    // const userCategories = await localDB.getUserCategories()
-
-
-
-    // const userPois = await localDB.getUserPOIs()
-    // const userPoisLength = userPois?.length
-    // console.log('User POIs length:', userPoisLength);
-    // const lengthOfPoisBelongingToCategoryName = userPois?.filter(poi => poi.category === categoryName)?.length || 0;
-    // console.log('categoryName:', categoryName, 'poi.category:', userPois);
-    // console.log('Length of POIs in category:', lengthOfPoisBelongingToCategoryName);
-
+  const canAddPOI = async () => {
+    if (!user) return false;
+    const limit = PLAN_LIMITS[user.plan]?.totalPOILimit || 0;
 
     const userPois = await localDB.getUserPOIs();
-    const filteredPois = userPois.filter(poi => poi.category === categoryName);
-    console.log('Filtered POIs:', filteredPois);
-    const lengthOfPoisBelongingToCategoryName = filteredPois.length
+    const totalPoisCount = userPois.length;
 
     if (limit === Infinity) {
       return true;
     }
-    // return lengthOfPoisBelongingToCategoryName < limit && userPoisLength < PLAN_LIMITS[user.plan]?.totalPOILimit;
-    const result = (lengthOfPoisBelongingToCategoryName >=  PLAN_LIMITS[user.plan]?.maxPOIsPerCategory) ? false : true;
-    console.log('PLAN_LIMITS[user.plan]?.maxPOIsPerCategory:', PLAN_LIMITS[user.plan]?.maxPOIsPerCategory);
-    console.log('can add POI to category:', result);
-    return result;
-
+    
+    return totalPoisCount < limit;
   };
 
   const canUseCustomIcons = () => {
@@ -161,12 +150,6 @@ export const AuthProvider = ({ children }) => {
     const limit = PLAN_LIMITS[user.plan]?.maxCustomCategories || 0;
     return limit === Infinity ? Infinity : Math.max(0, limit - currentCategoryCount);
   };
-
-  const getRemainingPOIsForCategory = (currentPOICountInCategory) => {
-    if (!user) return 0;
-    const limit = PLAN_LIMITS[user.plan]?.maxPOIsPerCategory || 0;
-    return limit === Infinity ? Infinity : Math.max(0, limit - currentPOICountInCategory);
-  };
   const value = {
     user,
     login,
@@ -177,10 +160,9 @@ export const AuthProvider = ({ children }) => {
     canCreatePOI,
     getRemainingPOIs,
     canCreateCategory,
-    canAddPOItoCategory,
+    canAddPOI,
     canUseCustomIcons,
     getRemainingCategories,
-    getRemainingPOIsForCategory,
     isAdmin: user?.role === 'admin',
     isAuthenticated: !!user
   };

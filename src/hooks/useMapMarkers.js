@@ -12,9 +12,8 @@ export function useMapMarkers() {
     role, 
     plan, 
     initializeUser, 
-    canCreatePOI, 
-    getRemainingPOIs, 
-    canAddPOItoCategory 
+    canAddPOI, 
+    getRemainingPOIs
   } = useUserStore();
 
   // Stabilize user object to prevent infinite re-renders
@@ -60,28 +59,15 @@ export function useMapMarkers() {
   const addMarker = async (latlng, poiData) => {
     if (!user) return { success: false, error: 'You must be logged in to create POIs' };
 
-    const userMarkers = markers?.filter(m => m.userId === user.id);
-    
     // Check total POI limit
-    if (!canCreatePOI(userMarkers.length)) {
+    const canAdd = await canAddPOI();
+    if (!canAdd) {
+      const remaining = await getRemainingPOIs();
       return { 
         success: false, 
         error: `You have reached your POI limit. Upgrade your plan to create more POIs.`,
-        currentCount: userMarkers.length,
-        remaining: getRemainingPOIs(userMarkers.length)
+        remaining: remaining
       };
-    }
-
-    // Check per-category limit if a category is selected
-    if (poiData.categoryId) {
-      const poisInCategory = localDB.getPOICountInCategory(poiData.categoryId);
-      if (!canAddPOItoCategory(poiData.categoryId, poisInCategory)) {
-        return {
-          success: false,
-          error: `You have reached the POI limit for this category. Upgrade your plan or choose a different category.`,
-          categoryLimit: true
-        };
-      }
     }
 
     const markerData = createMarker(latlng, poiData);
