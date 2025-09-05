@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from 'react';
+import { useAlerts } from '../hooks/useAlerts';
 import {
   Snackbar
 } from "@mui/material";
@@ -16,6 +17,7 @@ function UserMap() {
   const { pois, myPois, createPOI, updatePOI, deletePOI, initializePOIs, fetchMyPOIs } = usePOIsStore();
   const { subCategories, initializeSubCategories } = useSubCategoriesStore();
   const { id, name, email, role, plan, initializeUser, isUserAdmin } = useUserStore();
+  const { confirm } = useAlerts();
 
   useEffect(() => {
     initializeUser();
@@ -224,7 +226,7 @@ function UserMap() {
   };
 
   const handleRemovePOI = async (poiId) => {
-    if (window.confirm("Are you sure you want to delete this POI?")) {
+    confirm("Are you sure you want to delete this POI?", async () => {
       try {
         const result = await deletePOI(poiId);
         if (result.success) {
@@ -247,7 +249,7 @@ function UserMap() {
           severity: 'error'
         });
       }
-    }
+    });
   };
 
   const handleMarkerClick = (marker) => {

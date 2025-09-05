@@ -459,3 +459,24 @@ export async function getUserPOIStats(userId) {
     const { data } = await apiClient.get(`/users/${userId}/poi-stats`);
     return data;
 }
+
+// Found Locations API functions
+export async function getFoundLocations(userId) {
+    const { data } = await apiClient.get(`/found-locations/${userId}`);
+    return data;
+}
+
+export async function addFoundLocation(userId, poiId, notes = null) {
+    const { data } = await apiClient.post('/found-locations', { userId, poiId, notes });
+    return data;
+}
+
+export async function removeFoundLocation(userId, poiId) {
+    const { data } = await apiClient.delete(`/found-locations/${userId}/${poiId}`);
+    return data;
+}
+
+export async function checkIfFound(userId, poiId) {
+    const { data } = await apiClient.get(`/found-locations/${userId}/check/${poiId}`);
+    return data;
+}

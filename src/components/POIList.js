@@ -29,6 +29,7 @@ import {
 } from "@mui/icons-material";
 import { generateShareableLink } from "../utils/mapUtils";
 import { useCategories } from '../contexts/CategoriesContext';
+import { useAlerts } from '../hooks/useAlerts';
 
 /**
  * Component for listing and managing POIs in admin panel
@@ -37,6 +38,7 @@ function POIList({ markers, onEdit, onRemove, onClearAll }) {
   const [filterCategory, setFilterCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const { getCategoryNames } = useCategories();
+  const { success } = useAlerts();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
@@ -53,7 +55,7 @@ function POIList({ markers, onEdit, onRemove, onClearAll }) {
     const shareableLink = generateShareableLink(marker);
     try {
       await navigator.clipboard.writeText(shareableLink);
-      alert("Shareable link copied to clipboard!");
+      success("Shareable link copied to clipboard!");
     } catch (err) {
       // Fallback for browsers that don't support clipboard API
       const textArea = document.createElement("textarea");
@@ -62,7 +64,7 @@ function POIList({ markers, onEdit, onRemove, onClearAll }) {
       textArea.select();
       document.execCommand("copy");
       document.body.removeChild(textArea);
-      alert("Shareable link copied to clipboard!");
+      success("Shareable link copied to clipboard!");
     }
   };
 

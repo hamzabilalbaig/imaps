@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useAlerts } from '../hooks/useAlerts';
 import L from "leaflet";
 import { 
   Box, 
@@ -77,6 +78,7 @@ function InteractiveMapLayout(props) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const user = useUserStore(state => state);
+  const { warning } = useAlerts();
   // Initialize left sidebar open for all users on desktop (just like right sidebar logic)
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(() => {
     try {
@@ -110,7 +112,7 @@ function InteractiveMapLayout(props) {
   const [myPois, setMyPOIs] = useState([]);
   const [myCategories, setMyCategories] = useState([]);
 
-  const {id: currentUserId} = useUserStore()
+  const {id: currentUserId, fetchFoundLocations, foundLocations} = useUserStore()
 
  const fetchMyPOIs = async () => {
   const mypois = await getMyPOIs(currentUserId);
@@ -124,9 +126,12 @@ function InteractiveMapLayout(props) {
  }
 
  useEffect(()=>{
-  fetchMyPOIs();
-  fetchMyCategories();
- },[user, currentUserId])
+  if (currentUserId) {
+    fetchMyPOIs();
+    fetchMyCategories();
+    fetchFoundLocations(); // Add found locations initialization
+  }
+ },[currentUserId]) // Remove user and fetchFoundLocations from dependencies to prevent infinite loop
 
   // New sidebar visibility state
   const [sidebarVisibilityState, setSidebarVisibilityState] = useState({
@@ -384,7 +389,7 @@ function InteractiveMapLayout(props) {
     const canCreateMoreMyPOIs = currentMyPOIsCount < (planLimits?.totalPOILimit || 0);
     
     if (!canCreateMoreMyPOIs) {
-      alert(`You have reached your My POI limit (${currentMyPOIsCount}/${planLimits?.totalPOILimit || 0}). Please upgrade your plan to add more POIs.`);
+      warning(`You have reached your My POI limit (${currentMyPOIsCount}/${planLimits?.totalPOILimit || 0}). Please upgrade your plan to add more POIs.`);
       return;
     }
     
@@ -482,6 +487,40 @@ function InteractiveMapLayout(props) {
     setNotes(prev => prev.filter(note => note.id !== noteId));
   };
 
+  const handleFoundLocationClick = (locationData) => {
+    const { lat, lng, poi } = locationData;
+    
+    console.log('Found location clicked:', locationData);
+    
+    // Check if this POI is in the main POIs list or My POIs
+    const allAvailablePOIs = [...(filteredPOIs || []), ...(myPois || [])];
+    const matchingPOI = allAvailablePOIs.find(p => p.id === (poi.poi_id || poi.id));
+    
+    if (matchingPOI) {
+      console.log('POI found in available POIs, centering and opening popup');
+      // POI is available, center and try to open popup
+      if (window.leafletMap) {
+        window.leafletMap.setView([lat, lng], 15);
+        // Wait a bit longer to ensure map has moved
+        setTimeout(() => {
+          window.leafletMap.fire('directMarkerClick', {
+            latlng: L.latLng(lat, lng)
+          });
+        }, 800);
+      }
+    } else {
+      console.log('POI not found in available POIs - might be hidden by filters');
+      // POI might be hidden by category filters
+      // Just center the map and let user know they might need to adjust filters
+      if (window.leafletMap) {
+        window.leafletMap.setView([lat, lng], 15);
+      }
+      
+      // Could show a toast message here in the future
+      console.log('Tip: If you don\'t see the POI, try adjusting your category filters');
+    }
+  };
+
   const handleStreetsToggle = () => {
     setStreetsVisible(prev => !prev);
   };
@@ -563,6 +602,7 @@ function InteractiveMapLayout(props) {
       pois={filteredPOIs}
       subCategories={subCategories}
       notes={notes}
+      foundLocations={foundLocations}
       onAddNote={handleAddNote}
       onEditNote={handleEditNote}
       onRemoveNote={handleRemoveNote}
@@ -580,6 +620,7 @@ function InteractiveMapLayout(props) {
       userCategoryCount={myCategories?.length}
       maxMarkers={maxMarkers}
       canCreateMore={canCreateMore}
+      onFoundLocationClick={handleFoundLocationClick}
     />
   );
 

@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { authenticateUser, getAllUsers } from '../api/functions/apiFunctions';
+import { 
+  authenticateUser, 
+  getAllUsers, 
+  getFoundLocations, 
+  addFoundLocation, 
+  removeFoundLocation, 
+  checkIfFound 
+} from '../api/functions/apiFunctions';
 import { localDB } from '../utils/localStorage';
 
 export const PLAN_LIMITS = {
@@ -39,6 +46,11 @@ const useUserStore = create((set, get) => ({
   passwordResetStatus: null,
   passwordResetError: null,
   passwordResetSuccess: false,
+  
+
+  // Found locations state
+  foundLocations: [],
+  foundLocationsLoading: false,
   
 
   initializeUser: () => {
@@ -308,6 +320,89 @@ const useUserStore = create((set, get) => ({
     if (!id) return 0;
     const limit = PLAN_LIMITS[plan]?.maxNotes || 0;
     return limit === Infinity ? Infinity : Math.max(0, limit - currentNoteCount);
+  },
+
+  // Found Locations methods
+  fetchFoundLocations: async () => {
+    const { id } = get();
+    if (!id) return;
+    
+    set({ foundLocationsLoading: true });
+    try {
+      const foundLocations = await getFoundLocations(id);
+      set({ foundLocations, foundLocationsLoading: false });
+      return foundLocations;
+    } catch (error) {
+      console.error('Error fetching found locations:', error);
+      set({ foundLocationsLoading: false });
+      return [];
+    }
+  },
+
+  addToFoundLocations: async (poiId, notes = null) => {
+    const { id, foundLocations } = get();
+    if (!id) return { success: false, error: 'No user logged in' };
+    
+    try {
+      const result = await addFoundLocation(id, poiId, notes);
+      console.log('Added to found locations - result:', result);
+      
+      // Update local state
+      const existingIndex = foundLocations.findIndex(fl => fl.poi_id === poiId);
+      let updatedFoundLocations;
+      
+      if (existingIndex >= 0) {
+        // Update existing entry
+        updatedFoundLocations = [...foundLocations];
+        updatedFoundLocations[existingIndex] = { ...updatedFoundLocations[existingIndex], ...result };
+      } else {
+        // Add new entry
+        updatedFoundLocations = [result, ...foundLocations];
+      }
+      
+      console.log('Updated found locations state:', updatedFoundLocations);
+      set({ foundLocations: updatedFoundLocations });
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('Error adding to found locations:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  removeFromFoundLocations: async (poiId) => {
+    const { id, foundLocations } = get();
+    if (!id) return { success: false, error: 'No user logged in' };
+    
+    try {
+      await removeFoundLocation(id, poiId);
+      
+      // Update local state
+      const updatedFoundLocations = foundLocations.filter(fl => fl.poi_id !== poiId);
+      set({ foundLocations: updatedFoundLocations });
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error removing from found locations:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  checkIfPOIFound: async (poiId) => {
+    const { id } = get();
+    if (!id) return { isFound: false };
+    
+    try {
+      const result = await checkIfFound(id, poiId);
+      return result;
+    } catch (error) {
+      console.error('Error checking if POI is found:', error);
+      return { isFound: false };
+    }
+  },
+
+  isLocationFound: (poiId) => {
+    const { foundLocations } = get();
+    return foundLocations.some(fl => fl.poi_id === poiId);
   },
 }));
 

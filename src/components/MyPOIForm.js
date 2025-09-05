@@ -30,10 +30,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../utils/apiUtils';
 import uploadFile from '../aws/fileUpload';
 import useUserStore, { PLAN_LIMITS } from '../stores/user';
+import { useAlerts } from '../hooks/useAlerts';
 
 const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [], myCategories = [] }) => {
   const { user } = useAuth();
   const { plan, getRemainingCategories } = useUserStore();
+  const { error, warning } = useAlerts();
   const [loading, setLoading] = useState(false);
   const [subcategories, setSubcategories] = useState([]);
   const [showSubcategoryForm, setShowSubcategoryForm] = useState(false);
@@ -123,9 +125,9 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
         setFormData(prev => ({ ...prev, image_url: uploadedUrl }));
         setImagePreview(uploadedUrl);
       }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Failed to upload image');
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      error('Failed to upload image');
     }
     setUploadingImage(false);
   };
@@ -157,9 +159,9 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
         setSubcategoryData(prev => ({ ...prev, icon_image_url: uploadedUrl }));
         setIconPreview(uploadedUrl);
       }
-    } catch (error) {
-      console.error('Error uploading icon:', error);
-      alert('Failed to upload icon');
+    } catch (err) {
+      console.error('Error uploading icon:', err);
+      error('Failed to upload icon');
     }
     setUploadingIcon(false);
   };
@@ -180,13 +182,13 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
 
   const handleCreateSubcategory = async () => {
     if (!subcategoryData.name.trim()) {
-      alert('Please enter a subcategory name');
+      warning('Please enter a subcategory name');
       return;
     }
 
     // Check subcategory limit
     if (!canCreateMoreSubcategories) {
-      alert(`You have reached your subcategory limit (${planLimits?.maxCustomCategories || 0}). Please upgrade your plan to add more subcategories.`);
+      warning(`You have reached your subcategory limit (${planLimits?.maxCustomCategories || 0}). Please upgrade your plan to add more subcategories.`);
       return;
     }
 
@@ -208,9 +210,9 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
         setSelectedIconFile(null);
         setIconPreview('');
       }
-    } catch (error) {
-      console.error('Error creating subcategory:', error);
-      alert('Failed to create subcategory');
+    } catch (err) {
+      console.error('Error creating subcategory:', err);
+      error('Failed to create subcategory');
     }
     setLoading(false);
   };
@@ -224,13 +226,13 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
 
   const handleSubmit = async () => {
     if (!formData.name.trim() || !formData.sub_category_id || !formData.coords) {
-      alert('Please fill in all required fields and select a location on the map');
+      warning('Please fill in all required fields and select a location on the map');
       return;
     }
 
     // Check POI limit
     if (!canCreateMorePOIs) {
-      alert(`You have reached your My POI limit (${planLimits?.totalPOILimit || 0}). Please upgrade your plan to add more POIs.`);
+      warning(`You have reached your My POI limit (${planLimits?.totalPOILimit || 0}). Please upgrade your plan to add more POIs.`);
       return;
     }
 
@@ -245,9 +247,9 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
         onSuccess && onSuccess(response);
         handleClose();
       }
-    } catch (error) {
-      console.error('Error creating POI:', error);
-      alert('Failed to create POI');
+    } catch (err) {
+      console.error('Error creating POI:', err);
+      error('Failed to create POI');
     }
     setLoading(false);
   };

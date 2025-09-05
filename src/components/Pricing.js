@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAlerts } from '../hooks/useAlerts';
 import {
   Box,
   Paper,
@@ -45,6 +46,7 @@ import {
 
 const Pricing = () => {
   const { id, name, email, plan, initializeUser, upgradePlan } = useUserStore();
+  const { error } = useAlerts();
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState([]);
   const [plansLoading, setPlansLoading] = useState(true);
@@ -220,7 +222,7 @@ const Pricing = () => {
         setConfirmDialog({ open: false, plan: null });
         window.location.href = stripeResult.url; // Redirect to Stripe checkout
       } else {
-        alert('Failed to initiate checkout. Please try again.');
+        error('Failed to initiate checkout. Please try again.');
       }
       setConfirmDialog({ open: false, plan: null });
     }
@@ -343,14 +345,14 @@ const Pricing = () => {
                         {plan.totalPOILimit === -1 ? 'Unlimited' : plan.totalPOILimit} Total POIs
                       </Typography>
                     </Box>
-                    {plan.allowCustomIcons && (
+                    {/* {plan.allowCustomIcons && (
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <PaletteIcon color="warning" sx={{ mr: 1 }} />
                         <Typography variant="body2" fontWeight="medium">
                           Custom Icons
                         </Typography>
                       </Box>
-                    )}
+                    )} */}
                   </Box>
 
                   <List dense>

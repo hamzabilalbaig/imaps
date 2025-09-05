@@ -48,6 +48,7 @@ import usePOIsStore from '../stores/pois';
 import useUserStore from '../stores/user';
 import uploadFile from '../aws/fileUpload';
 import MyPOIForm from './MyPOIForm';
+import { useAlerts } from '../hooks/useAlerts';
 
 /**
  * Simple sidebar component displaying categories
@@ -99,6 +100,7 @@ function Sidebar({
 
   // User store
   const { isadmin, id: currentUserId } = useUserStore();
+  const { warning, error: showError, confirm } = useAlerts();
 
   const [unapprovedPois, setUnapprovedPois] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -286,13 +288,13 @@ function Sidebar({
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      warning('Please select an image file');
       return;
     }
 
     // Validate file size (max 5MB)
     // if (file.size > 5 * 1024 * 1024) {
-    //   alert('File size must be less than 5MB');
+    //   warning('File size must be less than 5MB');
     //   return;
     // }
 
@@ -310,9 +312,9 @@ function Sidebar({
       if (uploadedUrl) {
         setEditingPoi(prev => ({ ...prev, image_url: uploadedUrl }));
       }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Failed to upload image. Please try again.');
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      showError('Failed to upload image. Please try again.');
     } finally {
       setUploadingImage(false);
     }
@@ -352,7 +354,7 @@ function Sidebar({
   };
 
   const handleDeleteUserPOI = async (poi) => {
-    if (window.confirm(`Are you sure you want to delete "${poi.name}"? This action cannot be undone.`)) {
+    confirm(`Are you sure you want to delete "${poi.name}"? This action cannot be undone.`, async () => {
       setActionLoading(true);
       try {
         const result = await deletePOI(poi.id);
@@ -360,12 +362,12 @@ function Sidebar({
           // Refresh POIs to update the list
           await fetchPOIs();
         }
-      } catch (error) {
-        console.error('Error deleting POI:', error);
+      } catch (err) {
+        console.error('Error deleting POI:', err);
       } finally {
         setActionLoading(false);
       }
-    }
+    });
   };
 
   const handleMyPOIEnableMapClick = () => {

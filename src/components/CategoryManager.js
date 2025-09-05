@@ -38,6 +38,7 @@ import IconSelector from './IconSelector';
 import ColorPicker from './ColorPicker';
 import { localDB } from '../utils/localStorage';
 import { Circle } from 'react-leaflet';
+import { useAlerts } from '../hooks/useAlerts';
 
 // Storage key for custom categories
 const CATEGORIES_STORAGE_KEY = 'customCategories';
@@ -54,6 +55,7 @@ function CategoryManager() {
     deleteCategory
   } = useCategories();
   const { id, name, email, plan, role, initializeUser, canCreateCategory, getRemainingCategories } = useUserStore();
+  const { warning, error, confirm } = useAlerts();
   
   useEffect(() => {
     initializeUser();
@@ -90,7 +92,7 @@ function CategoryManager() {
   const handleAddCategory = () => {
     const currentCategoryCount = categories?.length;
     if (!canCreateCategory(currentCategoryCount)) {
-      alert('You have reached your category limit. Upgrade your plan to create more categories?.');
+      warning('You have reached your category limit. Upgrade your plan to create more categories.');
       return;
     }
 
@@ -118,21 +120,22 @@ function CategoryManager() {
   };
 
   const handleDeleteCategory = async (categoryId) => {
-    if (window.confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+    confirm('Are you sure you want to delete this category? This action cannot be undone.', async () => {
       try {
         await deleteCategory(categoryId);
-      } catch (error) {
-        console.error('Error deleting category:', error);
-        alert(error);
+      } catch (err) {
+        console.error('Error deleting category:', err);
+        error(err.message || 'Failed to delete category');
       }
-    }
+    });
   };
 
   const handleSaveCategory = async () => {
     if (loading) return; // Prevent multiple submissions
     setLoading(true);
     if (!formData?.name?.trim()) {
-      alert('Please enter a category name');
+      warning('Please enter a category name');
+      setLoading(false);
       return;
     }
 
@@ -143,7 +146,8 @@ function CategoryManager() {
     );
 
     if (isDuplicate) {
-      alert('A category with this name already exists');
+      warning('A category with this name already exists');
+      setLoading(false);
       return;
     }
 
@@ -177,9 +181,9 @@ function CategoryManager() {
 
       setShowForm(false);
       setEditingCategory(null);
-    } catch (error) {
-      console.error('Error saving category:', error);
-      alert('Error saving category: ' + error?.message);
+    } catch (err) {
+      console.error('Error saving category:', err);
+      error('Error saving category: ' + (err?.message || 'Unknown error'));
     }
     setLoading(false);
   };

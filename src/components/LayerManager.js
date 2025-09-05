@@ -31,6 +31,7 @@ import {
   Cancel as CancelIcon
 } from "@mui/icons-material";
 import { useMapLayers } from "../hooks/useMapLayers";
+import { useAlerts } from "../hooks/useAlerts";
 
 /**
  * Component for managing map layers in admin panel
@@ -47,6 +48,7 @@ function LayerManager() {
     setActiveLayer,
     resetToDefaults,
   } = useMapLayers();
+  const { warning, confirm } = useAlerts();
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingLayer, setEditingLayer] = useState(null);
@@ -59,7 +61,7 @@ function LayerManager() {
 
   const handleAddLayer = () => {
     // Disabled for local map system
-    alert('Custom layers are not available with local map images. Use the built-in Atlas, Road, Satellite, and UV layers.');
+    warning('Custom layers are not available with local map images. Use the built-in Atlas, Road, Satellite, and UV layers.');
     return;
   }
   const handleEditLayer = (layer) => {
@@ -77,7 +79,7 @@ function LayerManager() {
     e.preventDefault();
     
     if (!formData.name.trim() || !formData.url.trim()) {
-      alert("Please fill in the required fields (Name and URL)");
+      warning("Please fill in the required fields (Name and URL)");
       return;
     }
 
@@ -110,19 +112,19 @@ function LayerManager() {
 
   const handleRemoveLayer = (layer) => {
     if (layer.isDefault) {
-      alert("Cannot remove default layers");
+      warning("Cannot remove default layers");
       return;
     }
 
-    if (window.confirm(`Are you sure you want to remove the layer "${layer.name}"?`)) {
+    confirm(`Are you sure you want to remove the layer "${layer.name}"?`, () => {
       removeLayer(layer.id);
-    }
+    });
   };
 
   const handleResetLayers = () => {
-    if (window.confirm("Are you sure you want to reset all layers to defaults? This will remove all custom layers.")) {
+    confirm("Are you sure you want to reset all layers to defaults? This will remove all custom layers.", () => {
       resetToDefaults();
-    }
+    });
   };
 
   const validateLayerUrl = (url) => {

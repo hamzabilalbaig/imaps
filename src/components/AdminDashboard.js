@@ -1070,14 +1070,14 @@ function AdminDashboard() {
                       </Typography>
                     </Box>
                     
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary">
                         POIs per Category (Deprecated)
                       </Typography>
                       <Typography variant="body2" fontWeight={500} color="text.disabled">
                         {plan.max_pois_per_category === -1 ? '∞' : plan.max_pois_per_category}
                       </Typography>
-                    </Box>
+                    </Box> */}
                     
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary">
@@ -2595,7 +2595,7 @@ function AdminDashboard() {
                   helperText="Leave empty for unlimited"
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              {/* <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
                   label="POIs per Category (Deprecated)"
@@ -2608,7 +2608,7 @@ function AdminDashboard() {
                   })}
                   helperText="No longer used - POI limits are now plan-based only"
                 />
-              </Grid>
+              </Grid> */}
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth

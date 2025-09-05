@@ -7,6 +7,7 @@ import theme from './theme';
 import './App.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { CategoriesProvider } from './contexts/CategoriesContext';
+import { ModalProvider } from './contexts/ModalContext';
 import useUserStore from './stores/user';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
@@ -53,8 +54,9 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
-        <CategoriesProvider>
+      <ModalProvider>
+        <AuthProvider>
+          <CategoriesProvider>
           <Router>
             <Box sx={{ 
               height: '100vh', 
@@ -137,6 +139,7 @@ function App() {
           </Router>
         </CategoriesProvider>
       </AuthProvider>
+      </ModalProvider>
     </ThemeProvider>
   );
 }

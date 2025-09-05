@@ -21,12 +21,14 @@ import {
 import { CATEGORY_ICONS, getCustomIcons } from "../utils/mapUtils";
 import { localDB } from '../utils/localStorage';
 import useUserStore from '../stores/user';
+import { useAlerts } from '../hooks/useAlerts';
 
 /**
  * Icon selector component for POI forms
  */
 function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
   const { canUseCustomIcons, initializeUser, id } = useUserStore();
+  const { warning, error } = useAlerts();
 
   useEffect(() => {
     initializeUser();
@@ -54,13 +56,13 @@ function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
     // Validate file type
     const allowedTypes = ['image/png', 'image/svg+xml', 'image/jpeg', 'image/jpg'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Please select a PNG, SVG, JPG, or JPEG file');
+      warning('Please select a PNG, SVG, JPG, or JPEG file');
       return;
     }
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      alert('File size must be less than 2MB');
+      warning('File size must be less than 2MB');
       return;
     }
 
@@ -78,7 +80,7 @@ function IconSelector({ selectedIcon, onIconSelect, customIcons = [] }) {
       if (result.success) {
         onIconSelect(result.icon.id, result.icon);
       } else {
-        alert('Error saving custom icon: ' + result.message);
+        error('Error saving custom icon: ' + result.message);
       }
       setIsOpen(false);
       setShowUpload(false);

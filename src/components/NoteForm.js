@@ -10,13 +10,15 @@ import {
   Typography,
   Alert,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  CircularProgress
 } from "@mui/material";
 import { Save as SaveIcon, Cancel as CancelIcon, Note as NoteIcon } from "@mui/icons-material";
 import ColorPicker from "./ColorPicker";
 import localDB from "../utils/localStorage";
 import { editUserNote } from "../api/functions/apiFunctions";
 import { saveMapState } from "../utils/mapStateUtils";
+import { useAlerts } from '../hooks/useAlerts';
 
 /**
  * Form component for adding or editing Notes
@@ -27,6 +29,9 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
     description: "",
     color: "#7c3aed"
   });
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const { warning, error } = useAlerts();
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -45,36 +50,45 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) {
-      alert("Please enter a title for the note");
+      warning("Please enter a title for the note");
       return;
     }
     
-    console.log('NoteForm submitting data:', formData);
-    const user = JSON.parse(localStorage.getItem('imaps_current_user'));
-    if(user?.role === 'admin') {}
-    else {
-      // Save map state before updating
-      const mapInstance = window.leafletMap; // This will be set in MapWithLayers
-      if (mapInstance) {
-        saveMapState(mapInstance);
+    setIsLoading(true);
+    
+    try {
+      console.log('NoteForm submitting data:', formData);
+      const user = JSON.parse(localStorage.getItem('imaps_current_user'));
+      if(user?.role === 'admin') {}
+      else {
+        // Save map state before updating
+        const mapInstance = window.leafletMap; // This will be set in MapWithLayers
+        if (mapInstance) {
+          saveMapState(mapInstance);
+        }
+        
+        const data = await editUserNote(user.id, note.id, {
+          ...formData,
+          updatedAt: new Date().toISOString()
+        });
+        if (data) {
+          localStorage.setItem('imaps_current_user', JSON.stringify(data));
+          // Removed window.location.reload() to prevent page refresh
+        }
       }
-      
-      const data = await editUserNote(user.id, note.id, {
-        ...formData,
-        updatedAt: new Date().toISOString()
-      });
-      if (data) {
-        localStorage.setItem('imaps_current_user', JSON.stringify(data));
-        // Removed window.location.reload() to prevent page refresh
+      if(isEdit){
+        localDB?.updateNote(note.id, {
+          ...formData,
+          updatedAt: new Date().toISOString()
+        });
+      } else {
+        onSave(formData);
       }
-    }
-    if(isEdit){
-      localDB?.updateNote(note.id, {
-        ...formData,
-        updatedAt: new Date().toISOString()
-      });
-    } else {
-      onSave(formData);
+    } catch (err) {
+      console.error('Error saving note:', err);
+      error('Failed to save note. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -96,7 +110,7 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
   return (
     <Dialog 
       open={true} 
-      onClose={onCancel} 
+      onClose={!isLoading ? onCancel : undefined} 
       maxWidth="sm" 
       fullWidth
       fullScreen={isMobile}
@@ -113,7 +127,9 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
           ...(isTablet && !isMobile && {
             m: 1,
             maxWidth: 'calc(100vw - 32px)'
-          })
+          }),
+          opacity: isLoading ? 0.8 : 1,
+          transition: 'opacity 0.2s ease-in-out'
         }
       }}
     >
@@ -153,6 +169,7 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
             onChange={handleChange}
             fullWidth
             required
+            disabled={isLoading}
             placeholder="Enter a title for this note"
             helperText="Required field"
             variant="outlined"
@@ -173,6 +190,7 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
             fullWidth
             multiline
             rows={isMobile ? 3 : 4}
+            disabled={isLoading}
             placeholder="Add any details or content for this note"
             variant="outlined"
             size={isMobile ? "small" : "medium"}
@@ -191,6 +209,7 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
             <ColorPicker
               selectedColor={formData.color}
               onColorChange={handleColorChange}
+              disabled={isLoading}
             />
           </Box>
 {/* 
@@ -234,6 +253,7 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
           color="inherit"
           variant="outlined"
           fullWidth={isMobile}
+          disabled={isLoading}
           sx={{
             borderRadius: 2,
             px: { xs: 2, md: 3 },
@@ -251,8 +271,9 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
         <Button 
           type="submit" 
           variant="contained" 
-          startIcon={<SaveIcon />}
+          startIcon={isLoading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <SaveIcon />}
           fullWidth={isMobile}
+          disabled={isLoading}
           sx={{
             borderRadius: 2,
             px: { xs: 2, md: 3 },
@@ -262,10 +283,14 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
             background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
             '&:hover': {
               background: 'linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%)'
+            },
+            '&:disabled': {
+              background: 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)',
+              color: 'white'
             }
           }}
         >
-          {isEdit ? "Update Note" : "Add Note"}
+          {isLoading ? (isEdit ? "Updating..." : "Adding...") : (isEdit ? "Update Note" : "Add Note")}
         </Button>
       </DialogActions>
     </Dialog>

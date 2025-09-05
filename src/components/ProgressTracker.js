@@ -52,7 +52,8 @@ function ProgressTracker({
   userMarkerCount = 0,
   userCategoryCount = 0,
   maxMarkers = Infinity,
-  canCreateMore = true
+  canCreateMore = true,
+  onFoundLocationClick
 }) {
   const theme = useTheme();
   const { getRemainingCategories, canUseCustomIcons, id, name, email, plan, role, initializeUser } = useUserStore();
@@ -376,33 +377,62 @@ function ProgressTracker({
             </Typography>
           ) : (
             <List dense>
-              {foundLocations.map((location, index) => (
-                <ListItem 
-                  key={index} 
-                  sx={{ 
-                    px: 0,
-                    py: 0.5,
-                    '&:hover': {
-                      backgroundColor: alpha(theme.palette.success.main, 0.05)
+              {foundLocations.map((location, index) => {
+                // Parse coordinates from found location
+                const handleLocationClick = () => {
+                  if (onFoundLocationClick && location.coords) {
+                    // Parse coordinates - they could be array or string
+                    let lat, lng;
+                    if (Array.isArray(location.coords)) {
+                      lat = location.coords[0];
+                      lng = location.coords[1];
+                    } else if (typeof location.coords === 'string') {
+                      const coords = location.coords.split(',').map(coord => parseFloat(coord.trim()));
+                      lat = coords[0];
+                      lng = coords[1];
                     }
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    <LocationOnIcon sx={{ fontSize: '1rem', color: theme.palette.success.main }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={location.title}
-                    secondary={location.category}
-                    primaryTypographyProps={{
-                      fontSize: '0.8rem',
-                      fontWeight: 500
+                    
+                    if (lat !== undefined && lng !== undefined) {
+                      onFoundLocationClick({
+                        lat,
+                        lng,
+                        poi: location // Pass the full location data with POI info
+                      });
+                    }
+                  }
+                };
+
+                return (
+                  <ListItem 
+                    key={location.id || index} 
+                    sx={{ 
+                      px: 0,
+                      py: 0.5,
+                      cursor: onFoundLocationClick ? 'pointer' : 'default',
+                      borderRadius: 1,
+                      '&:hover': {
+                        backgroundColor: onFoundLocationClick ? alpha(theme.palette.success.main, 0.05) : 'transparent'
+                      }
                     }}
-                    secondaryTypographyProps={{
-                      fontSize: '0.7rem'
-                    }}
-                  />
-                </ListItem>
-              ))}
+                    onClick={handleLocationClick}
+                  >
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <LocationOnIcon sx={{ fontSize: '1rem', color: theme.palette.success.main }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={location.name}
+                      secondary={`${location.subcategory_name || 'Unknown Category'} • Found ${new Date(location.found_at).toLocaleDateString()}`}
+                      primaryTypographyProps={{
+                        fontSize: '0.8rem',
+                        fontWeight: 500
+                      }}
+                      secondaryTypographyProps={{
+                        fontSize: '0.7rem'
+                      }}
+                    />
+                  </ListItem>
+                );
+              })}
             </List>
           )}
         </Box>

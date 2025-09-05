@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from 'react';
+import { useAlerts } from '../hooks/useAlerts';
 import { Marker, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { 
@@ -7,7 +8,9 @@ import {
   Button, 
   Chip, 
   Stack,
-  useTheme
+  useTheme,
+  FormControlLabel,
+  Checkbox
 } from "@mui/material";
 import {
   Share as ShareIcon,
@@ -31,11 +34,12 @@ import useUserStore from "../stores/user";
 function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocused = false }) {
   const isAdmin = useUserStore(state => state.isadmin)
   const canEdit = isAdmin ? true : false
-  useEffect(() => {
-    console.log("MapMarker - isAdmin:", isAdmin);
-  }, [isAdmin]);
+  const { id: userId, isLocationFound, addToFoundLocations, removeFromFoundLocations } = useUserStore()
+  const { success, warning } = useAlerts();
+  
+  const [isFound, setIsFound] = useState(false)
+  const [foundLoading, setFoundLoading] = useState(false)
   const theme = useTheme();
-  const [popupRef, setPopupRef] = useState(null);
   
   // Support both new POI structure and legacy marker structure
   const currentItem = poi || marker;
@@ -46,70 +50,85 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
     subCategories.find(sub => sub.id === poi.sub_category_id) : null;
 
   // Get display values based on structure
-  const displayName = isNewStructure ? poi.name : (marker?.title || "Untitled POI");
+  const displayName = isNewStructure ? (poi.name || poi.title || "Untitled POI") : (marker?.title || "Untitled POI");
   const displayDescription = isNewStructure ? poi.description : marker?.description;
-  const displayCategory = isNewStructure ? subCategory?.name : marker?.category;
-  const position = isNewStructure ? poi.position || poi.coords : marker?.position;
+  const displayCategory = isNewStructure ? (subCategory?.name || poi.subcategory_name || "Unknown Category") : marker?.category;
+  
+  // Handle position/coordinates more robustly
+  let position;
+  if (isNewStructure) {
+    if (poi.position && Array.isArray(poi.position)) {
+      position = poi.position;
+    } else if (poi.coords) {
+      if (Array.isArray(poi.coords)) {
+        position = poi.coords;
+      } else if (typeof poi.coords === 'string') {
+        // Parse string coordinates like "lat,lng"
+        const coordParts = poi.coords.split(',').map(coord => parseFloat(coord.trim()));
+        position = coordParts.length === 2 ? coordParts : null;
+      }
+    }
+  } else {
+    position = marker?.position;
+  }
+  
   const iconImageUrl = isNewStructure ? subCategory?.icon_image_url : null;
   const poiImageUrl = isNewStructure ? poi.image_url : null;
+
+  // All useEffect hooks must be before any early returns
+  useEffect(() => {
+    console.log("MapMarker - isAdmin:", isAdmin);
+  }, [isAdmin]);
 
   // Debug logging for new structure
   useEffect(() => {
     if (isNewStructure) {
       console.log('MapMarker - POI:', poi);
       console.log('MapMarker - SubCategory:', subCategory);
-      console.log('MapMarker - Position:', poi.position || poi.coords);
+      console.log('MapMarker - Display Name:', displayName);
+      console.log('MapMarker - Display Category:', displayCategory);
+      console.log('MapMarker - Position:', position);
       console.log('MapMarker - Is Focused:', isFocused);
     }
-  }, [poi, subCategory, isNewStructure, isFocused]);
+  }, [poi, subCategory, isNewStructure, isFocused, displayName, displayCategory, position]);
 
-  // Auto-open popup when focused
+    // Check if POI is found when component mounts or POI changes
   useEffect(() => {
-    if (isFocused) {
-      console.log('POI is focused - attempting to open popup:', currentItem);
-      
-      // Get position safely based on structure
-      const markerPosition = isNewStructure ? 
-        (poi.position || poi.coords) : 
-        (marker?.position || [0, 0]);
-      
-      // Try multiple approaches with increasing delays
-      const delays = [500, 1000, 2000, 3000];
-      
-      delays.forEach((delay) => {
-        setTimeout(() => {
-          try {
-            // Approach 1: Use popup ref
-            if (popupRef && typeof popupRef.openPopup === 'function') {
-              console.log(`Approach 1: Attempting to open popup via ref after ${delay}ms`);
-              popupRef.openPopup();
-            }
-            
-            // Approach 2: Use global map instance and coordinates
-            if (window.leafletMap && markerPosition) {
-              console.log(`Approach 2: Attempting to open popup via map.openPopup() after ${delay}ms`);
-              
-              // Create a temporary popup if needed
-              const tempPopup = L.popup()
-                .setLatLng(markerPosition)
-                .setContent(`<div id="temp-popup-${currentItem.id}">Loading...</div>`)
-                .openOn(window.leafletMap);
-              
-              // Click the marker programmatically
-              window.leafletMap.fire('click', {
-                latlng: L.latLng(markerPosition[0], markerPosition[1]),
-                layerPoint: window.leafletMap.latLngToLayerPoint(L.latLng(markerPosition[0], markerPosition[1])),
-                containerPoint: window.leafletMap.latLngToContainerPoint(L.latLng(markerPosition[0], markerPosition[1]))
-              });
-            }
-          } catch (error) {
-            console.error('Error opening popup:', error);
-          }
-        }, delay);
-      });
+    if (userId && currentItem?.id) {
+      const found = isLocationFound(currentItem.id);
+      setIsFound(found);
     }
-  }, [isFocused, popupRef, currentItem, isNewStructure, poi, marker]);
-  
+  }, [userId, currentItem?.id, isLocationFound]);
+
+  useEffect(() => {
+    console.log("POI/Marker updated:", currentItem);
+  }, [currentItem]);
+
+  // Debug the POI structure and values
+  useEffect(() => {
+    if (isNewStructure) {
+      console.log('MapMarker - Full POI object:', poi);
+      console.log('MapMarker - poi.name:', poi.name);
+      console.log('MapMarker - poi.title:', poi.title);  
+      console.log('MapMarker - subCategory:', subCategory);
+      console.log('MapMarker - Position format:', position, typeof position, Array.isArray(position));
+    }
+  }, [isNewStructure, poi, subCategory, position]);
+
+  // Check if POI is found when component mounts or POI changes
+  useEffect(() => {
+    if (userId && currentItem?.id) {
+      const found = isLocationFound(currentItem.id);
+      setIsFound(found);
+    }
+  }, [userId, currentItem?.id, isLocationFound]);
+
+  // Don't render marker if position is invalid
+  if (!position || !Array.isArray(position) || position.length !== 2) {
+    console.warn('MapMarker - Invalid position:', position, 'for POI:', currentItem);
+    return null;
+  }
+
   const handleShare = async () => {
     // For new POI structure, pass the current POI with subcategory name
     const itemForSharing = isNewStructure ? {
@@ -122,7 +141,7 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
     const shareableLink = generateShareableLink(itemForSharing);
     try {
       await navigator.clipboard.writeText(shareableLink);
-      alert("Shareable link copied to clipboard!");
+      success("Shareable link copied to clipboard!");
     } catch (err) {
       // Fallback for browsers that don't support clipboard API
       const textArea = document.createElement("textarea");
@@ -131,13 +150,9 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
       textArea.select();
       document.execCommand("copy");
       document.body.removeChild(textArea);
-      alert("Shareable link copied to clipboard!");
+      success("Shareable link copied to clipboard!");
     }
   };
-
-  useEffect(() => {
-    console.log("POI/Marker updated:", currentItem);
-  }, [currentItem]);
 
   const getCategoryColor = (category) => {
     const colors = {
@@ -161,22 +176,43 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
     return colors[category] || "default";
   };
 
-  // Debug the POI structure and values
-  useEffect(() => {
-    if (isNewStructure) {
-      console.log('MapMarker - Full POI object:', poi);
-      console.log('MapMarker - poi.name:', poi.name);
-      console.log('MapMarker - poi.title:', poi.title);  
-      console.log('MapMarker - subCategory:', subCategory);
-      console.log('MapMarker - Position format:', position, typeof position, Array.isArray(position));
+  const handleFoundToggle = async (event) => {
+    event.stopPropagation();
+    
+    if (!userId) {
+      warning('Please log in to mark locations as found');
+      return;
     }
-  }, [isNewStructure, poi, subCategory, position]);
+    
+    setFoundLoading(true);
+    
+    try {
+      if (isFound) {
+        const result = await removeFromFoundLocations(currentItem.id);
+        if (result.success) {
+          setIsFound(false);
+        } else {
+          console.error('Failed to remove found location:', result.error);
+        }
+      } else {
+        const result = await addToFoundLocations(currentItem.id);
+        if (result.success) {
+          setIsFound(true);
+        } else {
+          console.error('Failed to add found location:', result.error);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling found status:', error);
+    } finally {
+      setFoundLoading(false);
+    }
+  };
 
   return (
     <Marker 
       key={currentItem.id} 
       position={position}
-      ref={setPopupRef}
       icon={isNewStructure ? 
         createCategoryIcon(
           subCategory?.name, 
@@ -188,7 +224,7 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
       }
     >
       <Tooltip>{displayName}</Tooltip>
-      <Popup className="custom-popup" ref={popupRef}>
+      <Popup className="custom-popup">
         <Box sx={{ minWidth: 250, p: 1 }}>
           {/* POI Image - Only show for new structure if image exists */}
           {poiImageUrl && (
@@ -234,6 +270,27 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
               </Typography>
             )}
           </Box>
+
+          {/* Found Location Checkbox - Only show for logged-in users and non-admin view */}
+          {userId && !canEdit && (
+            <Box sx={{ mb: 2 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={isFound}
+                    onChange={handleFoundToggle}
+                    disabled={foundLoading}
+                    size="small"
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    {foundLoading ? 'Updating...' : (isFound ? 'Found' : 'Mark as Found')}
+                  </Typography>
+                }
+              />
+            </Box>
+          )}
 
           <Stack spacing={1}>
             <Button

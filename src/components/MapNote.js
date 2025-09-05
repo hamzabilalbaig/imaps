@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import L from 'leaflet';
 import localDB from '../utils/localStorage';
+import { useAlerts } from '../hooks/useAlerts';
 
 /**
  * Component for rendering notes on the map
@@ -25,6 +26,7 @@ function MapNote({
   canEdit = true 
 }) {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const { confirm } = useAlerts();
 
   // Create custom icon based on note's color
   const createNoteIcon = () => {
@@ -55,10 +57,10 @@ function MapNote({
   };
 
   const handleRemove = async () => {
-    if (window.confirm('Are you sure you want to delete this note?')) {
+    confirm('Are you sure you want to delete this note?', async () => {
       setIsPopupOpen(false);
       await localDB.deleteNote(note.id);
-    }
+    });
   };
 
   return (

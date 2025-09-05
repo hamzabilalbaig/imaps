@@ -22,6 +22,7 @@ import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon } fro
 import useUserStore from "../stores/user";
 import useSubCategoriesStore from "../stores/subCategories";
 import uploadFile from "../aws/fileUpload";
+import { useAlerts } from "../hooks/useAlerts";
 
 /**
  * Form component for adding or editing POIs
@@ -31,6 +32,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const { initializeUser, id } = useUserStore();
   const { subCategories, initializeSubCategories } = useSubCategoriesStore();
+  const { warning, error } = useAlerts();
   // POI creation and update handled by parent via onSave callback
 
   useEffect(() => {
@@ -76,13 +78,13 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      warning('Please select an image file');
       return;
     }
 
     // Validate file size (max 5MB)
     // if (file.size > 5 * 1024 * 1024) {
-    //   alert('File size must be less than 5MB');
+    //   warning('File size must be less than 5MB');
     //   return;
     // }
 
@@ -100,13 +102,13 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
       if (uploadedUrl) {
         setFormData(prev => ({ ...prev, image_url: uploadedUrl }));
       } else {
-        alert('Failed to upload image. Please try again.');
+        error('Failed to upload image. Please try again.');
         setSelectedImage(null);
         setImagePreview('');
       }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Failed to upload image. Please try again.');
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      error('Failed to upload image. Please try again.');
       setSelectedImage(null);
       setImagePreview('');
     } finally {
@@ -119,13 +121,13 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
     setLoading(true);
     
     if (!formData.name.trim()) {
-      alert("Please enter a name for the POI");
+      warning("Please enter a name for the POI");
       setLoading(false);
       return;
     }
     
     if (!formData.sub_category_id) {
-      alert("Please select a subcategory for the POI");
+      warning("Please select a subcategory for the POI");
       setLoading(false);
       return;
     }
@@ -145,9 +147,9 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
 
       // Pass data to parent for API call
       onSave(submissionData);
-    } catch (error) {
-      console.error('Error submitting POI:', error);
-      alert('An unexpected error occurred. Please try again.');
+    } catch (err) {
+      console.error('Error submitting POI:', err);
+      error('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

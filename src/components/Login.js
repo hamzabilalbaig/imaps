@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAlerts } from '../hooks/useAlerts';
 import { Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   Box,
@@ -39,6 +40,7 @@ const Login = ({loginType, isRegister}) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { success } = useAlerts();
 
   // Get login from store
   const { authenticate, clearUser, id: userId } = useUserStore();
@@ -80,7 +82,7 @@ const Login = ({loginType, isRegister}) => {
         
         // User created successfully - show success message
         setError('');
-        alert('Account created successfully! You can now log in.');
+        success('Account created successfully! You can now log in.');
         
         // Automatically switch to login mode
         setMode('login');
