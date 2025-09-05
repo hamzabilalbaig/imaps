@@ -193,7 +193,7 @@ function InteractiveMapLayout(props) {
   // Handle POI from URL parameter
   useEffect(() => {
     const poiFromURL = parsePOIFromURL();
-    if (poiFromURL) {
+    if (poiFromURL && poiFromURL.lat && poiFromURL.lng) {
       console.log('Focusing on POI from URL:', poiFromURL);
       setFocusedPOI(poiFromURL);
       
@@ -204,16 +204,24 @@ function InteractiveMapLayout(props) {
           
           // First try with a small delay to ensure the map is fully loaded
           setTimeout(() => {
-            window.leafletMap.fire('directMarkerClick', {
-              latlng: L.latLng(poiFromURL.lat, poiFromURL.lng)
-            });
+            try {
+              window.leafletMap.fire('directMarkerClick', {
+                latlng: L.latLng(poiFromURL.lat, poiFromURL.lng)
+              });
+            } catch (error) {
+              console.error('Error triggering marker click:', error);
+            }
           }, 1500);
           
           // Try again with a larger delay as a fallback
           setTimeout(() => {
-            window.leafletMap.fire('directMarkerClick', {
-              latlng: L.latLng(poiFromURL.lat, poiFromURL.lng)
-            });
+            try {
+              window.leafletMap.fire('directMarkerClick', {
+                latlng: L.latLng(poiFromURL.lat, poiFromURL.lng)
+              });
+            } catch (error) {
+              console.error('Error triggering marker click (retry):', error);
+            }
           }, 3000);
         } else {
           console.log('Map not available yet, waiting...');
@@ -527,13 +535,22 @@ function InteractiveMapLayout(props) {
 
   useEffect(() => {
     localDB?.initializeDB();
-    getUserNotes(user?.id)?.then(data => {
-      setNotes(data || []);
-    }).catch(err => {
-      console.error('Failed to fetch user notes:', err);
+    
+    // Only fetch notes if user is logged in and has a valid ID
+    if (user && user.id) {
+      getUserNotes(user.id)
+        .then(data => {
+          setNotes(data || []);
+        })
+        .catch(err => {
+          console.error('Failed to fetch user notes:', err);
+          setNotes([]);
+        });
+    } else {
+      // Initialize with empty notes array if user is not logged in
       setNotes([]);
-    });
-  }, []);
+    }
+  }, [user]);
 
   // Close right sidebar when user is not authenticated
   useEffect(() => {

@@ -120,26 +120,33 @@ export const generateShareableLink = (poi) => {
 
 // Parse POI parameters from URL
 export const parsePOIFromURL = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const poiParam = urlParams.get('poi');
-  
-  if (!poiParam) return null;
-  
   try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const poiParam = urlParams.get('poi');
+    
+    if (!poiParam) return null;
+    
     console.log('Parsing POI from URL parameter:', poiParam);
+    
+    // Handle case where the POI parameter is malformed
+    if (!poiParam.includes('=')) {
+      console.error('Malformed POI parameter format');
+      return null;
+    }
+    
     const poiParams = new URLSearchParams(decodeURIComponent(poiParam));
     
     // Extract and parse coordinates
     const lat = parseFloat(poiParams.get('lat'));
     const lng = parseFloat(poiParams.get('lng'));
-    const title = poiParams.get('title');
-    const category = poiParams.get('category');
+    const title = poiParams.get('title') || 'Untitled';
+    const category = poiParams.get('category') || 'POI';
     
     console.log('Parsed POI values:', { lat, lng, title, category });
     
-    // Validate coordinates
+    // Validate coordinates - both lat and lng must be valid numbers
     if (isNaN(lat) || isNaN(lng)) {
-      console.error('Invalid coordinates in POI URL parameter');
+      console.error('Invalid coordinates in POI URL parameter: missing or invalid lat/lng values');
       return null;
     }
     
@@ -148,7 +155,7 @@ export const parsePOIFromURL = () => {
     console.error('Error parsing POI from URL:', error);
     return null;
   }
-};
+}
 
 // Category to icon mapping
 export const CATEGORY_ICONS = {

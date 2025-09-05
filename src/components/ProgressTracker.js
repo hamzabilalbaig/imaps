@@ -354,30 +354,31 @@ function ProgressTracker({
 
         <Divider />
 
-        {/* Found Locations */}
-        <Box sx={{ p: 2 }}>
-          <Typography variant="subtitle2" sx={{ 
-            mb: 1,
-            fontSize: '0.75rem',
-            textTransform: 'uppercase',
-            color: theme.palette.text.secondary,
-            letterSpacing: 1
-          }}>
-            FOUND LOCATIONS ({foundLocations.length})
-          </Typography>
-          
-          {foundLocations.length === 0 ? (
-            <Typography variant="body2" color="text.secondary" sx={{ 
-              fontStyle: 'italic',
-              fontSize: '0.8rem',
-              textAlign: 'center',
-              py: 2
+        {/* Found Locations - Only show for non-admin users */}
+        {!isAdmin && (
+          <Box sx={{ p: 2 }}>
+            <Typography variant="subtitle2" sx={{ 
+              mb: 1,
+              fontSize: '0.75rem',
+              textTransform: 'uppercase',
+              color: theme.palette.text.secondary,
+              letterSpacing: 1
             }}>
-              No locations found yet.
+              FOUND LOCATIONS ({foundLocations.length})
             </Typography>
-          ) : (
-            <List dense>
-              {foundLocations.map((location, index) => {
+            
+            {foundLocations.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ 
+                fontStyle: 'italic',
+                fontSize: '0.8rem',
+                textAlign: 'center',
+                py: 2
+              }}>
+                No locations found yet.
+              </Typography>
+            ) : (
+              <List dense>
+                {foundLocations.map((location, index) => {
                 // Parse coordinates from found location
                 const handleLocationClick = () => {
                   if (onFoundLocationClick && location.coords) {
@@ -435,9 +436,10 @@ function ProgressTracker({
               })}
             </List>
           )}
-        </Box>
+          </Box>
+        )}
 
-        {user && (
+        {user && !isAdmin && (
           <>
             <Divider />
 

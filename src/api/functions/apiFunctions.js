@@ -27,8 +27,18 @@ export async function addUserNote(id, note) {
 
 // Get user notes
 export async function getUserNotes(id) {
-    const { data } = await apiClient.get(`/users/${id}/notes`);
-    return data;
+    if (!id) {
+        console.log('getUserNotes called with invalid user ID:', id);
+        return [];
+    }
+    
+    try {
+        const { data } = await apiClient.get(`/users/${id}/notes`);
+        return data;
+    } catch (error) {
+        console.error('Error fetching user notes:', error);
+        return [];
+    }
 }
 
 // Authenticate user
