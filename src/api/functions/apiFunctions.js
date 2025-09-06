@@ -1,4 +1,3 @@
-import localDB from '../../utils/localStorage';
 import apiClient from '../config';
 
 // Create a new user
@@ -488,5 +487,11 @@ export async function removeFoundLocation(userId, poiId) {
 
 export async function checkIfFound(userId, poiId) {
     const { data } = await apiClient.get(`/found-locations/${userId}/check/${poiId}`);
+    return data;
+}
+
+// Plan configurations API functions
+export async function getPlanConfigurations() {
+    const { data } = await apiClient.get('/admin/plans');
     return data;
 }

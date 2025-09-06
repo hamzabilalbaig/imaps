@@ -29,12 +29,12 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../utils/apiUtils';
 import uploadFile from '../aws/fileUpload';
-import useUserStore, { PLAN_LIMITS } from '../stores/user';
+import useUserStore from '../stores/user';
 import { useAlerts } from '../hooks/useAlerts';
 
 const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [], myCategories = [] }) => {
   const { user } = useAuth();
-  const { plan, getRemainingCategories } = useUserStore();
+  const { plan, planLimits: userPlanLimits, getRemainingCategories } = useUserStore();
   const { error, warning } = useAlerts();
   const [loading, setLoading] = useState(false);
   const [subcategories, setSubcategories] = useState([]);
@@ -79,7 +79,7 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
 
   // Calculate current limits
   const currentUserPlan = plan || 'free';
-  const planLimits = PLAN_LIMITS[currentUserPlan];
+  const planLimits = userPlanLimits?.[currentUserPlan];
   const currentMyPOIsCount = myPois?.length || 0;
   const currentSubcategoriesCount = myCategories?.length || 0;
   

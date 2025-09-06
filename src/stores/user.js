@@ -8,27 +8,7 @@ import {
   checkIfFound 
 } from '../api/functions/apiFunctions';
 import { localDB } from '../utils/localStorage';
-
-export const PLAN_LIMITS = {
-  free: { 
-    maxCustomCategories: 10,
-    totalPOILimit: 100,
-    maxNotes: 5,
-    allowCustomIcons: false
-  },
-  premium: { 
-    maxCustomCategories: 20,
-    totalPOILimit: 400,
-    maxNotes: 50,
-    allowCustomIcons: false
-  },
-  unlimited: { 
-    maxCustomCategories: Infinity,
-    totalPOILimit: Infinity,
-    maxNotes: Infinity,
-    allowCustomIcons: true
-  }
-};
+import { fetchPlanLimits } from '../utils/planLimits';
 
 const useUserStore = create((set, get) => ({
 
@@ -39,6 +19,8 @@ const useUserStore = create((set, get) => ({
   role: '',
   isadmin: false,
   
+  // Dynamic plan limits from database
+  planLimits: null,
 
   loading: false,
   
@@ -53,10 +35,16 @@ const useUserStore = create((set, get) => ({
   foundLocationsLoading: false,
   
 
-  initializeUser: () => {
+  initializeUser: async () => {
     const state = get();
   
-    if (state.id) return;
+    if (state.id) {
+      // Load plan limits even if user is already loaded
+      if (!state.planLimits) {
+        await get().loadPlanLimits();
+      }
+      return;
+    }
     
     try {
       const savedUser = localStorage.getItem('imaps_current_user');
@@ -75,8 +63,43 @@ const useUserStore = create((set, get) => ({
       console.error('Error loading saved user:', error);
       localStorage.removeItem('imaps_current_user');
     }
+    
+    // Always load plan limits
+    await get().loadPlanLimits();
   },
   
+  // Load plan limits from database
+  loadPlanLimits: async () => {
+    try {
+      const limits = await fetchPlanLimits();
+      set({ planLimits: limits });
+    } catch (error) {
+      console.error('Error loading plan limits:', error);
+      // Set fallback limits if loading fails
+      set({ 
+        planLimits: {
+          free: { 
+            maxCustomCategories: 10,
+            totalPOILimit: 100,
+            maxNotes: 5,
+            allowCustomIcons: false
+          },
+          premium: { 
+            maxCustomCategories: 20,
+            totalPOILimit: 400,
+            maxNotes: 50,
+            allowCustomIcons: false
+          },
+          unlimited: { 
+            maxCustomCategories: Infinity,
+            totalPOILimit: Infinity,
+            maxNotes: Infinity,
+            allowCustomIcons: true
+          }
+        }
+      });
+    }
+  },
 
   isAuthenticated: () => !!get().id,
   isUserAdmin: () => get().isadmin,
@@ -100,6 +123,10 @@ const useUserStore = create((set, get) => ({
       });
     
       localStorage.setItem('imaps_current_user', JSON.stringify(user));
+      
+      // Load plan limits after successful authentication
+      await get().loadPlanLimits();
+      
       return { success: true, user };
     } catch (error) {
       console.error('Error authenticating user:', error);
@@ -247,30 +274,30 @@ const useUserStore = create((set, get) => ({
   },
 
   canCreatePOI: (currentPOICount) => {
-    const { id, plan } = get();
-    if (!id) return false;
-    const limit = PLAN_LIMITS[plan]?.totalPOILimit || 0;
+    const { id, plan, planLimits } = get();
+    if (!id || !planLimits) return false;
+    const limit = planLimits[plan]?.totalPOILimit || 0;
     return currentPOICount < limit;
   },
 
   getRemainingPOIs: (currentPOICount) => {
-    const { id, plan } = get();
-    if (!id) return 0;
-    const limit = PLAN_LIMITS[plan]?.totalPOILimit || 0;
+    const { id, plan, planLimits } = get();
+    if (!id || !planLimits) return 0;
+    const limit = planLimits[plan]?.totalPOILimit || 0;
     return limit === Infinity ? Infinity : Math.max(0, limit - currentPOICount);
   },
 
   canCreateCategory: (currentCategoryCount) => {
-    const { id, plan } = get();
-    if (!id) return false;
-    const limit = PLAN_LIMITS[plan]?.maxCustomCategories || 0;
+    const { id, plan, planLimits } = get();
+    if (!id || !planLimits) return false;
+    const limit = planLimits[plan]?.maxCustomCategories || 0;
     return limit === Infinity || currentCategoryCount < limit;
   },
 
   canAddPOI: async () => {
-    const { id, plan } = get();
-    if (!id) return false;
-    const limit = PLAN_LIMITS[plan]?.totalPOILimit || 0;
+    const { id, plan, planLimits } = get();
+    if (!id || !planLimits) return false;
+    const limit = planLimits[plan]?.totalPOILimit || 0;
 
     const userPois = await localDB.getUserPOIs();
     const totalPoisCount = userPois.length;
@@ -283,22 +310,22 @@ const useUserStore = create((set, get) => ({
   },
 
   canUseCustomIcons: () => {
-    const { id, plan } = get();
-    if (!id) return false;
-    return PLAN_LIMITS[plan]?.allowCustomIcons || false;
+    const { id, plan, planLimits } = get();
+    if (!id || !planLimits) return false;
+    return planLimits[plan]?.allowCustomIcons || false;
   },
 
   getRemainingCategories: (currentCategoryCount) => {
-    const { id, plan } = get();
-    if (!id) return 0;
-    const limit = PLAN_LIMITS[plan]?.maxCustomCategories || 0;
+    const { id, plan, planLimits } = get();
+    if (!id || !planLimits) return 0;
+    const limit = planLimits[plan]?.maxCustomCategories || 0;
     return limit === Infinity ? Infinity : Math.max(0, limit - currentCategoryCount);
   },
 
   getRemainingPOIs: async () => {
-    const { id, plan } = get();
-    if (!id) return 0;
-    const limit = PLAN_LIMITS[plan]?.totalPOILimit || 0;
+    const { id, plan, planLimits } = get();
+    if (!id || !planLimits) return 0;
+    const limit = planLimits[plan]?.totalPOILimit || 0;
     
     if (limit === Infinity) return Infinity;
     
@@ -309,16 +336,16 @@ const useUserStore = create((set, get) => ({
   },
 
   canCreateNote: (currentNoteCount) => {
-    const { id, plan } = get();
-    if (!id) return false;
-    const limit = PLAN_LIMITS[plan]?.maxNotes || 0;
+    const { id, plan, planLimits } = get();
+    if (!id || !planLimits) return false;
+    const limit = planLimits[plan]?.maxNotes || 0;
     return limit === Infinity || currentNoteCount < limit;
   },
 
   getRemainingNotes: (currentNoteCount) => {
-    const { id, plan } = get();
-    if (!id) return 0;
-    const limit = PLAN_LIMITS[plan]?.maxNotes || 0;
+    const { id, plan, planLimits } = get();
+    if (!id || !planLimits) return 0;
+    const limit = planLimits[plan]?.maxNotes || 0;
     return limit === Infinity ? Infinity : Math.max(0, limit - currentNoteCount);
   },
 
@@ -405,5 +432,11 @@ const useUserStore = create((set, get) => ({
     return foundLocations.some(fl => fl.poi_id === poiId);
   },
 }));
+
+// Export function to get current plan limits for external use
+export const getPlanLimits = () => {
+  const state = useUserStore.getState();
+  return state.planLimits;
+};
 
 export default useUserStore;

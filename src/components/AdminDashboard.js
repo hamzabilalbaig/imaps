@@ -65,7 +65,7 @@ import {
   Save as SaveIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import useUserStore, { PLAN_LIMITS } from '../stores/user';
+import useUserStore, { getPlanLimits } from '../stores/user';
 import usePOIsStore from '../stores/pois';
 import useCategoriesStore from '../stores/categories';
 import useSubCategoriesStore from '../stores/subCategories';
@@ -124,7 +124,7 @@ function AdminDashboard() {
   });
   
   // Custom plan limits (editable by admin)
-  const [customPlanLimits, setCustomPlanLimits] = useState(PLAN_LIMITS);
+  const [customPlanLimits, setCustomPlanLimits] = useState({});
   
   // Plan management state
   const [planConfigurations, setPlanConfigurations] = useState([]);
@@ -174,6 +174,12 @@ function AdminDashboard() {
           loadPlanConfigurations(),
           loadMapLayers()
         ]);
+        
+        // Load plan limits after initialization
+        const currentPlanLimits = getPlanLimits();
+        if (currentPlanLimits) {
+          setCustomPlanLimits(currentPlanLimits);
+        }
         
         calculateStats();
       } catch (error) {

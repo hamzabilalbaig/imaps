@@ -28,7 +28,10 @@ function App() {
 
   // Initialize user from localStorage on app start
   React.useEffect(() => {
-    initializeUser();
+    const initializeApp = async () => {
+      await initializeUser();
+    };
+    initializeApp();
   }, [initializeUser]);
 
   React.useEffect(() => {

@@ -42,7 +42,7 @@ import MyPOIForm from './MyPOIForm';
 import { MAP_CONFIG, parsePOIFromURL } from '../utils/mapUtils';
 import { addUserNote, createAdminNote, getMyPOIs, getUserNotes, getMyPOISubcategories } from '../api/functions/apiFunctions';
 import localDB from '../utils/localStorage';
-import useUserStore, { PLAN_LIMITS } from '../stores/user';
+import useUserStore from '../stores/user';
 
 function InteractiveMapLayout(props) {
   const {
@@ -342,7 +342,7 @@ function InteractiveMapLayout(props) {
     // Check note limits before enabling note mode (only for non-admin users)
     if (user?.role !== 'admin') {
       const currentUserPlan = user?.plan || 'free';
-      const planLimits = PLAN_LIMITS[currentUserPlan];
+      const planLimits = user?.planLimits?.[currentUserPlan];
       const currentNotesCount = notes?.length || 0;
       const canCreateMoreNotes = currentNotesCount < (planLimits?.maxNotes || 0);
       
@@ -374,7 +374,7 @@ function InteractiveMapLayout(props) {
     // Check note limits before allowing note creation (only for non-admin users)
     if (user.role !== 'admin') {
       const currentUserPlan = user?.plan || 'free';
-      const planLimits = PLAN_LIMITS[currentUserPlan];
+      const planLimits = user?.planLimits?.[currentUserPlan];
       const currentNotesCount = notes?.length || 0;
       const canCreateMoreNotes = currentNotesCount < (planLimits?.maxNotes || 0);
       
@@ -392,7 +392,7 @@ function InteractiveMapLayout(props) {
   const handlePOIMapClick = (latlng) => {
     // Check My POI limits before allowing map click
     const currentUserPlan = user?.plan || 'free';
-    const planLimits = PLAN_LIMITS[currentUserPlan];
+    const planLimits = user?.planLimits?.[currentUserPlan];
     const currentMyPOIsCount = myPois?.length || 0;
     const canCreateMoreMyPOIs = currentMyPOIsCount < (planLimits?.totalPOILimit || 0);
     
@@ -417,7 +417,7 @@ function InteractiveMapLayout(props) {
       } else if (pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation?.lng === 'number') {
         // Check note limits before creating new note
         const currentUserPlan = user?.plan || 'free';
-        const planLimits = PLAN_LIMITS[currentUserPlan];
+        const planLimits = user?.planLimits?.[currentUserPlan];
         const currentNotesCount = notes?.length || 0;
         const canCreateMoreNotes = currentNotesCount < (planLimits?.maxNotes || 0);
         

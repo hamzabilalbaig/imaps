@@ -27,7 +27,7 @@ import {
   PushPin as PushPinIcon
 } from '@mui/icons-material';
 import { localDB } from '../utils/localStorage';
-import useUserStore, { PLAN_LIMITS } from '../stores/user';
+import useUserStore from '../stores/user';
 import { useNavigate } from 'react-router-dom';
 
 function ProgressTracker({ 
@@ -59,7 +59,10 @@ function ProgressTracker({
   const { getRemainingCategories, canUseCustomIcons, id, name, email, plan, role, initializeUser } = useUserStore();
   const navigate = useNavigate();
   useEffect(() => {
-    initializeUser();
+    const initializeData = async () => {
+      await initializeUser();
+    };
+    initializeData();
   }, []); // Only run once on mount
 
   const user = { id, name, email, plan, role };
@@ -72,8 +75,8 @@ function ProgressTracker({
   // Calculate note limits
   const currentNoteCount = notes?.length || 0;
   const currentUserPlan = user?.plan || 'free';
-  const planLimits = PLAN_LIMITS[currentUserPlan] || PLAN_LIMITS.free;
-  const maxNotes = planLimits.maxNotes || 0;
+  const planLimits = user?.planLimits?.[currentUserPlan] || user?.planLimits?.free;
+  const maxNotes = planLimits?.maxNotes || 0;
   const remainingNotes = maxNotes === Infinity ? '∞' : Math.max(0, maxNotes - currentNoteCount);
   const canCreateMoreNotes = user?.role === 'admin' || maxNotes === Infinity || currentNoteCount < maxNotes;
   

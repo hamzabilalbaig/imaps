@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { localDB } from '../utils/localStorage';
 import { authenticateUser } from '../api/functions/apiFunctions';
+import { fetchPlanLimits } from '../utils/planLimits';
 
 const AuthContext = createContext();
 
@@ -12,30 +13,24 @@ export const useAuth = () => {
   return context;
 };
 
-// Plan limits
-export const PLAN_LIMITS = {
-  free: { 
-    maxCustomCategories: 10,
-    totalPOILimit: 100,
-    allowCustomIcons: false
-  },
-  premium: { 
-    maxCustomCategories: 20,
-    totalPOILimit: 400,
-    allowCustomIcons: false
-  },
-  unlimited: { 
-    maxCustomCategories: Infinity,
-    totalPOILimit: Infinity,
-    allowCustomIcons: true
-  }
-};
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [planLimits, setPlanLimits] = useState(null);
 
   useEffect(() => {
+    // Load plan limits when component mounts
+    const loadPlanLimits = async () => {
+      try {
+        const limits = await fetchPlanLimits();
+        setPlanLimits(limits);
+      } catch (error) {
+        console.error('Failed to load plan limits:', error);
+      }
+    };
+    
+    loadPlanLimits();
+
     // Check for saved user session
     const currentUser = localDB.getCurrentUser();
     if (currentUser) {
@@ -99,8 +94,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const canCreatePOI = async () => {
-    if (!user) return false;
-    const limit = PLAN_LIMITS[user.plan]?.totalPOILimit || 0;
+    if (!user || !planLimits) return false;
+    const limit = planLimits[user.plan]?.totalPOILimit || 0;
 
     const userPois = await localDB.getUserPOIs();
     const totalPoisCount = userPois.length;
@@ -109,8 +104,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const getRemainingPOIs = async () => {
-    if (!user) return 0;
-    const limit = PLAN_LIMITS[user.plan]?.totalPOILimit || 0;
+    if (!user || !planLimits) return 0;
+    const limit = planLimits[user.plan]?.totalPOILimit || 0;
     
     if (limit === Infinity) return Infinity;
     
@@ -121,14 +116,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const canCreateCategory = (currentCategoryCount) => {
-    if (!user) return false;
-    const limit = PLAN_LIMITS[user.plan]?.maxCustomCategories || 0;
+    if (!user || !planLimits) return false;
+    const limit = planLimits[user.plan]?.maxCustomCategories || 0;
     return limit === Infinity || currentCategoryCount < limit;
   };
 
   const canAddPOI = async () => {
-    if (!user) return false;
-    const limit = PLAN_LIMITS[user.plan]?.totalPOILimit || 0;
+    if (!user || !planLimits) return false;
+    const limit = planLimits[user.plan]?.totalPOILimit || 0;
 
     const userPois = await localDB.getUserPOIs();
     const totalPoisCount = userPois.length;
@@ -141,15 +136,25 @@ export const AuthProvider = ({ children }) => {
   };
 
   const canUseCustomIcons = () => {
-    if (!user) return false;
-    return PLAN_LIMITS[user.plan]?.allowCustomIcons || false;
+    if (!user || !planLimits) return false;
+    return planLimits[user.plan]?.allowCustomIcons || false;
   };
 
   const getRemainingCategories = (currentCategoryCount) => {
-    if (!user) return 0;
-    const limit = PLAN_LIMITS[user.plan]?.maxCustomCategories || 0;
+    if (!user || !planLimits) return 0;
+    const limit = planLimits[user.plan]?.maxCustomCategories || 0;
     return limit === Infinity ? Infinity : Math.max(0, limit - currentCategoryCount);
   };
+
+  const refreshPlanLimits = async () => {
+    try {
+      const limits = await fetchPlanLimits();
+      setPlanLimits(limits);
+    } catch (error) {
+      console.error('Failed to refresh plan limits:', error);
+    }
+  };
+
   const value = {
     user,
     login,
@@ -163,6 +168,8 @@ export const AuthProvider = ({ children }) => {
     canAddPOI,
     canUseCustomIcons,
     getRemainingCategories,
+    refreshPlanLimits,
+    planLimits,
     isAdmin: user?.role === 'admin',
     isAuthenticated: !!user
   };

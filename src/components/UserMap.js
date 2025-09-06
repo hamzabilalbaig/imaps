@@ -7,7 +7,6 @@ import InteractiveMapLayout from "./InteractiveMapLayout";
 import useUserStore from "../stores/user";
 import usePOIsStore from "../stores/pois";
 import useSubCategoriesStore from "../stores/subCategories";
-import { PLAN_LIMITS } from "../stores/user";
 
 /**
  * User Map component with full editing capabilities for authenticated users
@@ -16,13 +15,17 @@ function UserMap() {
   // Use new POI stores
   const { pois, myPois, createPOI, updatePOI, deletePOI, initializePOIs, fetchMyPOIs } = usePOIsStore();
   const { subCategories, initializeSubCategories } = useSubCategoriesStore();
-  const { id, name, email, role, plan, initializeUser, isUserAdmin } = useUserStore();
+  const { id, name, email, role, plan, planLimits, initializeUser, isUserAdmin } = useUserStore();
   const { confirm } = useAlerts();
 
   useEffect(() => {
-    initializeUser();
-    initializePOIs();
-    initializeSubCategories();
+    const initializeData = async () => {
+      await initializeUser();
+      initializePOIs();
+      initializeSubCategories();
+    };
+    
+    initializeData();
     
     // Debug: Check for POI parameter in URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -93,7 +96,7 @@ function UserMap() {
   // Calculate POI limits for regular users based on user's plan
   const userOwnedPOIs = pois.filter(poi => poi.user_id === id);
   const userMarkerCount = userOwnedPOIs.length;
-  const userPlanLimit = PLAN_LIMITS[plan]?.totalPOILimit || 0;
+  const userPlanLimit = planLimits?.[plan]?.totalPOILimit || 0;
   const canCreateMore = isAdmin || (userPlanLimit === Infinity || userMarkerCount < userPlanLimit);
   const remainingPOIs = isAdmin ? Infinity : (userPlanLimit === Infinity ? Infinity : Math.max(0, userPlanLimit - userMarkerCount));
 
