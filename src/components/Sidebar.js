@@ -59,7 +59,9 @@ function Sidebar({
   onVisibilityChange,
   onMapClick,
   onRefreshMyCategories,
-  onRefreshMyPOIs
+  onRefreshMyPOIs,
+  onRefreshMySubCategories,
+  myCategories = []
 }) {
   const theme = useTheme();
   
@@ -78,7 +80,8 @@ function Sidebar({
     loading: subCategoriesLoading, 
     error: subCategoriesError, 
     initializeSubCategories,
-    getSubCategoriesByCategoryId 
+    getSubCategoriesByCategoryId,
+    deleteSubCategory
   } = useSubCategoriesStore();
 
   // POIs store
@@ -367,6 +370,29 @@ function Sidebar({
         }
       } catch (err) {
         console.error('Error deleting POI:', err);
+      } finally {
+        setActionLoading(false);
+      }
+    });
+  };
+
+  const handleDeleteUserSubCategory = async (subCategory) => {
+    confirm(`Are you sure you want to delete "${subCategory.name}"? This will also delete all POIs in this subcategory. This action cannot be undone.`, async () => {
+      setActionLoading(true);
+      try {
+        const result = await deleteSubCategory(subCategory.id);
+        if (result.success) {
+          // Refresh My SubCategories to update the list
+          if (onRefreshMySubCategories) {
+            onRefreshMySubCategories();
+          }
+          // Also refresh POIs since deleting subcategory may affect POIs
+          if (onRefreshMyPOIs) {
+            onRefreshMyPOIs();
+          }
+        }
+      } catch (err) {
+        console.error('Error deleting subcategory:', err);
       } finally {
         setActionLoading(false);
       }
@@ -1105,6 +1131,101 @@ function Sidebar({
               ))}
               </Box>
             )}
+          </Box>
+        )}
+
+        {/* User SubCategories Management Section - Only for non-admin users */}
+        {!isadmin && currentUserId && myCategories.length > 0 && (
+          <Box sx={{ mt: 3, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  color: 'secondary.main',
+                  fontSize: '0.75rem'
+                }}
+              >
+                My SubCategories ({myCategories.length})
+              </Typography>
+            </Box>
+
+            <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+              {myCategories.map((subCategory) => (
+                <Box
+                  key={subCategory.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    p: 1.5,
+                    mb: 1,
+                    borderRadius: 1,
+                    backgroundColor: alpha(theme.palette.secondary.main, 0.05),
+                    border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                    }
+                  }}
+                >
+                  {/* SubCategory Info */}
+                  <Box sx={{ flex: 1, mr: 1 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: theme.palette.text.primary,
+                        lineHeight: 1.2,
+                        mb: 0.5
+                      }}
+                    >
+                      {subCategory.name}
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          backgroundColor: subCategory.color || theme.palette.secondary.main,
+                          flexShrink: 0
+                        }}
+                      />
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
+                        ID: {subCategory.id}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Action Buttons - Only Delete for user subcategories */}
+                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0.5 }}>
+                    <Tooltip title="Delete SubCategory">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteUserSubCategory(subCategory)}
+                        disabled={actionLoading}
+                        sx={{
+                          backgroundColor: alpha(theme.palette.error.main, 0.1),
+                          color: 'error.main',
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.error.main, 0.2),
+                          },
+                          width: 28,
+                          height: 28
+                        }}
+                      >
+                        {actionLoading ? (
+                          <CircularProgress size={14} />
+                        ) : (
+                          <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
           </Box>
         )}
 

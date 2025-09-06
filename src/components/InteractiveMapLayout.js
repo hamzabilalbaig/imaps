@@ -599,6 +599,7 @@ function InteractiveMapLayout(props) {
         <Sidebar
           pois={filteredPOIs}
           subCategories={subCategories}
+          myCategories={myCategories}
           onMarkerClick={onMarkerClick}
           onCategoryToggle={handleCategoryToggle}
           visibleCategories={visibleCategories}
@@ -614,6 +615,7 @@ function InteractiveMapLayout(props) {
           onMapClick={onMyPOIMapClickRegister}
           onRefreshMyCategories={fetchMyCategories}
           onRefreshMyPOIs={fetchMyPOIs}
+          onRefreshMySubCategories={fetchMyCategories}
         />
       </Box>
     </Box>

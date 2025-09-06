@@ -3,7 +3,8 @@ import {
   getAllSubCategories, 
   getSubCategoryById, 
   createSubCategory, 
-  updateSubCategoryById 
+  updateSubCategoryById,
+  deleteSubCategoryById
 } from '../api/functions/apiFunctions';
 
 const useSubCategoriesStore = create((set, get) => ({
@@ -123,6 +124,33 @@ const useSubCategoriesStore = create((set, get) => ({
       return { success: true, subCategory: updatedSubCategory };
     } catch (error) {
       console.error('Error updating subcategory:', error);
+      set({ 
+        error: error.message,
+        loading: false 
+      });
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Delete a subcategory
+  deleteSubCategory: async (id) => {
+    try {
+      set({ loading: true, error: null });
+      await deleteSubCategoryById(id);
+      
+      // Remove from local state
+      const currentSubCategories = get().subCategories;
+      const filteredSubCategories = currentSubCategories.filter(subCategory => subCategory.id !== id);
+      
+      set({ 
+        subCategories: filteredSubCategories,
+        currentSubCategory: get().currentSubCategory?.id === id ? null : get().currentSubCategory,
+        loading: false 
+      });
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting subcategory:', error);
       set({ 
         error: error.message,
         loading: false 

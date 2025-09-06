@@ -279,6 +279,11 @@ export async function updateSubCategoryById(id, subCategoryData) {
     return data;
 }
 
+export async function deleteSubCategoryById(id) {
+    const { data } = await apiClient.delete(`/subcategories/${id}`);
+    return data;
+}
+
 // POIs API functions
 export async function getAllPOIs() {
     const { data } = await apiClient.get('/pois');
