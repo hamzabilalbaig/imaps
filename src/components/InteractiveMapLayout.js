@@ -43,6 +43,7 @@ import { MAP_CONFIG, parsePOIFromURL } from '../utils/mapUtils';
 import { addUserNote, createAdminNote, getMyPOIs, getUserNotes, getMyPOISubcategories } from '../api/functions/apiFunctions';
 import localDB from '../utils/localStorage';
 import useUserStore from '../stores/user';
+import usePOIsStore from '../stores/pois';
 
 function InteractiveMapLayout(props) {
   const {
@@ -116,8 +117,11 @@ function InteractiveMapLayout(props) {
 
  const fetchMyPOIs = async () => {
   const mypois = await getMyPOIs(currentUserId);
-  setMyPOIs(mypois)
- }
+  setMyPOIs(mypois);
+  // Also update the store's myPois
+  const poisStore = usePOIsStore.getState();
+  poisStore.fetchMyPOIs(currentUserId);
+};
 
  const fetchMyCategories = async () => {
   const mycategories = await getMyPOISubcategories(currentUserId);
@@ -609,6 +613,7 @@ function InteractiveMapLayout(props) {
           onVisibilityChange={handleSidebarVisibilityChange}
           onMapClick={onMyPOIMapClickRegister}
           onRefreshMyCategories={fetchMyCategories}
+          onRefreshMyPOIs={fetchMyPOIs}
         />
       </Box>
     </Box>

@@ -58,7 +58,8 @@ function Sidebar({
   onSearchChange,
   onVisibilityChange,
   onMapClick,
-  onRefreshMyCategories
+  onRefreshMyCategories,
+  onRefreshMyPOIs
 }) {
   const theme = useTheme();
   
@@ -359,8 +360,10 @@ function Sidebar({
       try {
         const result = await deletePOI(poi.id);
         if (result.success) {
-          // Refresh POIs to update the list
-          await fetchPOIs();
+          // Refresh My POIs to update the list
+          if (onRefreshMyPOIs) {
+            onRefreshMyPOIs();
+          }
         }
       } catch (err) {
         console.error('Error deleting POI:', err);
@@ -1056,7 +1059,7 @@ function Sidebar({
 
                   {/* Action Buttons - Only Edit and Delete for users */}
                   <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0.5 }}>
-                    <Tooltip title="Edit POI">
+                    {/* <Tooltip title="Edit POI">
                       <IconButton
                         size="small"
                         onClick={() => handleEditUserPOI(poi)}
@@ -1073,7 +1076,7 @@ function Sidebar({
                       >
                         <EditIcon sx={{ fontSize: '0.9rem' }} />
                       </IconButton>
-                    </Tooltip>
+                    </Tooltip> */}
 
                     <Tooltip title="Delete POI">
                       <IconButton
