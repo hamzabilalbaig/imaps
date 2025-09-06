@@ -72,6 +72,7 @@ import useSubCategoriesStore from '../stores/subCategories';
 import { getAllUsers, updateUserPlan, getAdminStats, bulkApprovePOIs, bulkRejectPOIs, getAllPlanConfigurations, updatePlanConfiguration, createPlanConfiguration, deletePlanConfiguration, getPlanUsageStats, getAllMapLayers, createMapLayer, updateMapLayer, deleteMapLayer, uploadMapLayerImage } from '../api/functions/apiFunctions';
 import uploadFile from '../aws/fileUpload';
 import { generateShareableLink } from '../utils/mapUtils';
+import { useAlerts } from '../hooks/useAlerts';
 
 /**
  * Comprehensive Admin Dashboard Component
@@ -85,6 +86,9 @@ function AdminDashboard() {
   const { pois, initializePOIs, approvePOI, deletePOI } = usePOIsStore();
   const { categories, initializeCategories, createCategory, updateCategory } = useCategoriesStore();
   const { subCategories, initializeSubCategories, createSubCategory, updateSubCategory } = useSubCategoriesStore();
+  
+  // Alerts hook
+  const { confirm, success, error } = useAlerts();
   
   // State management
   const [activeTab, setActiveTab] = useState(0);
@@ -1612,7 +1616,7 @@ function AdminDashboard() {
 
     const handleCreateMapLayer = async () => {
       if (!mapLayerFormData.name) {
-        alert('Layer name is required');
+        error('Layer name is required');
         return;
       }
 
@@ -1646,27 +1650,27 @@ function AdminDashboard() {
             setImagePreviewUrl(null);
             setMapLayerDialogOpen(false);
 
-            alert('Map layer created successfully!');
+            success('Map layer created successfully!');
           } catch (error) {
             console.error('Error creating map layer:', error);
-            alert('Failed to create map layer');
+            error('Failed to create map layer');
           } finally {
             setImageUploadLoading(false);
           }
         } else {
-          alert('Please select an image file');
+          error('Please select an image file');
           setImageUploadLoading(false);
         }
       } catch (error) {
         console.error('Error creating map layer:', error);
-        alert('Failed to create map layer');
+        error('Failed to create map layer');
         setImageUploadLoading(false);
       }
     };
 
     const handleUpdateMapLayer = async () => {
       if (!selectedMapLayer || !mapLayerFormData.name) {
-        alert('Layer name is required');
+        error('Layer name is required');
         return;
       }
 
@@ -1700,10 +1704,10 @@ function AdminDashboard() {
             setSelectedMapLayer(null);
             setMapLayerDialogOpen(false);
 
-            alert('Map layer updated successfully!');
+            success('Map layer updated successfully!');
           } catch (error) {
             console.error('Error updating map layer:', error);
-            alert('Failed to update map layer');
+            error('Failed to update map layer');
           } finally {
             setImageUploadLoading(false);
           }
@@ -1724,24 +1728,25 @@ function AdminDashboard() {
           setMapLayerDialogOpen(false);
           setImageUploadLoading(false);
           
-          alert('Map layer updated successfully!');
+          success('Map layer updated successfully!');
         }
       } catch (error) {
         console.error('Error updating map layer:', error);
-        alert('Failed to update map layer');
+        error('Failed to update map layer');
         setImageUploadLoading(false);
       }
     };
 
     const handleDeleteMapLayer = async (layer) => {
-      if (window.confirm(`Are you sure you want to delete "${layer.name}"?`)) {
+      const confirmed = await confirm(`Are you sure you want to delete "${layer.name}"?`);
+      if (confirmed) {
         try {
           await deleteMapLayer(layer.id);
           await loadMapLayers();
-          alert('Map layer deleted successfully!');
+          success('Map layer deleted successfully!');
         } catch (error) {
           console.error('Error deleting map layer:', error);
-          alert('Failed to delete map layer');
+          error('Failed to delete map layer');
         }
       }
     };
