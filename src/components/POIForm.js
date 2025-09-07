@@ -21,6 +21,7 @@ import {
 import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon } from "@mui/icons-material";
 import useUserStore from "../stores/user";
 import useSubCategoriesStore from "../stores/subCategories";
+import useCategoriesStore from "../stores/categories";
 import uploadFile from "../aws/fileUpload";
 import { useAlerts } from "../hooks/useAlerts";
 
@@ -32,17 +33,20 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const { initializeUser, id } = useUserStore();
   const { subCategories, initializeSubCategories } = useSubCategoriesStore();
+  const { categories, initializeCategories } = useCategoriesStore();
   const { warning, error } = useAlerts();
   // POI creation and update handled by parent via onSave callback
 
   useEffect(() => {
     initializeUser();
     initializeSubCategories();
+    initializeCategories();
   }, []); // Only run once on mount
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    category_id: "",
     sub_category_id: "",
     image_url: "",
   });
@@ -53,14 +57,21 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
 
-  // Get all subcategories (no category filtering needed)
-  const availableSubCategories = subCategories;
+  // Filter subcategories based on selected category
+  const availableSubCategories = formData.category_id 
+    ? subCategories.filter(sub => sub.category_id === parseInt(formData.category_id))
+    : [];
 
   useEffect(() => {
     if (poi && isEdit) {
+      // Find the category of the POI's subcategory
+      const poiSubCategory = subCategories.find(sub => sub.id === poi.sub_category_id);
+      const categoryId = poiSubCategory ? poiSubCategory.category_id : "";
+      
       setFormData({
         name: poi.name || "",
         description: poi.description || "",
+        category_id: categoryId,
         sub_category_id: poi.sub_category_id || "",
         image_url: poi.image_url || "",
       });
@@ -68,9 +79,16 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
         setImagePreview(poi.image_url);
       }
     }
-  }, [poi, isEdit]);
+  }, [poi, isEdit, subCategories]);
 
-  // No need to reset subcategory since category is removed
+  // Reset subcategory when category changes
+  const handleCategoryChange = (categoryId) => {
+    setFormData(prev => ({
+      ...prev,
+      category_id: categoryId,
+      sub_category_id: "" // Reset subcategory when category changes
+    }));
+  };
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -122,6 +140,12 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
     
     if (!formData.name.trim()) {
       warning("Please enter a name for the POI");
+      setLoading(false);
+      return;
+    }
+    
+    if (!formData.category_id) {
+      warning("Please select a category for the POI");
       setLoading(false);
       return;
     }
@@ -244,6 +268,27 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
           />
 
           <FormControl fullWidth size={isMobile ? "small" : "medium"}>
+            <InputLabel>Category</InputLabel>
+            <Select
+              name="category_id"
+              value={formData.category_id}
+              label="Category"
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              required
+              sx={{
+                borderRadius: 2,
+                fontSize: { xs: '0.875rem', md: '1rem' }
+              }}
+            >
+              {categories.map((category) => (
+                <MenuItem key={category.id} value={category.id}>
+                  {category.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size={isMobile ? "small" : "medium"}>
             <InputLabel>SubCategory</InputLabel>
             <Select
               name="sub_category_id"
@@ -251,6 +296,7 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
               label="SubCategory"
               onChange={handleChange}
               required
+              disabled={!formData.category_id}
               sx={{
                 borderRadius: 2,
                 fontSize: { xs: '0.875rem', md: '1rem' }
@@ -262,6 +308,11 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
                 </MenuItem>
               ))}
             </Select>
+            {!formData.category_id && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1 }}>
+                Please select a category first
+              </Typography>
+            )}
           </FormControl>
 
           {/* Image Upload Section - Only show for admins */}

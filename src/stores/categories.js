@@ -3,7 +3,8 @@ import {
   getAllCategories, 
   getCategoryById, 
   createCategory, 
-  updateCategoryById 
+  updateCategoryById,
+  deleteCategoryById
 } from '../api/functions/apiFunctions';
 
 const useCategoriesStore = create((set, get) => ({
@@ -123,6 +124,33 @@ const useCategoriesStore = create((set, get) => ({
       return { success: true, category: updatedCategory };
     } catch (error) {
       console.error('Error updating category:', error);
+      set({ 
+        error: error.message,
+        loading: false 
+      });
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Delete a category
+  deleteCategory: async (id) => {
+    try {
+      set({ loading: true, error: null });
+      await deleteCategoryById(id);
+      
+      // Remove from local state
+      const currentCategories = get().categories;
+      const filteredCategories = currentCategories.filter(category => category.id !== id);
+      
+      set({ 
+        categories: filteredCategories,
+        currentCategory: get().currentCategory?.id === id ? null : get().currentCategory,
+        loading: false 
+      });
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting category:', error);
       set({ 
         error: error.message,
         loading: false 

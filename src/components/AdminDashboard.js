@@ -38,7 +38,8 @@ import {
   Fab,
   Badge,
   Stack,
-  InputAdornment
+  InputAdornment,
+  CircularProgress
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -84,8 +85,8 @@ function AdminDashboard() {
   // Store hooks
   const { id, name, email, role, initializeUser, isUserAdmin } = useUserStore();
   const { pois, initializePOIs, approvePOI, deletePOI } = usePOIsStore();
-  const { categories, initializeCategories, createCategory, updateCategory } = useCategoriesStore();
-  const { subCategories, initializeSubCategories, createSubCategory, updateSubCategory } = useSubCategoriesStore();
+  const { categories, initializeCategories, createCategory, updateCategory, deleteCategory } = useCategoriesStore();
+  const { subCategories, initializeSubCategories, createSubCategory, updateSubCategory, deleteSubCategory } = useSubCategoriesStore();
   
   // Alerts hook
   const { confirm, success, error } = useAlerts();
@@ -157,6 +158,7 @@ function AdminDashboard() {
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [imageUploadLoading, setImageUploadLoading] = useState(false);
+  const [iconUploadLoading, setIconUploadLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Initialize data
@@ -387,17 +389,33 @@ function AdminDashboard() {
     }
   };
 
+  const handleDeleteCategory = async (categoryId, categoryName) => {
+    if (window.confirm(`Are you sure you want to delete the category "${categoryName}"? This action cannot be undone.`)) {
+      try {
+        const result = await deleteCategory(categoryId);
+        if (result.success) {
+          await initializeCategories();
+          setSnackbar({
+            open: true,
+            message: 'Category deleted successfully!',
+            severity: 'success'
+          });
+        }
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: 'Error deleting category',
+          severity: 'error'
+        });
+      }
+    }
+  };
+
   // SubCategory Management Functions
   const handleCreateSubCategory = async () => {
     try {
-      // In a real app, you'd upload the file first and get the URL
+      // Use the S3 URL from form data instead of the preview URL
       let finalFormData = { ...subCategoryFormData };
-      
-      if (selectedIconFile) {
-        // Simulate file upload - in reality, you'd upload to your server/cloud storage
-        // For now, we'll use the preview URL as a placeholder
-        finalFormData.icon_image_url = iconPreviewUrl;
-      }
       
       const result = await createSubCategory(finalFormData);
       if (result.success) {
@@ -422,12 +440,8 @@ function AdminDashboard() {
 
   const handleUpdateSubCategory = async () => {
     try {
+      // Use the S3 URL from form data instead of the preview URL
       let finalFormData = { ...subCategoryFormData };
-      
-      if (selectedIconFile) {
-        // Simulate file upload - in reality, you'd upload to your server/cloud storage
-        finalFormData.icon_image_url = iconPreviewUrl;
-      }
       
       const result = await updateSubCategory(selectedSubCategory.id, finalFormData);
       if (result.success) {
@@ -448,6 +462,28 @@ function AdminDashboard() {
         message: 'Error updating sub category',
         severity: 'error'
       });
+    }
+  };
+
+  const handleDeleteSubCategory = async (subCategoryId, subCategoryName) => {
+    if (window.confirm(`Are you sure you want to delete the subcategory "${subCategoryName}"? This action cannot be undone.`)) {
+      try {
+        const result = await deleteSubCategory(subCategoryId);
+        if (result.success) {
+          await initializeSubCategories();
+          setSnackbar({
+            open: true,
+            message: 'Sub Category deleted successfully!',
+            severity: 'success'
+          });
+        }
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: 'Error deleting sub category',
+          severity: 'error'
+        });
+      }
     }
   };
 
@@ -515,23 +551,37 @@ function AdminDashboard() {
     handleFileUpload(file);
   };
 
-  const handleFileUpload = (file) => {
+  const handleFileUpload = async (file) => {
     if (file && file.type.startsWith('image/')) {
       setSelectedIconFile(file);
       
-      // Create preview URL
+      // Create preview URL for immediate display
       const reader = new FileReader();
       reader.onload = (e) => {
         setIconPreviewUrl(e.target.result);
       };
       reader.readAsDataURL(file);
       
-      // For now, we'll just store the file name as the URL
-      // In a real implementation, you'd upload to a server or cloud storage
-      setSubCategoryFormData({ 
-        ...subCategoryFormData, 
-        icon_image_url: file.name 
-      });
+      // Upload file to S3 immediately
+      try {
+        setIconUploadLoading(true);
+        const uploadedUrl = await uploadFile(file, () => {});
+        if (uploadedUrl) {
+          setSubCategoryFormData({ 
+            ...subCategoryFormData, 
+            icon_image_url: uploadedUrl 
+          });
+        }
+      } catch (error) {
+        console.error('Error uploading icon to S3:', error);
+        setSnackbar({
+          open: true,
+          message: 'Failed to upload icon',
+          severity: 'error'
+        });
+      } finally {
+        setIconUploadLoading(false);
+      }
     } else {
       setSnackbar({
         open: true,
@@ -1243,6 +1293,7 @@ function AdminDashboard() {
                             <IconButton
                               size="small"
                               color="error"
+                              onClick={() => handleDeleteCategory(category.id, category.name)}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -1402,6 +1453,7 @@ function AdminDashboard() {
                             <IconButton
                               size="small"
                               color="error"
+                              onClick={() => handleDeleteSubCategory(subCategory.id, subCategory.name)}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -2496,8 +2548,21 @@ function AdminDashboard() {
                     <Typography variant="body2" color="text.secondary">
                       {selectedIconFile?.name || 'Current icon'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Click to change or drag a new image
+                    {iconUploadLoading ? (
+                      <Typography variant="caption" color="primary">
+                        Uploading to S3...
+                      </Typography>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">
+                        Click to change or drag a new image
+                      </Typography>
+                    )}
+                  </Stack>
+                ) : iconUploadLoading ? (
+                  <Stack spacing={2} alignItems="center">
+                    <CircularProgress size={48} />
+                    <Typography variant="body1" color="text.primary">
+                      Uploading icon to S3...
                     </Typography>
                   </Stack>
                 ) : (

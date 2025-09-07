@@ -258,6 +258,11 @@ export async function updateCategoryById(id, categoryData) {
     return data;
 }
 
+export async function deleteCategoryById(id) {
+    const { data } = await apiClient.delete(`/categories/${id}`);
+    return data;
+}
+
 // SubCategories API functions
 export async function getAllSubCategories() {
     const { data } = await apiClient.get('/subcategories');
