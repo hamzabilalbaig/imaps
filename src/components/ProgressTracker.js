@@ -56,7 +56,7 @@ function ProgressTracker({
   onFoundLocationClick
 }) {
   const theme = useTheme();
-  const { getRemainingCategories, canUseCustomIcons, id, name, email, plan, role, initializeUser } = useUserStore();
+  const { getRemainingCategories, canUseCustomIcons, id, name, email, plan, role, initializeUser, planLimits } = useUserStore();
   const navigate = useNavigate();
   useEffect(() => {
     const initializeData = async () => {
@@ -74,11 +74,16 @@ function ProgressTracker({
   
   // Calculate note limits
   const currentNoteCount = notes?.length || 0;
-  const currentUserPlan = user?.plan || 'free';
-  const planLimits = user?.planLimits?.[currentUserPlan] || user?.planLimits?.free;
-  const maxNotes = planLimits?.maxNotes || 0;
+  const currentUserPlan = plan || 'free';
+  // Use storePlanLimits loaded from user store, fallback to free if not yet loaded
+  // Provide default note limits while loading planLimits
+  const defaultNoteLimits = { free: 5, premium: 50, unlimited: Infinity };
+  const limits = planLimits && planLimits[currentUserPlan]
+    ? planLimits[currentUserPlan]
+    : { maxNotes: defaultNoteLimits[currentUserPlan] ?? defaultNoteLimits.free };
+  const maxNotes = limits.maxNotes;
   const remainingNotes = maxNotes === Infinity ? '∞' : Math.max(0, maxNotes - currentNoteCount);
-  const canCreateMoreNotes = user?.role === 'admin' || maxNotes === Infinity || currentNoteCount < maxNotes;
+  const canCreateMoreNotes = role === 'admin' || maxNotes === Infinity || currentNoteCount < maxNotes;
   
   const progress = maxMarkers === Infinity ? 100 : (userMarkerCount / maxMarkers) * 100;
   const remainingPOIs = maxMarkers === Infinity ? '∞' : Math.max(0, maxMarkers - userMarkerCount);
@@ -294,7 +299,7 @@ function ProgressTracker({
             color: theme.palette.text.secondary,
             letterSpacing: 1
           }}>
-            NOTES ({notes.length}{user?.role !== 'admin' ? `/${maxNotes === Infinity ? '∞' : maxNotes}` : ''})
+            NOTES ({currentNoteCount}/{maxNotes === Infinity ? '∞' : maxNotes})
           </Typography>
           
           {notes.length === 0 ? (

@@ -52,6 +52,7 @@ const Pricing = () => {
   const [plansLoading, setPlansLoading] = useState(true);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, plan: null });
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelImmediateDialogOpen, setCancelImmediateDialogOpen] = useState(false);
   const [cancelResult, setCancelResult] = useState({ open: false, success: false, message: '' });
   const [subscriptionInfo, setSubscriptionInfo] = useState(null);
   const [cancelType, setCancelType] = useState('immediate'); // 'immediate' or 'period_end'
@@ -150,12 +151,12 @@ const Pricing = () => {
   };
 
   const handleCancelClick = () => {
-    setCancelDialogOpen(true);
+    setCancelImmediateDialogOpen(true);
   };
 
   const confirmCancelPlan = async () => {
     if (!id) {
-      setCancelDialogOpen(false);
+      setCancelImmediateDialogOpen(false);
       setCancelResult({ open: true, success: false, message: 'Please login to cancel your plan.' });
       return;
     }
@@ -202,7 +203,7 @@ const Pricing = () => {
         message: 'Failed to cancel plan. Please try again later.' 
       });
     } finally {
-      setCancelDialogOpen(false);
+      setCancelImmediateDialogOpen(false);
     }
   };
 
@@ -444,23 +445,22 @@ const Pricing = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Cancel Plan Dialog */}
-      <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)}>
+      {/* Cancel Plan Dialog with Options */}
+      {/* <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)}>
         <DialogTitle>Cancel Subscription</DialogTitle>
         <DialogContent>
           <Typography gutterBottom>
             Choose how you would like to cancel your subscription:
           </Typography>
-          
           <FormControl component="fieldset" sx={{ mt: 2, mb: 2 }}>
             <FormLabel component="legend">Cancellation Options</FormLabel>
             <RadioGroup
               value={cancelType}
               onChange={(e) => setCancelType(e.target.value)}
             >
-              <FormControlLabel 
-                value="immediate" 
-                control={<Radio />} 
+              <FormControlLabel
+                value="immediate"
+                control={<Radio />}
                 label={
                   <Box>
                     <Typography variant="body1" fontWeight="bold">
@@ -473,16 +473,16 @@ const Pricing = () => {
                   </Box>
                 }
               />
-              <FormControlLabel 
-                value="period_end" 
-                control={<Radio />} 
+              <FormControlLabel
+                value="period_end"
+                control={<Radio />}
                 label={
                   <Box>
                     <Typography variant="body1" fontWeight="bold">
                       Cancel at End of Billing Period
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Continue using premium features until your current billing period ends, 
+                      Continue using premium features until your current billing period ends,
                       then switch to the Free plan. No further charges will be made.
                     </Typography>
                   </Box>
@@ -490,9 +490,8 @@ const Pricing = () => {
               />
             </RadioGroup>
           </FormControl>
-          
           <Alert severity="warning" sx={{ mt: 2 }}>
-            {cancelType === 'immediate' 
+            {cancelType === 'immediate'
               ? 'You will lose access to premium features immediately.'
               : 'Your subscription will not renew, but you can continue using premium features until the end of your current billing period.'
             }
@@ -504,6 +503,23 @@ const Pricing = () => {
           </Button>
           <Button onClick={confirmCancelPlan} variant="contained" color="error">
             {cancelType === 'immediate' ? 'Cancel Now' : 'Cancel at Period End'}
+          </Button>
+        </DialogActions>
+      </Dialog> */}
+      {/* Cancel Plan Dialog Immediate */}
+      <Dialog open={cancelImmediateDialogOpen} onClose={() => setCancelImmediateDialogOpen(false)}>
+        <DialogTitle>Cancel Subscription Immediately</DialogTitle>
+        <DialogContent>
+          <Typography gutterBottom>
+            Are you sure you want to cancel your subscription immediately? You will lose access to premium features right away.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelImmediateDialogOpen(false)}>
+            Keep My Plan
+          </Button>
+          <Button onClick={confirmCancelPlan} variant="contained" color="error">
+            Cancel Now
           </Button>
         </DialogActions>
       </Dialog>

@@ -1098,7 +1098,7 @@ function AdminDashboard() {
                       </Typography>
                     </Box>
                     
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary">
                         Custom Icons
                       </Typography>
@@ -1108,7 +1108,7 @@ function AdminDashboard() {
                         variant="outlined"
                         color={plan.allow_custom_icons ? 'success' : 'default'}
                       />
-                    </Box>
+                    </Box> */}
 
                     {plan.user_count > 0 && (
                       <Box sx={{ mt: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
@@ -2633,7 +2633,7 @@ function AdminDashboard() {
                   helperText="Leave empty for unlimited"
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              {/* <Grid item xs={12} md={6}>
                 <FormControlLabel
                   control={
                     <Switch
@@ -2646,7 +2646,7 @@ function AdminDashboard() {
                   }
                   label="Allow Custom Icons"
                 />
-              </Grid>
+              </Grid> */}
               <Grid item xs={12}>
                 <FormControlLabel
                   control={
