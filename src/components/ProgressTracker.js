@@ -87,6 +87,8 @@ function ProgressTracker({
   
   const progress = maxMarkers === Infinity ? 100 : (userMarkerCount / maxMarkers) * 100;
   const remainingPOIs = maxMarkers === Infinity ? '∞' : Math.max(0, maxMarkers - userMarkerCount);
+  // Compute My POI creation allowance locally (separate from suggestion allowance)
+  const canCreateMorePOIs = isAdmin || maxMarkers === Infinity || userMarkerCount < maxMarkers;
   
   if (isMinimized) {
     return (
@@ -233,7 +235,7 @@ function ProgressTracker({
                 </Button>
               )}
 
-              {!isAdmin && (
+              {!isAdmin && canCreateMorePOIs && (
                 <Button
                   variant={isPOIMode ? "contained" : "outlined"}
                   startIcon={<PushPinIcon />}
