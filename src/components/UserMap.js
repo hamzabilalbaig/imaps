@@ -97,7 +97,12 @@ function UserMap() {
   const userOwnedPOIs = pois.filter(poi => poi.user_id === id);
   const userMarkerCount = userOwnedPOIs.length;
   const userPlanLimit = planLimits?.[plan]?.totalPOILimit || 0;
-  const canCreateMore = isAdmin || (userPlanLimit === Infinity || userMarkerCount < userPlanLimit);
+  
+  // Separate limits for My POI creation vs Location suggestions
+  const canCreateMyPOIs = isAdmin || (userPlanLimit === Infinity || userMarkerCount < userPlanLimit);
+  const canSuggestLocations = true; // Location suggestions should always be allowed as they go through admin approval
+  const canCreateMore = canCreateMyPOIs; // Keep existing behavior for backward compatibility
+  
   const remainingPOIs = isAdmin ? Infinity : (userPlanLimit === Infinity ? Infinity : Math.max(0, userPlanLimit - userMarkerCount));
 
   const [showForm, setShowForm] = useState(false);
@@ -109,21 +114,20 @@ function UserMap() {
   const [isPOIMode, setIsPOIMode] = useState(false);
   const [myPOIMapClickHandler, setMyPOIMapClickHandler] = useState(null);
 
-  // If user hits their POI limit, clear any pending suggestion so it isn't visible/usable.
-  // Do NOT disable suggest mode here — keep the toggle state, but prevent creating more POIs.
+  // If user hits their POI limit, clear any pending My POI creation but NOT location suggestions
   useEffect(() => {
-    if (!canCreateMore) {
-      // Only clear pending location (so a previously selected suggestion cannot be submitted).
+    if (!canCreateMyPOIs && !isSuggestMode) {
+      // Only clear pending location for My POI creation, not for location suggestions
       if (pendingLocation) {
         setPendingLocation(null);
         setSnackbar({
           open: true,
-          message: 'POI limit reached — pending suggestion cleared. Suggest mode remains enabled but adding is disabled.',
+          message: 'My POI limit reached — pending POI cleared. You can still suggest locations for admin approval.',
           severity: 'warning'
         });
       }
     }
-  }, [canCreateMore, pendingLocation]);
+  }, [canCreateMyPOIs, pendingLocation, isSuggestMode]);
 
   const handleMapClick = (latlng) => {
     // Handle My POI map clicks first
@@ -132,16 +136,21 @@ function UserMap() {
       return;
     }
 
-    // Regular POI creation logic
-    if (canCreateMore) {
+    // Check if this is for location suggestions (always allowed) or My POI creation (limited)
+    const isLocationSuggestion = isSuggestMode;
+    const canProceed = isLocationSuggestion ? canSuggestLocations : canCreateMyPOIs;
+
+    if (canProceed) {
       setPendingLocation(latlng);
       setEditingPOI(null);
       setShowForm(true);
-      setIsSuggestMode(false);
+      if (!isLocationSuggestion) {
+        setIsSuggestMode(false);
+      }
     } else {
       setSnackbar({
         open: true,
-        message: 'You have reached your POI limit. Upgrade your plan to add more locations.',
+        message: 'You have reached your My POI limit. Upgrade your plan to add more personal locations. You can still suggest locations for admin approval.',
         severity: 'warning'
       });
     }
@@ -287,7 +296,7 @@ function UserMap() {
         isAdmin={isAdmin}
         userMarkerCount={userMarkerCount}
         maxMarkers={userPlanLimit}
-        canCreateMore={canCreateMore}
+        canCreateMore={canSuggestLocations} // Use canSuggestLocations for location suggestions (always true)
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}
         onAddNote={handleAddNote}
