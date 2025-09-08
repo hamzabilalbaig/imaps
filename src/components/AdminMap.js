@@ -13,6 +13,7 @@ import InteractiveMapLayout from "./InteractiveMapLayout";
 import useUserStore from "../stores/user";
 import usePOIsStore from "../stores/pois";
 import useSubCategoriesStore from "../stores/subCategories";
+import { useAlerts } from "../hooks/useAlerts";
 
 /**
  * Admin Map component with full editing capabilities
@@ -20,6 +21,7 @@ import useSubCategoriesStore from "../stores/subCategories";
  */
 function AdminMap() {
   const navigate = useNavigate();
+  const { confirm } = useAlerts();
   
   // Use new POI stores
   const { pois, createPOI, updatePOI, deletePOI, initializePOIs } = usePOIsStore();
@@ -125,7 +127,8 @@ function AdminMap() {
   };
 
   const handleRemovePOI = async (poiId) => {
-    if (window.confirm("Are you sure you want to delete this POI?")) {
+    const confirmed = await confirm("Are you sure you want to delete this POI?");
+    if (confirmed) {
       try {
         const result = await deletePOI(poiId);
         if (result.success) {

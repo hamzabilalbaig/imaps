@@ -390,7 +390,8 @@ function AdminDashboard() {
   };
 
   const handleDeleteCategory = async (categoryId, categoryName) => {
-    if (window.confirm(`Are you sure you want to delete the category "${categoryName}"? This action cannot be undone.`)) {
+    const confirmed = await confirm(`Are you sure you want to delete the category "${categoryName}"? This action cannot be undone.`);
+    if (confirmed) {
       try {
         const result = await deleteCategory(categoryId);
         if (result.success) {
@@ -466,7 +467,8 @@ function AdminDashboard() {
   };
 
   const handleDeleteSubCategory = async (subCategoryId, subCategoryName) => {
-    if (window.confirm(`Are you sure you want to delete the subcategory "${subCategoryName}"? This action cannot be undone.`)) {
+    const confirmed = await confirm(`Are you sure you want to delete the subcategory "${subCategoryName}"? This action cannot be undone.`);
+    if (confirmed) {
       try {
         const result = await deleteSubCategory(subCategoryId);
         if (result.success) {
@@ -1623,8 +1625,9 @@ function AdminDashboard() {
                               <IconButton
                                 size="small"
                                 color="error"
-                                onClick={() => {
-                                  if (window.confirm(`Are you sure you want to delete "${poi.name}"?`)) {
+                                onClick={async () => {
+                                  const confirmed = await confirm(`Are you sure you want to delete "${poi.name}"?`);
+                                  if (confirmed) {
                                     deletePOI(poi.id);
                                   }
                                 }}

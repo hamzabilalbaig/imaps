@@ -5,6 +5,7 @@ import {
 import InteractiveMapLayout from "./InteractiveMapLayout";
 import { useMapMarkers } from "../hooks/useMapMarkers";
 import { useAuth } from "../contexts/AuthContext";
+import { useAlerts } from "../hooks/useAlerts";
 
 /**
  * Admin Map component with full editing capabilities
@@ -12,6 +13,7 @@ import { useAuth } from "../contexts/AuthContext";
 function AdminMap() {
   const { allMarkers: markers, addMarker, updateMarker, removeMarker, clearAllMarkers, userMarkerCount } = useMapMarkers();
   const { user } = useAuth();
+  const { confirm } = useAlerts();
   const [showForm, setShowForm] = useState(false);
   const [editingPOI, setEditingPOI] = useState(null);
   const [pendingLocation, setPendingLocation] = useState(null);
@@ -68,8 +70,9 @@ function AdminMap() {
     setPendingLocation(null);
   };
 
-  const handleRemovePOI = (poiId) => {
-    if (window.confirm("Are you sure you want to delete this POI?")) {
+  const handleRemovePOI = async (poiId) => {
+    const confirmed = await confirm("Are you sure you want to delete this POI?");
+    if (confirmed) {
       removeMarker(poiId);
       setSnackbar({
         open: true,
