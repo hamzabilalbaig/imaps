@@ -965,7 +965,6 @@ function AdminDashboard() {
                   <TableCell>Email</TableCell>
                   <TableCell>Plan</TableCell>
                   <TableCell>POIs Created</TableCell>
-                  <TableCell>Status</TableCell>
                   <TableCell>Joined</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -1003,13 +1002,6 @@ function AdminDashboard() {
                         <Typography variant="body2">
                           {userPOIs.length}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={isActive ? 'Active' : 'Inactive'}
-                          size="small"
-                          color={isActive ? 'success' : 'default'}
-                        />
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
@@ -2329,6 +2321,7 @@ function AdminDashboard() {
                 <Select
                   value={selectedUser.plan || ''}
                   onChange={(e) => setSelectedUser({ ...selectedUser, plan: e.target.value })}
+                  label="Plan"
                 >
                   <MenuItem value="free">Free</MenuItem>
                   <MenuItem value="premium">Premium</MenuItem>
@@ -2452,6 +2445,7 @@ function AdminDashboard() {
               <Select
                 value={subCategoryFormData.category_id}
                 onChange={(e) => setSubCategoryFormData({ ...subCategoryFormData, category_id: e.target.value })}
+                label="Parent Category"
               >
                 {categories.map((category) => (
                   <MenuItem key={category.id} value={category.id}>

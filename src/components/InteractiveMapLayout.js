@@ -98,7 +98,8 @@ function InteractiveMapLayout(props) {
   });
   const [visibleCategories, setVisibleCategories] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAd, setShowAd] = useState(true);
+  // Hide ads for unlimited users and admins
+  const [showAd, setShowAd] = useState(!(user?.plan === 'unlimited' || user?.role === 'admin'));
   const [notes, setNotes] = useState([]);
   const [progressTrackerMinimized, setProgressTrackerMinimized] = useState(false);
   const [streetsVisible, setStreetsVisible] = useState(true);
@@ -243,6 +244,11 @@ function InteractiveMapLayout(props) {
       }, 5000);
     }
   }, []);
+
+  // Update showAd when user data changes
+  useEffect(() => {
+    setShowAd(!(user?.plan === 'unlimited' || user?.role === 'admin'));
+  }, [user?.plan, user?.role]);
 
   // When focusing on a POI, try to find and highlight it
   useEffect(() => {

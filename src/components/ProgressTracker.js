@@ -550,14 +550,14 @@ function ProgressTracker({
                   color="info"
                   sx={{ fontSize: '0.7rem' }}
                 />
-                {canUseCustomIcons() && (
+                {/* {canUseCustomIcons() && (
                   <Chip 
                     label="CUSTOM ICONS"
                     size="small"
                     color="warning"
                     sx={{ fontSize: '0.7rem' }}
                   />
-                )}
+                )} */}
               </Box>
 
               {user?.plan !== 'unlimited' && (
@@ -576,7 +576,7 @@ function ProgressTracker({
                   }}
                   onClick={()=> navigate('/pricing')}
                 >
-                  UPGRADE TO PRO
+                  UPGRADE TO UNLIMITED
                 </Button>
               )}
             </Box>

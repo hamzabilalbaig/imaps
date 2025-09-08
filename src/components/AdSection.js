@@ -94,7 +94,7 @@ function AdSection({ onClose, showCloseButton = false, leftOffset = 0 }) {
           fontSize: '0.75rem',
           letterSpacing: 1
         }}>
-          Ad removed? Consider an upgrade to PRO
+          Ad removed? Consider an upgrade to Unlimited
         </Typography>
         
         <Typography variant="body2" color="text.secondary" sx={{ 
@@ -102,7 +102,7 @@ function AdSection({ onClose, showCloseButton = false, leftOffset = 0 }) {
           fontSize: '0.8rem',
           lineHeight: 1.4
         }}>
-          Remove ads and get extra features with our PRO plan.
+          Remove ads and get extra features with our UNLIMITED plan.
         </Typography>
         
         <Button
@@ -123,7 +123,7 @@ function AdSection({ onClose, showCloseButton = false, leftOffset = 0 }) {
             navigate('/pricing')
           }}
         >
-          UPGRADE TO PRO
+          UPGRADE TO UNLIMITED
         </Button>
 
     
