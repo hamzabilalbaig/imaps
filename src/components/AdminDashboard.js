@@ -2644,7 +2644,7 @@ function AdminDashboard() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12}>
+              {/* <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="Description"
@@ -2657,7 +2657,7 @@ function AdminDashboard() {
                   })}
                   placeholder="Brief description of this plan"
                 />
-              </Grid>
+              </Grid> */}
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
