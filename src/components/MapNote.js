@@ -15,6 +15,7 @@ import {
 import L from 'leaflet';
 import localDB from '../utils/localStorage';
 import { useAlerts } from '../hooks/useAlerts';
+import { deleteUserNote } from '../api/functions/apiFunctions';
 
 /**
  * Component for rendering notes on the map
@@ -58,8 +59,29 @@ function MapNote({
 
   const handleRemove = async () => {
     confirm('Are you sure you want to delete this note?', async () => {
-      setIsPopupOpen(false);
-      await localDB.deleteNote(note.id);
+      try {
+        setIsPopupOpen(false);
+        
+        // Delete from local database
+        await localDB.deleteNote(note.id);
+        
+        // Delete from backend API if user is not admin
+        const user = JSON.parse(localStorage.getItem('imaps_current_user'));
+        if (user && user.role !== 'admin') {
+          await deleteUserNote(user.id, note.id);
+        }
+        
+        // Call the parent component's onRemove to update UI state
+        if (onRemove) {
+          onRemove(note.id);
+        }
+      } catch (error) {
+        console.error('Error deleting note:', error);
+        // Still call onRemove to update UI even if backend call failed
+        if (onRemove) {
+          onRemove(note.id);
+        }
+      }
     });
   };
 

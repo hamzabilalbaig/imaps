@@ -438,7 +438,7 @@ class LocalStorageDB {
             updatedAt: new Date().toISOString()
           };
           localStorage.setItem('imaps_admin_notes', JSON.stringify(adminNotes));
-          window.location.reload(); // Reload to reflect changes
+          // Removed window.location.reload() to prevent page refresh
           return { success: true, note: adminNotes[noteIndex] };
         }
       }
@@ -472,14 +472,14 @@ class LocalStorageDB {
         const adminNotes = JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]');
         const filteredNotes = adminNotes.filter(note => note.id !== noteId);
         localStorage.setItem('imaps_admin_notes', JSON.stringify(filteredNotes));
-        window.location.reload(); // Reload to reflect changes
+        // Removed window.location.reload() to prevent page refresh
         return { success: true, message: 'Note deleted successfully' };
       } 
     } else {
         const data = await deleteUserNote(currentUser.id, noteId);
         localStorage.setItem('imaps_current_user', JSON.stringify(data));
         if (data) {
-          window.location.reload(); // Reload to reflect changes
+          // Removed window.location.reload() to prevent page refresh
           return { success: true, message: 'Note deleted successfully' };
         }
       }

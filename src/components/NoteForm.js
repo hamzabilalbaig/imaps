@@ -81,9 +81,9 @@ function NoteForm({ note, onSave, onCancel, isEdit = false }) {
           ...formData,
           updatedAt: new Date().toISOString()
         });
-      } else {
-        onSave(formData);
       }
+      // Always call onSave to update parent state and close form
+      onSave(formData);
     } catch (err) {
       console.error('Error saving note:', err);
       error('Failed to save note. Please try again.');
