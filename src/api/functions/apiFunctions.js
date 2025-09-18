@@ -505,3 +505,30 @@ export async function getPlanConfigurations() {
     const { data } = await apiClient.get('/admin/plans');
     return data;
 }
+
+// POI Settings API functions
+export async function getPOISettings() {
+    const { data } = await apiClient.get('/admin/poi-settings');
+    return data;
+}
+
+export async function getPOISetting(settingName) {
+    const { data } = await apiClient.get(`/admin/poi-settings/${settingName}`);
+    return data;
+}
+
+export async function updatePOISetting(settingName, settingValue) {
+    const { data } = await apiClient.put(`/admin/poi-settings/${settingName}`, { 
+        setting_value: settingValue 
+    });
+    return data;
+}
+
+export async function createPOISetting(settingName, settingValue, description = null) {
+    const { data } = await apiClient.post('/admin/poi-settings', { 
+        setting_name: settingName,
+        setting_value: settingValue,
+        description: description
+    });
+    return data;
+}

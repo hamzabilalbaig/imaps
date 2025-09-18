@@ -39,7 +39,8 @@ import {
   Badge,
   Stack,
   InputAdornment,
-  CircularProgress
+  CircularProgress,
+  Slider
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -70,6 +71,7 @@ import useUserStore, { getPlanLimits } from '../stores/user';
 import usePOIsStore from '../stores/pois';
 import useCategoriesStore from '../stores/categories';
 import useSubCategoriesStore from '../stores/subCategories';
+import useSettingsStore from '../stores/settings';
 import { getAllUsers, updateUserPlan, getAdminStats, bulkApprovePOIs, bulkRejectPOIs, getAllPlanConfigurations, updatePlanConfiguration, createPlanConfiguration, deletePlanConfiguration, getPlanUsageStats, getAllMapLayers, createMapLayer, updateMapLayer, deleteMapLayer, uploadMapLayerImage } from '../api/functions/apiFunctions';
 import uploadFile from '../aws/fileUpload';
 import { generateShareableLink } from '../utils/mapUtils';
@@ -87,6 +89,7 @@ function AdminDashboard() {
   const { pois, initializePOIs, approvePOI, deletePOI } = usePOIsStore();
   const { categories, initializeCategories, createCategory, updateCategory, deleteCategory } = useCategoriesStore();
   const { subCategories, initializeSubCategories, createSubCategory, updateSubCategory, deleteSubCategory } = useSubCategoriesStore();
+  const { poiIconSize, setPoiIconSize, initializeSettings, loading: settingsLoading, error: settingsError } = useSettingsStore();
   
   // Alerts hook
   const { confirm, success, error } = useAlerts();
@@ -133,6 +136,11 @@ function AdminDashboard() {
   
   // Plan management state
   const [planConfigurations, setPlanConfigurations] = useState([]);
+  
+  // Local state for POI icon size (for debounced updates)
+  const [localIconSize, setLocalIconSize] = useState(40);
+  const debounceTimeoutRef = useRef(null);
+  
   const [planFormData, setPlanFormData] = useState({
     plan_name: '',
     max_custom_categories: 10,
@@ -178,7 +186,8 @@ function AdminDashboard() {
           initializeSubCategories(),
           loadUsers(),
           loadPlanConfigurations(),
-          loadMapLayers()
+          loadMapLayers(),
+          initializeSettings()
         ]);
         
         // Load plan limits after initialization
@@ -197,6 +206,11 @@ function AdminDashboard() {
 
     initializeData();
   }, [initializeUser, isUserAdmin, navigate, initializePOIs, initializeCategories, initializeSubCategories]);
+
+  // Sync local icon size with store value
+  useEffect(() => {
+    setLocalIconSize(poiIconSize);
+  }, [poiIconSize]);
 
   // Load users from API
   const loadUsers = async () => {
@@ -252,6 +266,36 @@ function AdminDashboard() {
       activeUsers
     });
   };
+
+  // Debounced handler for POI icon size changes
+  const handleIconSizeChange = (newValue) => {
+    // Update local state immediately for responsive UI
+    setLocalIconSize(newValue);
+    
+    // Clear existing timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    // Set new timeout to update the store (and API)
+    debounceTimeoutRef.current = setTimeout(async () => {
+      try {
+        await setPoiIconSize(newValue);
+      } catch (error) {
+        // Error is already handled in the store, revert local state
+        setLocalIconSize(poiIconSize);
+      }
+    }, 500); // 500ms delay
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Recalculate stats when data changes
   useEffect(() => {
@@ -1488,6 +1532,51 @@ function AdminDashboard() {
               >
                 Refresh
               </Button>
+            </Box>
+          </Box>
+          
+          {/* POI Icon Size Control */}
+          <Box sx={{ mt: 3, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+              Global Icon Size Settings
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Adjust the size of all POI icons on the map (affects all POIs globally)
+            </Typography>
+            
+            {settingsError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {settingsError}
+              </Alert>
+            )}
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="body2" sx={{ minWidth: 80 }}>
+                Icon Size:
+              </Typography>
+              <Slider
+                value={localIconSize}
+                onChange={(event, newValue) => handleIconSizeChange(newValue)}
+                min={20}
+                max={80}
+                step={5}
+                marks={[
+                  { value: 20, label: '20px' },
+                  { value: 40, label: '40px' },
+                  { value: 60, label: '60px' },
+                  { value: 80, label: '80px' }
+                ]}
+                valueLabelDisplay="on"
+                sx={{ flex: 1, mx: 2 }}
+                disabled={settingsLoading}
+              />
+              {settingsLoading ? (
+                <CircularProgress size={20} />
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ minWidth: 60 }}>
+                  {localIconSize}px
+                </Typography>
+              )}
             </Box>
           </Box>
         </Box>

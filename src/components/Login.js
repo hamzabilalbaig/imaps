@@ -141,7 +141,7 @@ const Login = ({loginType, isRegister}) => {
         >
           {/* Header */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Box sx={{
+            {/* <Box sx={{
               display: 'inline-flex',
               alignItems: 'center',
               backgroundColor: 'primary.main',
@@ -150,7 +150,8 @@ const Login = ({loginType, isRegister}) => {
               mb: 2
             }}>
               <MapIcon sx={{ fontSize: 32, color: 'white' }} />
-            </Box>
+            </Box> */}
+            <img src="/logos/logo-dark.png" alt="iMaps Logo" style={{ height: 100, marginBottom: 16, margin: '0 auto' }} />
             <Typography variant="h4" fontWeight="bold" color="primary" gutterBottom>
               Welcome to iMaps
             </Typography>

@@ -121,7 +121,7 @@ function ProgressTracker({
         height: '100%',
         backgroundColor: alpha(theme.palette.background.paper, 0.98),
         backdropFilter: 'blur(12px)',
-        borderRadius: 3,
+        borderRadius: 0,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',

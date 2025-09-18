@@ -19,6 +19,7 @@ import {
 } from "@mui/icons-material";
 import { generateShareableLink, createCategoryIcon } from "../utils/mapUtils";
 import useUserStore from "../stores/user";
+import useSettingsStore from "../stores/settings";
 
 /**
  * Individual marker component with popup
@@ -36,6 +37,7 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
   const canEdit = isAdmin ? true : false
   const { id: userId, isLocationFound, addToFoundLocations, removeFromFoundLocations } = useUserStore()
   const { success, warning } = useAlerts();
+  const { poiIconSize, initializeSettings } = useSettingsStore();
   
   const [isFound, setIsFound] = useState(false)
   const [foundLoading, setFoundLoading] = useState(false)
@@ -79,6 +81,11 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
   useEffect(() => {
     console.log("MapMarker - isAdmin:", isAdmin);
   }, [isAdmin]);
+
+  // Initialize settings if not already initialized
+  useEffect(() => {
+    initializeSettings();
+  }, [initializeSettings]);
 
   // Debug logging for new structure
   useEffect(() => {
@@ -220,9 +227,10 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
           subCategory?.name, 
           iconImageUrl, 
           iconImageUrl ? 'custom_subcategory' : null, 
-          subCategory?.color
+          subCategory?.color,
+          poiIconSize
         ) :
-        createCategoryIcon(marker.category, marker.customIcon, marker.selectedIcon, marker.iconColor)
+        createCategoryIcon(marker.category, marker.customIcon, marker.selectedIcon, marker.iconColor, poiIconSize)
       }
     >
       <Tooltip>{displayName}</Tooltip>

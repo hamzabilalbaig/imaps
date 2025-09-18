@@ -148,7 +148,7 @@ const ForgotPassword = () => {
               <ArrowBackIcon />
             </IconButton>
             
-            <Box sx={{
+            {/* <Box sx={{
               display: 'inline-flex',
               alignItems: 'center',
               backgroundColor: 'primary.main',
@@ -157,7 +157,8 @@ const ForgotPassword = () => {
               mb: 2
             }}>
               <MapIcon sx={{ fontSize: 32, color: 'white' }} />
-            </Box>
+            </Box> */}
+            <img src="/logos/logo-dark.png" alt="Logo" style={{ width: 100, margin: '0 auto' }} />
             
             <Typography variant="h4" fontWeight="bold" color="primary" gutterBottom>
               Forgot Password?
