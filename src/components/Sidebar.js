@@ -1391,7 +1391,7 @@ function Sidebar({
       </Box>
 
       {/* Footer */}
-      <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+      {/* <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
           {loading || subCategoriesLoading || poisLoading ? 'Loading...' : 
             `${categories.length} categories, ${subCategories.length} subcategories, ${pois.length} POIs`
@@ -1400,7 +1400,7 @@ function Sidebar({
         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block', mt: 0.5 }}>
           Hidden: {hiddenCategories.size} categories, {hiddenSubCategories.size} subcategories
         </Typography>
-      </Box>
+      </Box> */}
     </Box>
   );
 }

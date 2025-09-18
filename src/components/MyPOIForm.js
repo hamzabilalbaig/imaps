@@ -303,7 +303,7 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
           />
 
           {/* Coordinates Display */}
-          <Box>
+          {/* <Box>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
               Location *
             </Typography>
@@ -322,7 +322,7 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
                 No location selected. Please close this form and click the + button again to select a location.
               </Alert>
             )}
-          </Box>
+          </Box> */}
 
           {/* Usage Status */}
           <Box>
