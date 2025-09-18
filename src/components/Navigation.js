@@ -97,7 +97,9 @@ function Navigation() {
             >
               <MapIcon sx={{ fontSize: { xs: 20, sm: 24, md: 28 }, color: 'white' }} />
             </Box> */}
+            <Link to={isLoggedIn ? "/map" : "/"} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
             <img src="/logos/logo-light.png" alt="iMaps Logo" style={{ height: isMobile ? 30 : 40, marginRight: 8 }} />
+            </Link>
             <Typography
               variant={isMobile ? "h6" : "h5"}
               component="div"

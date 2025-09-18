@@ -355,7 +355,7 @@ function MapWithLayers({
       position: 'relative', 
       width: '100%', 
       height: '100%',
-      overflow: 'hidden'
+      overflow: 'hidden',
     }}>
       <MapContainer
         ref={mapRef}
@@ -365,6 +365,10 @@ function MapWithLayers({
         crs={L.CRS.Simple} // Use simple CRS for local images
         minZoom={11}
         maxZoom={15}
+        maxBounds={imageBounds}
+        style={{ background: activeLayer?.backgroundColor || '#f0f0f0' }}
+        maxBoundsViscosity={1.0}
+        dragging={true}
         zoomControl={false}
         attributionControl={false}
         whenCreated={(mapInstance) => {

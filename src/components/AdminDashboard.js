@@ -161,7 +161,8 @@ function AdminDashboard() {
   const [mapLayerFormData, setMapLayerFormData] = useState({
     name: '',
     description: '',
-    image_url: ''
+    image_url: '',
+    background_color: '#f0f0f0'
   });
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
@@ -1774,6 +1775,7 @@ function AdminDashboard() {
               name: mapLayerFormData.name,
               description: mapLayerFormData.description,
               image_url: imageUrl,
+              background_color: mapLayerFormData.background_color,
               created_by: id
             };
 
@@ -1781,7 +1783,7 @@ function AdminDashboard() {
             await loadMapLayers();
 
             // Reset form
-            setMapLayerFormData({ name: '', description: '', image_url: '' });
+            setMapLayerFormData({ name: '', description: '', image_url: '', background_color: '#f0f0f0' });
             setSelectedImageFile(null);
             setImagePreviewUrl(null);
             setMapLayerDialogOpen(false);
@@ -1827,14 +1829,15 @@ function AdminDashboard() {
             const layerData = {
               name: mapLayerFormData.name,
               description: mapLayerFormData.description,
-              image_url: imageUrl
+              image_url: imageUrl,
+              background_color: mapLayerFormData.background_color
             };
 
             await updateMapLayer(selectedMapLayer.id, layerData);
             await loadMapLayers();
 
             // Reset form
-            setMapLayerFormData({ name: '', description: '', image_url: '' });
+            setMapLayerFormData({ name: '', description: '', image_url: '', background_color: '#f0f0f0' });
             setSelectedImageFile(null);
             setImagePreviewUrl(null);
             setSelectedMapLayer(null);
@@ -1848,18 +1851,20 @@ function AdminDashboard() {
             setImageUploadLoading(false);
           }
         } else {
-          // No new image, just update text fields
+          // No new image, just update text fields and background color
           const layerData = {
             name: mapLayerFormData.name,
             description: mapLayerFormData.description,
-            image_url: imageUrl
+            image_url: imageUrl,
+            background_color: mapLayerFormData.background_color
           };
 
+          console.log('Updating layer without new image:', layerData); // Debug log
           await updateMapLayer(selectedMapLayer.id, layerData);
           await loadMapLayers();
           
           // Reset form
-          setMapLayerFormData({ name: '', description: '', image_url: '' });
+          setMapLayerFormData({ name: '', description: '', image_url: '', background_color: '#f0f0f0' });
           setSelectedMapLayer(null);
           setMapLayerDialogOpen(false);
           setImageUploadLoading(false);
@@ -1892,7 +1897,8 @@ function AdminDashboard() {
       setMapLayerFormData({
         name: layer.name,
         description: layer.description || '',
-        image_url: layer.image_url
+        image_url: layer.image_url,
+        background_color: layer.background_color || '#f0f0f0'
       });
       setImagePreviewUrl(layer.image_url);
       setMapLayerDialogOpen(true);
@@ -1916,7 +1922,7 @@ function AdminDashboard() {
                 startIcon={<AddIcon />}
                 onClick={() => {
                   setSelectedMapLayer(null);
-                  setMapLayerFormData({ name: '', description: '', image_url: '' });
+                  setMapLayerFormData({ name: '', description: '', image_url: '', background_color: '#f0f0f0' });
                   setSelectedImageFile(null);
                   setImagePreviewUrl(null);
                   setMapLayerDialogOpen(true);
@@ -2085,7 +2091,7 @@ function AdminDashboard() {
             if (!imageUploadLoading) {
               setMapLayerDialogOpen(false);
               setSelectedMapLayer(null);
-              setMapLayerFormData({ name: '', description: '', image_url: '' });
+              setMapLayerFormData({ name: '', description: '', image_url: '', background_color: '#f0f0f0' });
               setSelectedImageFile(null);
               setImagePreviewUrl(null);
             }
@@ -2116,6 +2122,43 @@ function AdminDashboard() {
                 rows={3}
                 disabled={imageUploadLoading}
               />
+
+              {/* Background Color Picker */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2 }}>
+                  Background Color
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                  <TextField
+                    label="Hex Color"
+                    value={mapLayerFormData.background_color}
+                    onChange={(e) => setMapLayerFormData(prev => ({ ...prev, background_color: e.target.value }))}
+                    placeholder="#f0f0f0"
+                    disabled={imageUploadLoading}
+                    sx={{ width: 150 }}
+                    inputProps={{ 
+                      pattern: '^#[0-9A-Fa-f]{6}$',
+                      title: 'Enter a valid hex color code (e.g., #ffffff)'
+                    }}
+                  />
+                  <input
+                    type="color"
+                    value={mapLayerFormData.background_color}
+                    onChange={(e) => setMapLayerFormData(prev => ({ ...prev, background_color: e.target.value }))}
+                    disabled={imageUploadLoading}
+                    style={{
+                      width: 50,
+                      height: 40,
+                      border: 'none',
+                      borderRadius: 4,
+                      cursor: imageUploadLoading ? 'not-allowed' : 'pointer'
+                    }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    Choose the background color visible behind the map image
+                  </Typography>
+                </Box>
+              </Box>
 
               {/* Image Upload */}
               <Box>
@@ -2186,7 +2229,7 @@ function AdminDashboard() {
                 if (!imageUploadLoading) {
                   setMapLayerDialogOpen(false);
                   setSelectedMapLayer(null);
-                  setMapLayerFormData({ name: '', description: '', image_url: '' });
+                  setMapLayerFormData({ name: '', description: '', image_url: '', background_color: '#f0f0f0' });
                   setSelectedImageFile(null);
                   setImagePreviewUrl(null);
                 }
