@@ -19,10 +19,10 @@ export const saveMapState = (map) => {
     const center = mapInstance.getCenter();
     const zoom = mapInstance.getZoom();
     
-    localStorage.setItem(MAP_CENTER_KEY, JSON.stringify([center.lat, center.lng]));
+    localStorage.setItem(MAP_CENTER_KEY, JSON.stringify([center.lat, center?.lng]));
     localStorage.setItem(MAP_ZOOM_KEY, zoom.toString());
     
-    console.log('Saved map state:', { center: [center.lat, center.lng], zoom });
+    console.log('Saved map state:', { center: [center.lat, center?.lng], zoom });
   } catch (error) {
     console.error('Error saving map state:', error);
   }

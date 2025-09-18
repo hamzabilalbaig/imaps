@@ -86,10 +86,10 @@ function AdminMap() {
             severity: 'error'
           });
         }
-      } else if (pendingLocation) {
+      } else if (pendingLocation && pendingLocation?.lat != null && pendingLocation?.lng != null) {
         const poiData = {
           ...formData,
-          coords: [pendingLocation.lat, pendingLocation.lng],
+          coords: [pendingLocation?.lat, pendingLocation?.lng],
           user_id: id,
           is_approved: true // Admin POIs are auto-approved
         };

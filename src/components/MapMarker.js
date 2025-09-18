@@ -124,7 +124,9 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
   }, [userId, currentItem?.id, isLocationFound]);
 
   // Don't render marker if position is invalid
-  if (!position || !Array.isArray(position) || position.length !== 2) {
+  if (!position || !Array.isArray(position) || position.length !== 2 || 
+      position[0] == null || position[1] == null || 
+      isNaN(position[0]) || isNaN(position[1])) {
     console.warn('MapMarker - Invalid position:', position, 'for POI:', currentItem);
     return null;
   }

@@ -198,7 +198,7 @@ function InteractiveMapLayout(props) {
   // Handle POI from URL parameter
   useEffect(() => {
     const poiFromURL = parsePOIFromURL();
-    if (poiFromURL && poiFromURL.lat && poiFromURL.lng) {
+    if (poiFromURL && poiFromURL?.lat && poiFromURL?.lng) {
       console.log('Focusing on POI from URL:', poiFromURL);
       setFocusedPOI(poiFromURL);
       
@@ -211,7 +211,7 @@ function InteractiveMapLayout(props) {
           setTimeout(() => {
             try {
               window.leafletMap.fire('directMarkerClick', {
-                latlng: L.latLng(poiFromURL.lat, poiFromURL.lng)
+                latlng: L?.latLng(poiFromURL?.lat, poiFromURL?.lng)
               });
             } catch (error) {
               console.error('Error triggering marker click:', error);
@@ -222,7 +222,7 @@ function InteractiveMapLayout(props) {
           setTimeout(() => {
             try {
               window.leafletMap.fire('directMarkerClick', {
-                latlng: L.latLng(poiFromURL.lat, poiFromURL.lng)
+                latlng: L?.latLng(poiFromURL?.lat, poiFromURL?.lng)
               });
             } catch (error) {
               console.error('Error triggering marker click (retry):', error);
@@ -252,7 +252,7 @@ function InteractiveMapLayout(props) {
 
   // When focusing on a POI, try to find and highlight it
   useEffect(() => {
-    if (focusedPOI && filteredPOIs.length > 0) {
+    if (focusedPOI && focusedPOI?.lat != null && focusedPOI?.lng != null && filteredPOIs.length > 0) {
       console.log('Looking for focused POI in filtered POIs:', focusedPOI);
       console.log('Available POIs:', filteredPOIs.map(poi => ({
         id: poi.id,
@@ -282,16 +282,16 @@ function InteractiveMapLayout(props) {
             return false;
           }
           
-          const latDiff = Math.abs(lat - focusedPOI.lat);
-          const lngDiff = Math.abs(lng - focusedPOI.lng);
+          const latDiff = Math.abs(lat - focusedPOI?.lat);
+          const lngDiff = Math.abs(lng - focusedPOI?.lng);
           
           console.log('Comparing with tolerance', tolerance, ':', { 
             poiId: poi.id,
             poiTitle: poi.title || poi.name,
             poiLat: lat, 
             poiLng: lng, 
-            focusedLat: focusedPOI.lat, 
-            focusedLng: focusedPOI.lng,
+            focusedLat: focusedPOI?.lat, 
+            focusedLng: focusedPOI?.lng,
             latDiff,
             lngDiff,
             matches: latDiff < tolerance && lngDiff < tolerance
@@ -424,7 +424,7 @@ function InteractiveMapLayout(props) {
             ? { ...note, ...formData, updatedAt: new Date().toISOString() }
             : note
         ));
-      } else if (pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation?.lng === 'number') {
+      } else if (pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation.lng === 'number') {
         // Check note limits before creating new note
         const currentUserPlan = user?.plan || 'free';
         const planLimits = user?.planLimits?.[currentUserPlan];
@@ -440,8 +440,8 @@ function InteractiveMapLayout(props) {
         // Create new note only if location is valid
         const newNote = {
           id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          position: [pendingNoteLocation.lat, pendingNoteLocation?.lng],
-          coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation?.lng.toFixed(6)}`,
+          position: [pendingNoteLocation.lat, pendingNoteLocation.lng],
+          coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}`,
           ...formData,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -459,9 +459,9 @@ function InteractiveMapLayout(props) {
     } else {
       // For admin, ensure position and coords are present in formData
       let { id, title, content, tags, position, coords, color, userId } = formData;
-      if ((!position || !coords) && pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation?.lng === 'number') {
-        position = [pendingNoteLocation.lat, pendingNoteLocation?.lng];
-        coords = `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation?.lng.toFixed(6)}`;
+      if ((!position || !coords) && pendingNoteLocation && typeof pendingNoteLocation.lat === 'number' && typeof pendingNoteLocation.lng === 'number') {
+        position = [pendingNoteLocation.lat, pendingNoteLocation.lng];
+        coords = `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}`;
       }
       if (!position || !coords) {
         console.error('Cannot create admin note: position or coords missing.');
@@ -522,7 +522,7 @@ function InteractiveMapLayout(props) {
         // Wait a bit longer to ensure map has moved
         setTimeout(() => {
           window.leafletMap.fire('directMarkerClick', {
-            latlng: L.latLng(lat, lng)
+            latlng: L?.latLng(lat, lng)
           });
         }, 800);
       }
@@ -550,7 +550,20 @@ function InteractiveMapLayout(props) {
     if (user && user.id) {
       getUserNotes(user.id)
         .then(data => {
-          setNotes(data || []);
+          // Validate and filter notes with valid positions
+          const validNotes = (data || []).filter(note => {
+            if (!note.position || !Array.isArray(note.position) || note.position.length !== 2) {
+              console.warn('Filtering out note with invalid position:', note.id, note.position);
+              return false;
+            }
+            if (note.position[0] == null || note.position[1] == null || 
+                isNaN(note.position[0]) || isNaN(note.position[1])) {
+              console.warn('Filtering out note with invalid coordinates:', note.id, note.position);
+              return false;
+            }
+            return true;
+          });
+          setNotes(validNotes);
         })
         .catch(err => {
           console.error('Failed to fetch user notes:', err);
@@ -775,8 +788,8 @@ function InteractiveMapLayout(props) {
 
       }}>
         <MapWithLayers
-          center={focusedPOI ? [focusedPOI.lat, focusedPOI.lng] : MAP_CONFIG?.defaultCenter}
-          zoom={focusedPOI ? 15 : MAP_CONFIG?.defaultZoom}
+          center={focusedPOI && focusedPOI?.lat != null && focusedPOI?.lng != null ? [focusedPOI?.lat, focusedPOI?.lng] : MAP_CONFIG?.defaultCenter}
+          zoom={focusedPOI && focusedPOI?.lat != null && focusedPOI?.lng != null ? 15 : MAP_CONFIG?.defaultZoom}
           showLayerSelector={true}
           layerSelectorPosition="bottom-center"
           isAdmin={isAdmin}
@@ -795,10 +808,26 @@ function InteractiveMapLayout(props) {
           
           {/* POI Markers */}
           {filteredPOIs.map((poi) => {
+            // Validate POI coordinates before rendering
+            const position = poi.position || poi.coords;
+            if (!position || (!Array.isArray(position) && typeof position !== 'string')) {
+              console.warn('Skipping POI with invalid position:', poi.id, position);
+              return null;
+            }
+            
+            // For array positions, validate elements
+            if (Array.isArray(position)) {
+              if (position.length !== 2 || position[0] == null || position[1] == null || 
+                  isNaN(position[0]) || isNaN(position[1])) {
+                console.warn('Skipping POI with invalid array position:', poi.id, position);
+                return null;
+              }
+            }
+            
             // Check if this POI is the focused one
             let isFocused = false;
             
-            if (focusedPOI) {
+            if (focusedPOI && focusedPOI?.lat != null && focusedPOI?.lng != null) {
               const position = poi.position || poi.coords;
               let lat, lng;
               
@@ -816,11 +845,11 @@ function InteractiveMapLayout(props) {
                 const tolerances = [0.0001, 0.001, 0.01, 0.1];
                 
                 for (const tolerance of tolerances) {
-                  if (Math.abs(lat - focusedPOI.lat) < tolerance && 
-                      Math.abs(lng - focusedPOI.lng) < tolerance) {
+                  if (Math.abs(lat - focusedPOI?.lat) < tolerance && 
+                      Math.abs(lng - focusedPOI?.lng) < tolerance) {
                     isFocused = true;
                     console.log(`POI ${poi.id} is focused with tolerance ${tolerance}`);
-                    console.log('POI position:', [lat, lng], 'Focus position:', [focusedPOI.lat, focusedPOI.lng]);
+                    console.log('POI position:', [lat, lng], 'Focus position:', [focusedPOI?.lat, focusedPOI?.lng]);
                     break;
                   }
                 }
@@ -843,7 +872,21 @@ function InteractiveMapLayout(props) {
           {/* Notes */}
           {!hideAll && (
             user?.isadmin ?
-              JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]').map(note => (
+              JSON.parse(localStorage.getItem('imaps_admin_notes') || '[]')
+                .filter(note => {
+                  // Validate admin note positions
+                  if (!note.position || !Array.isArray(note.position) || note.position.length !== 2) {
+                    console.warn('Filtering out admin note with invalid position:', note.id, note.position);
+                    return false;
+                  }
+                  if (note.position[0] == null || note.position[1] == null || 
+                      isNaN(note.position[0]) || isNaN(note.position[1])) {
+                    console.warn('Filtering out admin note with invalid coordinates:', note.id, note.position);
+                    return false;
+                  }
+                  return true;
+                })
+                .map(note => (
                 <MapNote
                   key={note.id}
                   note={note}
@@ -1071,7 +1114,7 @@ function InteractiveMapLayout(props) {
         {showForm && (
           <POIForm
             poi={editingPOI || (pendingLocation ? { 
-              coords: `${pendingLocation.lat.toFixed(6)}, ${pendingLocation?.lng.toFixed(6)}` 
+              coords: `${pendingLocation?.lat.toFixed(6)}, ${pendingLocation?.lng.toFixed(6)}` 
             } : null)}
             onSave={handleSavePOILocal}
             onCancel={onCancelForm}
@@ -1083,8 +1126,8 @@ function InteractiveMapLayout(props) {
         {/* Note Form */}
         {showNoteForm && (
           <NoteForm
-            note={editingNote || (pendingNoteLocation ? { 
-              coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation?.lng.toFixed(6)}` 
+            note={editingNote || (pendingNoteLocation && pendingNoteLocation.lat != null && pendingNoteLocation.lng != null ? { 
+              coords: `${pendingNoteLocation.lat.toFixed(6)}, ${pendingNoteLocation.lng.toFixed(6)}` 
             } : null)}
             onSave={handleSaveNote}
             onCancel={handleCancelNoteForm}

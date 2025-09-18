@@ -85,6 +85,14 @@ function MapNote({
     });
   };
 
+  // Validate note position before rendering
+  if (!note.position || !Array.isArray(note.position) || note.position.length !== 2 ||
+      note.position[0] == null || note.position[1] == null || 
+      isNaN(note.position[0]) || isNaN(note.position[1])) {
+    console.warn('MapNote - Invalid position:', note.position, 'for note:', note);
+    return null;
+  }
+
   return (
     <Marker
       position={note.position}

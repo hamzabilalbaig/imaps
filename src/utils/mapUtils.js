@@ -65,8 +65,8 @@ export const safeMapOperation = (map, operation, delay = 0) => {
 
 export const createMarker = (latlng, poiData = {}) => ({
   id: `poi-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-  position: [latlng.lat, latlng.lng],
-  coords: `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,
+  position: [latlng.lat, latlng?.lng],
+  coords: `${latlng.lat.toFixed(6)}, ${latlng?.lng.toFixed(6)}`,
   title: poiData.title || "New POI",
   description: poiData.description || "",
   category: poiData.category || "Other",
@@ -93,14 +93,18 @@ export const generateShareableLink = (poi) => {
   if (isNewStructure) {
     // New POI structure
     const position = poi.position || poi.coords;
-    lat = position[0];
-    lng = position[1];
+    if (position && Array.isArray(position) && position.length >= 2) {
+      lat = position[0];
+      lng = position[1];
+    }
     title = poi.name || poi.title || 'POI'; // Handle both name and title fields
     category = poi.subcategory_name || 'POI'; // This should be set by the caller
   } else {
     // Legacy marker structure
-    lat = poi.position[0];
-    lng = poi.position[1];
+    if (poi.position && Array.isArray(poi.position) && poi.position.length >= 2) {
+      lat = poi.position[0];
+      lng = poi.position[1];
+    }
     title = poi.title;
     category = poi.category;
   }
@@ -108,6 +112,12 @@ export const generateShareableLink = (poi) => {
   console.log('generateShareableLink - POI:', poi);
   console.log('generateShareableLink - isNewStructure:', isNewStructure);
   console.log('generateShareableLink - Values:', { lat, lng, title, category });
+  
+  // Validate coordinates - both lat and lng must be valid numbers
+  if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) {
+    console.error('Invalid coordinates for POI:', { lat, lng, poi });
+    return null;
+  }
   
   const params = new URLSearchParams({
     lat: lat,
