@@ -89,7 +89,7 @@ function AdminDashboard() {
   const { pois, initializePOIs, approvePOI, deletePOI } = usePOIsStore();
   const { categories, initializeCategories, createCategory, updateCategory, deleteCategory } = useCategoriesStore();
   const { subCategories, initializeSubCategories, createSubCategory, updateSubCategory, deleteSubCategory } = useSubCategoriesStore();
-  const { poiIconSize, setPoiIconSize, initializeSettings, loading: settingsLoading, error: settingsError } = useSettingsStore();
+  const { poiIconSize, setPoiIconSize } = useSettingsStore();
   
   // Alerts hook
   const { confirm, success, error } = useAlerts();
@@ -136,11 +136,6 @@ function AdminDashboard() {
   
   // Plan management state
   const [planConfigurations, setPlanConfigurations] = useState([]);
-  
-  // Local state for POI icon size (for debounced updates)
-  const [localIconSize, setLocalIconSize] = useState(40);
-  const debounceTimeoutRef = useRef(null);
-  
   const [planFormData, setPlanFormData] = useState({
     plan_name: '',
     max_custom_categories: 10,
@@ -187,8 +182,7 @@ function AdminDashboard() {
           initializeSubCategories(),
           loadUsers(),
           loadPlanConfigurations(),
-          loadMapLayers(),
-          initializeSettings()
+          loadMapLayers()
         ]);
         
         // Load plan limits after initialization
@@ -207,11 +201,6 @@ function AdminDashboard() {
 
     initializeData();
   }, [initializeUser, isUserAdmin, navigate, initializePOIs, initializeCategories, initializeSubCategories]);
-
-  // Sync local icon size with store value
-  useEffect(() => {
-    setLocalIconSize(poiIconSize);
-  }, [poiIconSize]);
 
   // Load users from API
   const loadUsers = async () => {
@@ -267,36 +256,6 @@ function AdminDashboard() {
       activeUsers
     });
   };
-
-  // Debounced handler for POI icon size changes
-  const handleIconSizeChange = (newValue) => {
-    // Update local state immediately for responsive UI
-    setLocalIconSize(newValue);
-    
-    // Clear existing timeout
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-    
-    // Set new timeout to update the store (and API)
-    debounceTimeoutRef.current = setTimeout(async () => {
-      try {
-        await setPoiIconSize(newValue);
-      } catch (error) {
-        // Error is already handled in the store, revert local state
-        setLocalIconSize(poiIconSize);
-      }
-    }, 500); // 500ms delay
-  };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Recalculate stats when data changes
   useEffect(() => {
@@ -1544,20 +1503,13 @@ function AdminDashboard() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Adjust the size of all POI icons on the map (affects all POIs globally)
             </Typography>
-            
-            {settingsError && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {settingsError}
-              </Alert>
-            )}
-            
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Typography variant="body2" sx={{ minWidth: 80 }}>
                 Icon Size:
               </Typography>
               <Slider
-                value={localIconSize}
-                onChange={(event, newValue) => handleIconSizeChange(newValue)}
+                value={poiIconSize}
+                onChange={(event, newValue) => setPoiIconSize(newValue)}
                 min={20}
                 max={80}
                 step={5}
@@ -1569,15 +1521,10 @@ function AdminDashboard() {
                 ]}
                 valueLabelDisplay="on"
                 sx={{ flex: 1, mx: 2 }}
-                disabled={settingsLoading}
               />
-              {settingsLoading ? (
-                <CircularProgress size={20} />
-              ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ minWidth: 60 }}>
-                  {localIconSize}px
-                </Typography>
-              )}
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 60 }}>
+                {poiIconSize}px
+              </Typography>
             </Box>
           </Box>
         </Box>
@@ -1851,7 +1798,7 @@ function AdminDashboard() {
             setImageUploadLoading(false);
           }
         } else {
-          // No new image, just update text fields and background color
+          // No new image, just update text fields
           const layerData = {
             name: mapLayerFormData.name,
             description: mapLayerFormData.description,
@@ -1859,7 +1806,6 @@ function AdminDashboard() {
             background_color: mapLayerFormData.background_color
           };
 
-          console.log('Updating layer without new image:', layerData); // Debug log
           await updateMapLayer(selectedMapLayer.id, layerData);
           await loadMapLayers();
           
@@ -1985,7 +1931,7 @@ function AdminDashboard() {
                     <TableCell>Preview</TableCell>
                     <TableCell>Name</TableCell>
                     <TableCell>Description</TableCell>
-                    {/* <TableCell>Upload Method</TableCell> */}
+                    <TableCell>Background</TableCell>
                     <TableCell>Created</TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
@@ -2044,14 +1990,23 @@ function AdminDashboard() {
                             {layer.description || 'No description'}
                           </Typography>
                         </TableCell>
-                        {/* <TableCell>
-                          <Chip
-                            label={isBase64 ? 'Base64' : 'S3'}
-                            size="small"
-                            color={isBase64 ? 'warning' : 'success'}
-                            variant="outlined"
-                          />
-                        </TableCell> */}
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box
+                              sx={{
+                                width: 24,
+                                height: 24,
+                                backgroundColor: layer.background_color || '#f0f0f0',
+                                border: 1,
+                                borderColor: 'divider',
+                                borderRadius: 1
+                              }}
+                            />
+                            <Typography variant="caption" color="text.secondary">
+                              {layer.background_color || '#f0f0f0'}
+                            </Typography>
+                          </Box>
+                        </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
                             {new Date(layer.created_at).toLocaleDateString()}
@@ -2123,39 +2078,35 @@ function AdminDashboard() {
                 disabled={imageUploadLoading}
               />
 
-              {/* Background Color Picker */}
+              {/* Background Color */}
               <Box>
-                <Typography variant="subtitle2" sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
                   Background Color
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <TextField
-                    label="Hex Color"
-                    value={mapLayerFormData.background_color}
-                    onChange={(e) => setMapLayerFormData(prev => ({ ...prev, background_color: e.target.value }))}
-                    placeholder="#f0f0f0"
-                    disabled={imageUploadLoading}
-                    sx={{ width: 150 }}
-                    inputProps={{ 
-                      pattern: '^#[0-9A-Fa-f]{6}$',
-                      title: 'Enter a valid hex color code (e.g., #ffffff)'
-                    }}
-                  />
-                  <input
                     type="color"
                     value={mapLayerFormData.background_color}
                     onChange={(e) => setMapLayerFormData(prev => ({ ...prev, background_color: e.target.value }))}
                     disabled={imageUploadLoading}
-                    style={{
-                      width: 50,
-                      height: 40,
-                      border: 'none',
-                      borderRadius: 4,
-                      cursor: imageUploadLoading ? 'not-allowed' : 'pointer'
+                    sx={{ width: 80 }}
+                    InputProps={{
+                      sx: { 
+                        padding: 0,
+                        '& input': {
+                          padding: '8px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          height: '40px'
+                        }
+                      }
                     }}
                   />
                   <Typography variant="body2" color="text.secondary">
-                    Choose the background color visible behind the map image
+                    {mapLayerFormData.background_color}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Background color shown when the map image is loading
                   </Typography>
                 </Box>
               </Box>

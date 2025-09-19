@@ -37,7 +37,7 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
   const canEdit = isAdmin ? true : false
   const { id: userId, isLocationFound, addToFoundLocations, removeFromFoundLocations } = useUserStore()
   const { success, warning } = useAlerts();
-  const { poiIconSize, initializeSettings } = useSettingsStore();
+  const { poiIconSize } = useSettingsStore();
   
   const [isFound, setIsFound] = useState(false)
   const [foundLoading, setFoundLoading] = useState(false)
@@ -81,11 +81,6 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
   useEffect(() => {
     console.log("MapMarker - isAdmin:", isAdmin);
   }, [isAdmin]);
-
-  // Initialize settings if not already initialized
-  useEffect(() => {
-    initializeSettings();
-  }, [initializeSettings]);
 
   // Debug logging for new structure
   useEffect(() => {

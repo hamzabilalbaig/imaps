@@ -81,6 +81,7 @@ export function useMapLayers() {
             imageUrl: layer.image_url,
             description: layer.description,
             backgroundColor: layer.background_color || '#f0f0f0',
+            background_color: layer.background_color || '#f0f0f0',
             isActive: false,
             isDefault: false,
             created_at: layer.created_at
@@ -193,6 +194,8 @@ export function useMapLayers() {
           type: "database",
           imageUrl: layer.image_url,
           description: layer.description,
+          backgroundColor: layer.background_color || '#f0f0f0',
+          background_color: layer.background_color || '#f0f0f0',
           isActive: false,
           isDefault: false,
           created_at: layer.created_at

@@ -61,7 +61,8 @@ function Sidebar({
   onRefreshMyCategories,
   onRefreshMyPOIs,
   onRefreshMySubCategories,
-  myCategories = []
+  myCategories = [],
+  onPendingPOIClick
 }) {
   const theme = useTheme();
   
@@ -810,9 +811,34 @@ function Sidebar({
               </Box>
             ) : (
               <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
-                {unapprovedPois.map((poi) => (
+                {unapprovedPois.map((poi) => {
+                  const handlePOIClick = () => {
+                    if (onPendingPOIClick && poi.coords) {
+                      // Parse coordinates - they could be array or string
+                      let lat, lng;
+                      if (Array.isArray(poi.coords)) {
+                        lat = poi.coords[0];
+                        lng = poi.coords[1];
+                      } else if (typeof poi.coords === 'string') {
+                        const coords = poi.coords.split(',').map(coord => parseFloat(coord.trim()));
+                        lat = coords[0];
+                        lng = coords[1];
+                      }
+                      
+                      if (lat !== undefined && lng !== undefined) {
+                        onPendingPOIClick({
+                          lat,
+                          lng,
+                          poi: poi // Pass the full POI data
+                        });
+                      }
+                    }
+                  };
+
+                  return (
                 <Box
                   key={poi.id}
+                  onClick={handlePOIClick}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -821,6 +847,7 @@ function Sidebar({
                     borderRadius: 1,
                     backgroundColor: alpha(theme.palette.warning.main, 0.05),
                     border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                    cursor: onPendingPOIClick ? 'pointer' : 'default',
                     '&:hover': {
                       backgroundColor: alpha(theme.palette.warning.main, 0.1),
                     }
@@ -948,7 +975,8 @@ function Sidebar({
                     
                   </Box>
                 </Box>
-              ))}
+                  );
+                })}
               </Box>
             )}
           </Box>

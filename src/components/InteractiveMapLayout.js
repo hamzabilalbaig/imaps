@@ -539,6 +539,24 @@ function InteractiveMapLayout(props) {
     }
   };
 
+  const handlePendingPOIClick = (locationData) => {
+    const { lat, lng, poi } = locationData;
+    
+    console.log('Pending POI clicked:', locationData);
+    
+    // For admin users, pending POIs should be in the pois array (since admins see all POIs)
+    // Navigate to the POI and try to open its popup
+    if (window.leafletMap) {
+      window.leafletMap.setView([lat, lng], 15);
+      // Wait a bit for map to move, then trigger marker click
+      setTimeout(() => {
+        window.leafletMap.fire('directMarkerClick', {
+          latlng: L?.latLng(lat, lng)
+        });
+      }, 800);
+    }
+  };
+
   const handleStreetsToggle = () => {
     setStreetsVisible(prev => !prev);
   };
@@ -635,6 +653,7 @@ function InteractiveMapLayout(props) {
           onRefreshMyCategories={fetchMyCategories}
           onRefreshMyPOIs={fetchMyPOIs}
           onRefreshMySubCategories={fetchMyCategories}
+          onPendingPOIClick={handlePendingPOIClick}
         />
       </Box>
     </Box>
