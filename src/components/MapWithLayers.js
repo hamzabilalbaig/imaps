@@ -449,14 +449,14 @@ function MapWithLayers({
         zoom={initialZoomRef.current}
         className={className}
         crs={L.CRS.Simple} // Use simple CRS for local images
-        minZoom={10.2}
+        minZoom={10.4}
         maxZoom={15}
-        maxBounds={imageBounds}
+        // maxBounds={imageBounds}
         style={{ 
           background: activeLayer?.backgroundColor || activeLayer?.background_color || '#f0f0f0',
           transition: 'background-color 0.3s ease'
         }}
-        maxBoundsViscosity={1.0}
+        // maxBoundsViscosity={1.0}
         dragging={true}
         zoomControl={false}
         attributionControl={false}
