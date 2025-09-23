@@ -178,6 +178,8 @@ const useUserStore = create((set, get) => ({
   logout: () => {
     const { clearUser } = get();
     clearUser();
+    // Redirect to the public map page after logout
+    window.location.href = '/';
   },
 
 
