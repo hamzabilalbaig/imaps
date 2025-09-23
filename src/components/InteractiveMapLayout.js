@@ -653,17 +653,8 @@ function InteractiveMapLayout(props) {
     }
   }, [user]);
 
-  // Close right sidebar when user is not authenticated
-  useEffect(() => {
-    try {
-      const authenticated = !!user?.id;
-      if (!authenticated && rightSidebarOpen) {
-        setRightSidebarOpen(false);
-      }
-    } catch (err) {
-      console.error('Error checking authentication for sidebar visibility', err);
-    }
-  }, [user?.id]);
+  // Keep right sidebar (progress tracker) open by default for all users until toggled off manually
+  // Removed auto-close logic for non-authenticated users per user request
 
   useEffect(() => {
     console.log('Hidden categories updated:', hiddenCategories);

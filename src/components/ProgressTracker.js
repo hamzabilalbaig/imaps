@@ -429,7 +429,7 @@ function ProgressTracker({
           </Box>
         )}
 
-        {user && !isAdmin && (
+  {id && !isAdmin && (
           <>
             <Divider />
 
