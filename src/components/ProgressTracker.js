@@ -29,6 +29,7 @@ import {
 import { localDB } from '../utils/localStorage';
 import useUserStore from '../stores/user';
 import { useNavigate } from 'react-router-dom';
+import LoginDialog from './LoginDialog';
 
 function ProgressTracker({ 
   // user, 
@@ -53,11 +54,35 @@ function ProgressTracker({
   userCategoryCount = 0,
   maxMarkers = Infinity,
   canCreateMore = true,
-  onFoundLocationClick
+  onFoundLocationClick,
+  showLoginDialog = false, // New prop to control login dialog from parent
+  onLoginDialogClose // New prop to handle login dialog close
 }) {
   const theme = useTheme();
   const { getRemainingCategories, canUseCustomIcons, id, name, email, plan, role, initializeUser, planLimits } = useUserStore();
   const navigate = useNavigate();
+  
+  // Local state for login dialog
+  const [localLoginDialogOpen, setLocalLoginDialogOpen] = useState(false);
+  
+  // Use either the parent-controlled login dialog or local state
+  const setShowLoginDialog = (open) => {
+    if (onLoginDialogClose) {
+      // If parent handles login dialog, use parent's state
+      if (open) {
+        // Parent should handle opening, but we can't trigger it directly
+        // This will be handled by the parent through map click interception
+      } else {
+        onLoginDialogClose();
+      }
+    } else {
+      // Use local state if no parent handler
+      setLocalLoginDialogOpen(open);
+    }
+  };
+  
+  const isLoginDialogOpen = showLoginDialog || localLoginDialogOpen;
+  
   useEffect(() => {
     const initializeData = async () => {
       await initializeUser();
@@ -173,125 +198,80 @@ function ProgressTracker({
             ACTIONS
           </Typography>
           
-          {user ? (
-            <>
-              {canCreateMore ? (
-                <Button
-                  variant={isSuggestMode ? "contained" : "outlined"}
-                  startIcon={<LocationSearchingIcon />}
-                  onClick={onSuggestLocation}
-                  fullWidth
-                  sx={{ 
-                    mb: 1,
-                    textTransform: 'uppercase',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    backgroundColor: isSuggestMode ? theme.palette.primary.main : 'transparent',
-                    color: isSuggestMode ? 'white' : theme.palette.primary.main,
-                    '&:hover': {
-                      backgroundColor: isSuggestMode ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.1)
-                    }
-                  }}
-                >
-                  {isSuggestMode 
-                    ? (isAdmin ? 'Cancel Add' : 'Cancel Suggest') 
-                    : (isAdmin ? 'Add Location' : 'Suggest Location')
-                  }
-                </Button>
-              ) : (
-                // <Typography variant="caption" color="error" sx={{ 
-                //   display: 'block',
-                //   textAlign: 'center',
-                //   fontSize: '0.7rem',
-                //   fontStyle: 'italic',
-                //   mb: 1
-                // }}>
-                //   POI limit reached. Upgrade to add more.
-                // </Typography>
-                <></>
-              )}
-              
-              {canCreateMoreNotes && (
-                <Button
-                  variant={isNoteMode ? "contained" : "outlined"}
-                  startIcon={<AddIcon />}
-                  onClick={onAddNote}
-                  fullWidth
-                  sx={{ 
-                    mb: 1,
-                    textTransform: 'uppercase',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    backgroundColor: isNoteMode ? theme.palette.secondary.main : 'transparent',
-                    color: isNoteMode ? 'white' : theme.palette.secondary.main,
-                    borderColor: theme.palette.secondary.main,
-                    '&:hover': {
-                      backgroundColor: isNoteMode ? theme.palette.secondary.dark : alpha(theme.palette.secondary.main, 0.1),
-                      borderColor: theme.palette.secondary.main
-                    }
-                  }}
-                >
-                  {isNoteMode ? 'Cancel Note' : 'Add Note'}
-                </Button>
-              )}
+          {/* Suggest Location Button - Always available */}
+          {(user ? canCreateMore : true) && (
+            <Button
+              variant={isSuggestMode ? "contained" : "outlined"}
+              startIcon={<LocationSearchingIcon />}
+              onClick={user ? onSuggestLocation : () => setShowLoginDialog(true)}
+              fullWidth
+              sx={{ 
+                mb: 1,
+                textTransform: 'uppercase',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                backgroundColor: isSuggestMode ? theme.palette.primary.main : 'transparent',
+                color: isSuggestMode ? 'white' : theme.palette.primary.main,
+                '&:hover': {
+                  backgroundColor: isSuggestMode ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.1)
+                }
+              }}
+            >
+              {isSuggestMode 
+                ? (isAdmin ? 'Cancel Add' : 'Cancel Suggest') 
+                : (isAdmin ? 'Add Location' : 'Suggest Location')
+              }
+            </Button>
+          )}
+          
+          {/* Add Note Button - Always available */}
+          {(user ? canCreateMoreNotes : true) && (
+            <Button
+              variant={isNoteMode ? "contained" : "outlined"}
+              startIcon={<AddIcon />}
+              onClick={user ? onAddNote : () => setShowLoginDialog(true)}
+              fullWidth
+              sx={{ 
+                mb: 1,
+                textTransform: 'uppercase',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                backgroundColor: isNoteMode ? theme.palette.secondary.main : 'transparent',
+                color: isNoteMode ? 'white' : theme.palette.secondary.main,
+                borderColor: theme.palette.secondary.main,
+                '&:hover': {
+                  backgroundColor: isNoteMode ? theme.palette.secondary.dark : alpha(theme.palette.secondary.main, 0.1),
+                  borderColor: theme.palette.secondary.main
+                }
+              }}
+            >
+              {isNoteMode ? 'Cancel Note' : 'Add Note'}
+            </Button>
+          )}
 
-              {!isAdmin && canCreateMorePOIs && (
-                <Button
-                  variant={isPOIMode ? "contained" : "outlined"}
-                  startIcon={<PushPinIcon />}
-                  onClick={onAddPOI}
-                  fullWidth
-                  sx={{ 
-                    mb: 2,
-                    textTransform: 'uppercase',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    backgroundColor: isPOIMode ? theme.palette.warning.main : 'transparent',
-                    color: isPOIMode ? 'white' : theme.palette.warning.main,
-                    borderColor: theme.palette.warning.main,
-                    '&:hover': {
-                      backgroundColor: isPOIMode ? theme.palette.warning.dark : alpha(theme.palette.warning.main, 0.1),
-                      borderColor: theme.palette.warning.main
-                    }
-                  }}
-                >
-                  {isPOIMode ? 'Cancel POI' : 'Add POI'}
-                </Button>
-              )}
-            </>
-          ) : (
-            <Box sx={{ textAlign: 'center', mb: 2 }}>
-              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-                Sign in to suggest locations, add notes, and track your progress.
-              </Typography>
-              <Button
-                component="a"
-                href="/login"
-                variant="contained"
-                fullWidth
-                sx={{
-                  mb: 1,
-                  textTransform: 'uppercase',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold'
-                }}
-              >
-                Sign In to Contribute
-              </Button>
-              <Button
-                component="a"
-                href="/register"
-                variant="outlined"
-                fullWidth
-                sx={{
-                  textTransform: 'uppercase',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold'
-                }}
-              >
-                Create Account
-              </Button>
-            </Box>
+          {/* Add POI Button - Always available, hidden for admins */}
+          {!isAdmin && (user ? canCreateMorePOIs : true) && (
+            <Button
+              variant={isPOIMode ? "contained" : "outlined"}
+              startIcon={<PushPinIcon />}
+              onClick={user ? onAddPOI : () => setShowLoginDialog(true)}
+              fullWidth
+              sx={{ 
+                mb: 2,
+                textTransform: 'uppercase',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                backgroundColor: isPOIMode ? theme.palette.warning.main : 'transparent',
+                color: isPOIMode ? 'white' : theme.palette.warning.main,
+                borderColor: theme.palette.warning.main,
+                '&:hover': {
+                  backgroundColor: isPOIMode ? theme.palette.warning.dark : alpha(theme.palette.warning.main, 0.1),
+                  borderColor: theme.palette.warning.main
+                }
+              }}
+            >
+              {isPOIMode ? 'Cancel POI' : 'Add POI'}
+            </Button>
           )}
 
           <Typography variant="subtitle2" sx={{ 
@@ -453,7 +433,7 @@ function ProgressTracker({
           <>
             <Divider />
 
-            {/* POI Usage Stats */}
+            {/* POI Usage Stats - Only show for logged-in non-admin users */}
             <Box sx={{ p: 2 }}>
               <Typography variant="subtitle2" sx={{ 
                 mb: 2,
@@ -585,6 +565,16 @@ function ProgressTracker({
 
         
       </Box>
+      
+      {/* Login Dialog for non-logged-in users */}
+      <LoginDialog
+        open={isLoginDialogOpen}
+        onClose={() => setShowLoginDialog(false)}
+        onSuccess={() => {
+          // Close dialog and optionally refresh user data after successful login
+          setShowLoginDialog(false);
+        }}
+      />
     </Paper>
   );
 }

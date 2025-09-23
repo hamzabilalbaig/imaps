@@ -40,6 +40,7 @@ import POIForm from './POIForm';
 import NoteForm from './NoteForm';
 import MyPOIForm from './MyPOIForm';
 import EditMyPOIForm from './EditMyPOIForm';
+import LoginDialog from './LoginDialog';
 import { MAP_CONFIG, parsePOIFromURL } from '../utils/mapUtils';
 import { addUserNote, createAdminNote, getMyPOIs, getUserNotes, getMyPOISubcategories } from '../api/functions/apiFunctions';
 import localDB from '../utils/localStorage';
@@ -89,10 +90,10 @@ function InteractiveMapLayout(props) {
       return !isMobile;
     }
   });
-  // Initialize right sidebar open only for authenticated users on desktop
+  // Initialize right sidebar open for all users on desktop (both logged in and non-logged-in)
   const [rightSidebarOpen, setRightSidebarOpen] = useState(() => {
     try {
-      return !isMobile && !!user?.id;
+      return !isMobile;
     } catch (e) {
       return !isMobile;
     }
@@ -178,6 +179,9 @@ function InteractiveMapLayout(props) {
 
   // New state for thank-you dialog
   const [thanksDialogOpen, setThanksDialogOpen] = useState(false);
+
+  // New state for login dialog (for non-logged-in users)
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 
   // Filter POIs based on visible subcategories and search
   const filteredPOIs = useMemo(() => {
@@ -412,6 +416,12 @@ function InteractiveMapLayout(props) {
   };
 
   const handleNoteMapClick = (latlng) => {
+    // Check if user is logged in
+    if (!user?.id) {
+      setLoginDialogOpen(true);
+      return;
+    }
+
     // Check note limits before allowing note creation (only for non-admin users)
     if (user.role !== 'admin') {
       const currentUserPlan = user?.plan || 'free';
@@ -431,6 +441,12 @@ function InteractiveMapLayout(props) {
   };
 
   const handlePOIMapClick = (latlng) => {
+    // Check if user is logged in
+    if (!user?.id) {
+      setLoginDialogOpen(true);
+      return;
+    }
+
     // Check My POI limits before allowing map click
     const currentUserPlan = user?.plan || 'free';
     const planLimits = user?.planLimits?.[currentUserPlan];
@@ -444,6 +460,19 @@ function InteractiveMapLayout(props) {
     
     setPendingPOILocation(latlng);
     setShowMyPOIForm(true);
+  };
+
+  const handleSuggestMapClick = (latlng) => {
+    // Check if user is logged in
+    if (!user?.id) {
+      setLoginDialogOpen(true);
+      return;
+    }
+
+    // Call the original onMapClick function
+    if (onMapClick) {
+      onMapClick(latlng);
+    }
   };
 
   const handleSaveNote = async (formData) => {
@@ -690,7 +719,7 @@ function InteractiveMapLayout(props) {
     </Box>
   );
 
-  const rightSidebarContent = !readOnly && (
+  const rightSidebarContent = (
     <ProgressTracker
       pois={filteredPOIs}
       subCategories={subCategories}
@@ -714,6 +743,9 @@ function InteractiveMapLayout(props) {
       maxMarkers={maxMarkers}
       canCreateMore={canCreateMore}
       onFoundLocationClick={handleFoundLocationClick}
+      showLoginDialog={loginDialogOpen}
+      onLoginDialogClose={() => setLoginDialogOpen(false)}
+      user={user}
     />
   );
 
@@ -848,11 +880,11 @@ function InteractiveMapLayout(props) {
           className="w-full h-full !border-[0px] !rounded-none"
           isRightSidebarVisible={rightSidebarOpen}
         >
-          {/* Map Click Handler */}
-          {((canCreateMore && isSuggestMode) || isNoteMode || isPOIMode || isMyPOIMapClickMode) && (
+          {/* Map Click Handler - Allow non-logged-in users to use suggest mode */}
+          {(isSuggestMode || isNoteMode || isPOIMode || isMyPOIMapClickMode) && (
             <MapClickHandler onMapClick={
               isPOIMode ? handlePOIMapClick : 
-              (isNoteMode ? handleNoteMapClick : onMapClick)
+              (isNoteMode ? handleNoteMapClick : handleSuggestMapClick)
             } />
           )}
           
@@ -1260,8 +1292,8 @@ function InteractiveMapLayout(props) {
           </Box>
         )}
 
-  {/* Desktop Progress Tracker Toggle Button (only show when user is logged in) */}
-  {!isMobile && !rightSidebarOpen && user?.id && (
+  {/* Desktop Progress Tracker Toggle Button */}
+  {!isMobile && !rightSidebarOpen && (
           <Fab
             color="secondary"
             size="medium"
@@ -1282,7 +1314,7 @@ function InteractiveMapLayout(props) {
       {isMobile && (
       <Drawer
         anchor="right"
-        open={rightSidebarOpen && !!user?.id}
+        open={rightSidebarOpen}
         onClose={() => setRightSidebarOpen(false)}
           variant="temporary"
           sx={{
@@ -1298,8 +1330,8 @@ function InteractiveMapLayout(props) {
         </Drawer>
       )}
 
-      {/* Mobile Right Sidebar Toggle Button (only show for authenticated users) */}
-      {isMobile && user?.id && (
+      {/* Mobile Right Sidebar Toggle Button */}
+      {isMobile && !rightSidebarOpen && (
         <Fab
           color="secondary"
           size="medium"
@@ -1327,6 +1359,17 @@ function InteractiveMapLayout(props) {
           <Button onClick={() => setThanksDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Login Dialog for non-logged-in users */}
+      <LoginDialog
+        open={loginDialogOpen}
+        onClose={() => setLoginDialogOpen(false)}
+        onSuccess={() => {
+          setLoginDialogOpen(false);
+          // Optionally reload the page or update user state
+          window.location.reload();
+        }}
+      />
     </Box>
   );
 }

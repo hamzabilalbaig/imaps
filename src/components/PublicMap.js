@@ -18,6 +18,7 @@ function PublicMap() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [isSuggestMode, setIsSuggestMode] = useState(false);
   const [isNoteMode, setIsNoteMode] = useState(false);
+  const [isPOIMode, setIsPOIMode] = useState(false);
 
   // Use new POI stores
   const { pois, initializePOIs } = usePOIsStore();
@@ -61,28 +62,28 @@ function PublicMap() {
   }
 
   const handleMapClick = (latlng) => {
-    // Disable map clicks for creating POIs in public view
-    setSnackbar({
-      open: true,
-      message: 'This map is view-only. Interaction is limited to exploring existing content.',
-      severity: 'info'
-    });
+    // Allow coordinate selection for non-logged-in users
+    // The InteractiveMapLayout will handle showing login dialog after coordinate selection
+    setPendingLocation(latlng);
   };
 
   const handleSuggestLocation = () => {
-    setSnackbar({
-      open: true,
-      message: 'This map is view-only. Suggesting locations is not allowed.',
-      severity: 'info'
-    });
+    // Toggle suggest mode for non-logged-in users
+    setIsSuggestMode(!isSuggestMode);
+    setIsNoteMode(false); // Disable other modes
   };
 
   const handleAddNote = () => {
-    setSnackbar({
-      open: true,
-      message: 'This map is view-only. Adding notes is not allowed.',
-      severity: 'info'
-    });
+    // Toggle note mode for non-logged-in users  
+    setIsNoteMode(!isNoteMode);
+    setIsSuggestMode(false); // Disable other modes
+  };
+
+  const handleAddPOI = () => {
+    // Toggle POI mode for non-logged-in users
+    setIsPOIMode(!isPOIMode);
+    setIsSuggestMode(false); // Disable other modes
+    setIsNoteMode(false); // Disable other modes
   };
 
   const handleEditPOI = () => {
@@ -130,11 +131,13 @@ function PublicMap() {
         onCancelForm={() => setShowForm(false)}
         user={null}
         isAdmin={false}
-        readOnly={true}
+        readOnly={false}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}
         onAddNote={handleAddNote}
         isNoteMode={isNoteMode}
+        onAddPOI={handleAddPOI}
+        isPOIMode={isPOIMode}
       />
 
       {/* Snackbar for notifications */}
