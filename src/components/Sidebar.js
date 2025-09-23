@@ -990,7 +990,7 @@ function Sidebar({
                 variant="caption" 
                 sx={{ 
                   fontWeight: 'bold', 
-                  color: 'primary.main',
+                  // color: 'primary.main',
                   fontSize: '0.75rem'
                 }}
               >
@@ -1170,7 +1170,7 @@ function Sidebar({
                 variant="caption" 
                 sx={{ 
                   fontWeight: 'bold', 
-                  color: 'secondary.main',
+                  // color: 'secondary.main',
                   fontSize: '0.75rem'
                 }}
               >
