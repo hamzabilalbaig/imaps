@@ -43,46 +43,52 @@ function LayerSelector({ position = "bottom-center", showInPublic = true, isAdmi
 
   const handleLayerChange = (layerId) => {
     // Save current map state before changing layer
-    // Use the global map instance instead of the hook
     if (window.leafletMap) {
       saveMapState(window.leafletMap);
     }
     
-    // Set the new layer
+    // Preserve current view state
+    let center, zoom;
+    try {
+      if (window.leafletMap && window.leafletMap._loaded) {
+        center = window.leafletMap.getCenter();
+        zoom = window.leafletMap.getZoom();
+      }
+    } catch (e) {
+      // ignore
+    }
+    
+    // Set the new layer - this will trigger the useEffect in MapWithLayers components
     setActiveLayer(layerId);
     
-    // Instead of reloading the whole page, trigger a gentle map refresh so the new
-    // image overlay is loaded and the view is preserved.
-    setTimeout(() => {
+    // Use requestAnimationFrame to ensure the layer change is processed first
+    requestAnimationFrame(() => {
       try {
         const map = window.leafletMap;
         if (map && map._container && map._loaded) {
-          // Force a redraw/invalidation
+          // Force map refresh
           map.invalidateSize({ animate: false });
-
-          // Preserve current view (center + zoom) to avoid jumpiness
-          let center, zoom;
-          try {
-            center = map.getCenter();
-            zoom = map.getZoom();
-          } catch (e) {
-            // ignore
-          }
-
+          
+          // Restore view state if available
           if (center && zoom !== undefined) {
-            setTimeout(() => {
-              try {
-                if (map && map._loaded) map.setView(center, zoom, { animate: false });
-              } catch (err) {
-                // no-op
-              }
-            }, 100);
+            map.setView(center, zoom, { animate: false });
           }
+          
+          // Additional refresh after React has processed the state change
+          setTimeout(() => {
+            try {
+              if (map && map._loaded) {
+                map.invalidateSize({ animate: false });
+              }
+            } catch (err) {
+              console.log("Secondary refresh error:", err);
+            }
+          }, 100);
         }
       } catch (err) {
         console.warn('Map refresh after layer change failed', err);
       }
-    }, 100);
+    });
   };
 
   return (

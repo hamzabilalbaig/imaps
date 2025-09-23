@@ -566,9 +566,9 @@ function Sidebar({
         {/* Categories List */}
         {!loading && !subCategoriesLoading && !poisLoading && !error && !subCategoriesError && !poisError && filteredCategories.length > 0 && (
           <>
-            <Typography variant="caption" sx={{ mb: 2, display: 'block', fontWeight: 'bold', color: 'text.secondary' }}>
+            {/* <Typography variant="caption" sx={{ mb: 2, display: 'block', fontWeight: 'bold', color: 'text.secondary' }}>
               {filteredCategories.length} Categories
-            </Typography>
+            </Typography> */}
             
             {filteredCategories.map((category) => {
               const isExpanded = true; // Categories are always expanded

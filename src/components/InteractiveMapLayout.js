@@ -39,6 +39,7 @@ import ProgressTracker from './ProgressTracker';
 import POIForm from './POIForm';
 import NoteForm from './NoteForm';
 import MyPOIForm from './MyPOIForm';
+import EditMyPOIForm from './EditMyPOIForm';
 import { MAP_CONFIG, parsePOIFromURL } from '../utils/mapUtils';
 import { addUserNote, createAdminNote, getMyPOIs, getUserNotes, getMyPOISubcategories } from '../api/functions/apiFunctions';
 import localDB from '../utils/localStorage';
@@ -107,6 +108,8 @@ function InteractiveMapLayout(props) {
   const [editingNote, setEditingNote] = useState(null);
   const [pendingNoteLocation, setPendingNoteLocation] = useState(null);
   const [showMyPOIForm, setShowMyPOIForm] = useState(false);
+  const [showEditMyPOIForm, setShowEditMyPOIForm] = useState(false);
+  const [editingMyPOI, setEditingMyPOI] = useState(null);
   const [pendingPOILocation, setPendingPOILocation] = useState(null);
   const [hideAll, setHideAll] = useState(false);
   const [hiddenCategories, setHiddenCategories] = useState([]);
@@ -129,6 +132,34 @@ function InteractiveMapLayout(props) {
   console.log('My Categories:', mycategories)
   setMyCategories(mycategories)
  }
+
+ // Handle POI edit - decide whether to use EditMyPOIForm or regular POIForm
+ const handlePOIEdit = (poi) => {
+   console.log('InteractiveMapLayout - handlePOIEdit:', {
+     poi: poi,
+     currentUserId: user?.id,
+     poiUserId: poi.user_id,
+     isAdmin: user?.isadmin,
+     isUserOwnedPOI: poi.user_id === user?.id
+   });
+   
+   // Check if this is user's own POI and they're not admin
+   const isUserOwnedPOI = poi.user_id === user?.id;
+   const isUserAdmin = user?.isadmin;
+   
+   if (isUserOwnedPOI && !isUserAdmin) {
+     // Use EditMyPOIForm for user's own POIs
+     console.log('InteractiveMapLayout - Opening EditMyPOIForm for user-owned POI');
+     setEditingMyPOI(poi);
+     setShowEditMyPOIForm(true);
+   } else {
+     // Use regular POIForm for admin edits or POI suggestions
+     console.log('InteractiveMapLayout - Opening regular POIForm for admin/suggestion edit');
+     if (onMarkerEdit) {
+       onMarkerEdit(poi);
+     }
+   }
+ };
 
  useEffect(()=>{
   if (currentUserId) {
@@ -881,7 +912,7 @@ function InteractiveMapLayout(props) {
                 poi={poi}
                 subCategories={[...subCategories, ...myCategories]}
                 onRemove={onMarkerRemove}
-                onEdit={onMarkerEdit}
+                onEdit={handlePOIEdit}
                 isAdmin={ user?.isadmin }
                 canEdit={user?.isadmin || poi.user_id === user?.id}
                 isFocused={isFocused}
@@ -1129,7 +1160,7 @@ function InteractiveMapLayout(props) {
           />
         )}
 
-        {/* POI Form */}
+        {/* POI Form - Regular admin/suggestion form */}
         {showForm && (
           <POIForm
             poi={editingPOI || (pendingLocation ? { 
@@ -1139,6 +1170,31 @@ function InteractiveMapLayout(props) {
             onCancel={onCancelForm}
             isEdit={!!editingPOI}
             isAdmin={isAdmin}
+          />
+        )}
+
+        {/* Edit My POI Form - For editing user's own POIs */}
+        {showEditMyPOIForm && (
+          <EditMyPOIForm
+            open={showEditMyPOIForm}
+            poi={editingMyPOI}
+            myCategories={myCategories}
+            onClose={() => {
+              setShowEditMyPOIForm(false);
+              setEditingMyPOI(null);
+            }}
+            onSuccess={(updatedPOI) => {
+              console.log('InteractiveMapLayout - POI updated successfully:', updatedPOI);
+              // Refresh My POIs and categories to reflect changes
+              fetchMyPOIs();
+              fetchMyCategories();
+              // Call the parent's onSave handler if available
+              if (onSavePOI) {
+                onSavePOI(updatedPOI);
+              }
+              setShowEditMyPOIForm(false);
+              setEditingMyPOI(null);
+            }}
           />
         )}
 

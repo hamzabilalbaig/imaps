@@ -245,8 +245,15 @@ const usePOIsStore = create((set, get) => ({
         poi.id === id ? updatedPOI : poi
       );
       
+      // Also update myPois if the POI is in that list
+      const currentMyPOIs = get().myPois;
+      const updatedMyPOIs = currentMyPOIs.map(poi => 
+        poi.id === id ? updatedPOI : poi
+      );
+      
       set({ 
         pois: updatedPOIs,
+        myPois: updatedMyPOIs,
         currentPOI: get().currentPOI?.id === id ? updatedPOI : get().currentPOI,
         loading: false 
       });
@@ -272,8 +279,13 @@ const usePOIsStore = create((set, get) => ({
       const currentPOIs = get().pois;
       const filteredPOIs = currentPOIs.filter(poi => poi.id !== id);
       
+      // Also remove from myPois if it's in that list
+      const currentMyPOIs = get().myPois;
+      const filteredMyPOIs = currentMyPOIs.filter(poi => poi.id !== id);
+      
       set({ 
         pois: filteredPOIs,
+        myPois: filteredMyPOIs,
         currentPOI: get().currentPOI?.id === id ? null : get().currentPOI,
         loading: false 
       });

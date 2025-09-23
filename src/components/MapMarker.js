@@ -33,9 +33,7 @@ import useSettingsStore from "../stores/settings";
  * @param {boolean} isFocused - Whether this POI is focused (from shareable link)
  */
 function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocused = false }) {
-  const isAdmin = useUserStore(state => state.isadmin)
-  const canEdit = isAdmin ? true : false
-  const { id: userId, isLocationFound, addToFoundLocations, removeFromFoundLocations } = useUserStore()
+  const { isadmin: isAdmin, id: userId, isLocationFound, addToFoundLocations, removeFromFoundLocations } = useUserStore()
   const { success, warning } = useAlerts();
   const { poiIconSize } = useSettingsStore();
   
@@ -45,6 +43,9 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
   
   // Support both new POI structure and legacy marker structure
   const currentItem = poi || marker;
+  
+  // User can edit if they're admin OR if they own this POI
+  const canEdit = isAdmin || (userId && currentItem?.user_id === userId)
   const isNewStructure = !!poi;
   
   // Get subcategory data for new structure

@@ -12,6 +12,7 @@ import { restoreMapState } from "../utils/mapStateUtils";
 function DynamicImageOverlay({ imageUrl, bounds }) {
   const map = useMap();
   const overlayRef = useRef(null);
+  const [isImageLoading, setIsImageLoading] = useState(false);
 
   // Store the map instance globally for access by other components
   useEffect(() => {
@@ -50,38 +51,74 @@ function DynamicImageOverlay({ imageUrl, bounds }) {
   }, [map]);
 
   useEffect(() => {
+    if (!imageUrl) return;
+    
+    setIsImageLoading(true);
+    
     // Remove existing overlay if it exists
     if (overlayRef.current) {
       map.removeLayer(overlayRef.current);
+      overlayRef.current = null;
     }
 
-    // Create new overlay with the current image
-    overlayRef.current = L.imageOverlay(imageUrl, bounds, {
-      opacity: 1,
-      interactive: false,
-      crossOrigin: true
-    });
-
-    // Add the new overlay to the map
-    overlayRef.current.addTo(map);
-
-    // Force map to refresh without changing view
-    setTimeout(() => {
+    // Preload the image to ensure it's ready before adding to map
+    const img = new Image();
+    img.onload = () => {
       try {
-        // Check if map is still valid
+        // Create new overlay with the current image
+        const imageUrlWithCache = imageUrl.includes('?') 
+          ? `${imageUrl}&t=${Date.now()}` 
+          : `${imageUrl}?t=${Date.now()}`;
+        
+        overlayRef.current = L.imageOverlay(imageUrlWithCache, bounds, {
+          opacity: 1,
+          interactive: false,
+          crossOrigin: true
+        });
+
+        // Add the new overlay to the map
+        overlayRef.current.addTo(map);
+        
+        setIsImageLoading(false);
+
+        // Force map refresh after image is loaded and added
         if (map && map._container && map._loaded) {
-          map.invalidateSize({ animate: false });
+          // Use requestAnimationFrame for better timing
+          requestAnimationFrame(() => {
+            try {
+              map.invalidateSize({ animate: false });
+              
+              // Additional refresh after a short delay
+              setTimeout(() => {
+                if (map && map._loaded) {
+                  map.invalidateSize({ animate: false });
+                }
+              }, 50);
+            } catch (err) {
+              console.log("Map refresh after image load error:", err);
+            }
+          });
         }
       } catch (err) {
-        console.log("Map refresh error:", err);
+        console.log("Image overlay creation error:", err);
+        setIsImageLoading(false);
       }
-    }, 300);
+    };
+    
+    img.onerror = () => {
+      console.log("Failed to load image:", imageUrl);
+      setIsImageLoading(false);
+    };
+    
+    // Start loading the image
+    img.src = imageUrl;
 
     // Cleanup function
     return () => {
       if (overlayRef.current && map.hasLayer(overlayRef.current)) {
         map.removeLayer(overlayRef.current);
       }
+      setIsImageLoading(false);
     };
   }, [imageUrl, bounds, map]);
 
@@ -179,6 +216,55 @@ function MapRefresher({ layerId }) {
       clearTimeout(timeoutId);
     };
   }, [layerId, map]);
+
+  return null;
+}
+
+/**
+ * Component to update map background color when layer changes
+ */
+function MapBackgroundUpdater({ activeLayer }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map || !map._container || !activeLayer) return;
+
+    try {
+      const backgroundColor = activeLayer.backgroundColor || activeLayer.background_color || '#f0f0f0';
+      
+      // Update the main map container's background color
+      const mapContainer = map._container;
+      if (mapContainer) {
+        mapContainer.style.backgroundColor = backgroundColor;
+      }
+      
+      // Also update any inner containers that might need the background
+      const mapPane = map.getPane('mapPane');
+      if (mapPane) {
+        mapPane.style.backgroundColor = backgroundColor;
+      }
+      
+      // Update tiles pane if it exists
+      const tilesPane = map.getPane('tilePane');
+      if (tilesPane) {
+        tilesPane.style.backgroundColor = backgroundColor;
+      }
+      
+      // Force immediate redraw
+      setTimeout(() => {
+        try {
+          if (map && map._loaded) {
+            map.invalidateSize({ animate: false });
+          }
+        } catch (err) {
+          console.log("Background update redraw error:", err);
+        }
+      }, 10);
+      
+    } catch (err) {
+      console.log("Map background update error:", err);
+    }
+  }, [map, activeLayer]);
 
   return null;
 }
@@ -363,10 +449,13 @@ function MapWithLayers({
         zoom={initialZoomRef.current}
         className={className}
         crs={L.CRS.Simple} // Use simple CRS for local images
-        minZoom={11}
+        minZoom={10.2}
         maxZoom={15}
         maxBounds={imageBounds}
-        style={{ background: activeLayer?.backgroundColor || '#f0f0f0' }}
+        style={{ 
+          background: activeLayer?.backgroundColor || activeLayer?.background_color || '#f0f0f0',
+          transition: 'background-color 0.3s ease'
+        }}
         maxBoundsViscosity={1.0}
         dragging={true}
         zoomControl={false}
@@ -406,6 +495,7 @@ function MapWithLayers({
         />
         
         <MapRefresher layerId={activeLayer.id} />
+        <MapBackgroundUpdater activeLayer={activeLayer} />
         <MapStateRestorer />
         
         {children}

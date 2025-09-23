@@ -169,6 +169,7 @@ function UserMap() {
   };
 
   const handleEditPOI = (poi) => {
+    console.log('UserMap - Editing POI:', poi);
     setEditingPOI(poi);
     setPendingLocation(null);
     setShowForm(true);
@@ -177,11 +178,13 @@ function UserMap() {
   const handleSavePOI = async (formData) => {
     try {
       if (editingPOI) {
+        console.log('UserMap - Updating POI with data:', { id: editingPOI.id, formData });
         const result = await updatePOI(editingPOI.id, formData);
+        console.log('UserMap - Update result:', result);
         if (result.success) {
           setSnackbar({
             open: true,
-            message: 'POI updated successfully!',
+            message: 'Your POI has been updated successfully!',
             severity: 'success'
           });
         } else {
