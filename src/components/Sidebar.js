@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -9,6 +10,7 @@ import {
   InputAdornment,
   IconButton,
   useTheme,
+  useMediaQuery,
   alpha,
   CircularProgress,
   List,
@@ -65,6 +67,7 @@ function Sidebar({
   onPendingPOIClick
 }) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   // Categories store
   const { 
@@ -106,6 +109,7 @@ function Sidebar({
   // User store
   const { isadmin, id: currentUserId } = useUserStore();
   const { warning, error: showError, confirm } = useAlerts();
+  const isLoggedIn = currentUserId !== null;
 
   const [unapprovedPois, setUnapprovedPois] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState({});

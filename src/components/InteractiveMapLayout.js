@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useAlerts } from '../hooks/useAlerts';
 import L from "leaflet";
 import { 
@@ -676,9 +677,13 @@ function InteractiveMapLayout(props) {
         p: 2, 
         borderBottom: `1px solid ${theme.palette.divider}` 
       }}>
-        <Typography variant="h6" component="div">
-          Menu
-        </Typography>
+        <Link to={currentUserId ? "/map" : "/"} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <img src="/logos/logo-light.png" alt="iMaps Logo" style={{ height: isMobile ? 30 : 40, marginRight: 8 }} />
+
+          <Typography variant="h6" color="textPrimary" sx={{ fontWeight: 'bold' }}>
+            iMaps
+          </Typography>
+        </Link>
         <IconButton onClick={() => setLeftSidebarOpen(false)}>
           <CloseIcon />
         </IconButton>
@@ -821,9 +826,9 @@ function InteractiveMapLayout(props) {
               p: 2, 
               borderBottom: `1px solid ${theme.palette.divider}` 
             }}>
-              <Typography variant="h6" component="div">
-                Menu
-              </Typography>
+              <Link to={currentUserId ? "/map" : "/"} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+                <img src="/logos/logo-light.png" alt="iMaps Logo" style={{ height: isMobile ? 30 : 40, marginRight: 8 }} />
+              </Link>
               <IconButton onClick={() => setLeftSidebarOpen(false)}>
                 <CloseIcon />
               </IconButton>

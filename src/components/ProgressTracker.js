@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from "react-router-dom";
 import {
   Box,
   Paper,
@@ -13,7 +14,11 @@ import {
   Button,
   useTheme,
   alpha,
-  Divider
+  Divider,
+  useMediaQuery,
+  Menu,
+  MenuItem,
+  Avatar
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -24,7 +29,13 @@ import {
   Expand as ExpandIcon,
   Upgrade as UpgradeIcon,
   LocationSearching as LocationSearchingIcon,
-  PushPin as PushPinIcon
+  PushPin as PushPinIcon,
+  Logout as LogoutIcon,
+  Person as PersonIcon,
+  PersonAdd as PersonAddIcon,
+  Settings as SettingsIcon,
+  Public as PublicIcon,
+  AttachMoney as PricingIcon
 } from '@mui/icons-material';
 import { localDB } from '../utils/localStorage';
 import useUserStore from '../stores/user';
@@ -49,7 +60,6 @@ function ProgressTracker({
   onAddPOI,
   isPOIMode = false,
   readOnly = false,
-  isAdmin = false,
   userMarkerCount = 0,
   userCategoryCount = 0,
   maxMarkers = Infinity,
@@ -59,8 +69,33 @@ function ProgressTracker({
   onLoginDialogClose // New prop to handle login dialog close
 }) {
   const theme = useTheme();
-  const { getRemainingCategories, canUseCustomIcons, id, name, email, plan, role, initializeUser, planLimits } = useUserStore();
+  const location = useLocation();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { getRemainingCategories, canUseCustomIcons, id, name, email, plan, role, initializeUser, planLimits, logout, isUserAdmin } = useUserStore();
   const navigate = useNavigate();
+  
+  // Authentication state and handlers
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const isAdmin = isUserAdmin();
+  
+  const handleMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    handleClose();
+  };
+
+  // Use isLoggedIn state and update when user.id changes
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+  React.useEffect(() => {
+    setIsLoggedIn(id !== null);
+  }, [id]);
   
   // Local state for login dialog
   const [localLoginDialogOpen, setLocalLoginDialogOpen] = useState(false);
@@ -177,6 +212,213 @@ function ProgressTracker({
             <CloseIcon />
           </IconButton>
         </Box>
+      </Box>
+
+      {/* Navigation & Authentication Section */}
+      <Box sx={{ 
+        p: 2, 
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        display: 'flex', 
+        gap: { xs: 0.5, md: 0.5 }, 
+        alignItems: 'center', 
+        // flexWrap: 'wrap',
+        justifyContent: 'center'
+      }}>
+        {/* Public View Button - Always show except on home page */}
+        {location.pathname !== '/' && (
+          <Button
+            component={Link}
+            to={isLoggedIn ? "/map" : "/"}
+            color="inherit"
+            variant={location.pathname === "/" || location.pathname === "/map" ? "contained" : "text"}
+            sx={{
+              backgroundColor: location.pathname === "/" || location.pathname === "/map" ? "rgba(255,255,255,0.2)" : "transparent",
+              borderRadius: 2,
+              px: { xs: 1, sm: 2, md: 3 },
+              py: 1,
+              fontWeight: 600,
+              // fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+              fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+              backdropFilter: location.pathname === "/" || location.pathname === "/map" ? 'blur(10px)' : 'none',
+              border: location.pathname === "/" || location.pathname.includes("/map") || location.pathname.includes("/admin-map") ? '1px solid #1d4ed8' : '1px solid transparent',
+              '&:hover': {
+                backgroundColor: "rgba(255,255,255,0.15)",
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }
+            }}
+            startIcon={!isMobile ? <PublicIcon /> : null}
+          >
+            {isMobile ? "Public" : "Public View"}
+          </Button>
+        )}
+
+        {/* Show Admin Panel for admins, Pricing for regular users - only when authenticated */}
+        {isLoggedIn && (isAdmin ? (
+          <Button
+            component={Link}
+            to="/admin"
+            color="inherit"
+            variant={location.pathname === "/admin" ? "contained" : "text"}
+            sx={{
+              backgroundColor: location.pathname === "/admin" ? "rgba(255,255,255,0.2)" : "transparent",
+              borderRadius: 2,
+              px: { xs: 1, sm: 2, md: 3 },
+              py: 1,
+              fontWeight: 600,
+              fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+              backdropFilter: location.pathname === "/admin" ? 'blur(10px)' : 'none',
+              border: location.pathname === "/admin" ? '1px solid' : '1px solid transparent',
+              '&:hover': {
+                backgroundColor: "rgba(255,255,255,0.15)",
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }
+            }}
+            startIcon={!isMobile ? <SettingsIcon /> : null}
+          >
+            {isMobile ? "Admin" : "Admin Panel"}
+          </Button>
+        ) : (
+          <Button
+            component={Link}
+            to="/pricing"
+            color="inherit"
+            variant={location.pathname === "/pricing" ? "contained" : "text"}
+            sx={{
+              backgroundColor: location.pathname === "/pricing" ? "rgba(255,255,255,0.2)" : "transparent",
+              borderRadius: 2,
+              px: { xs: 1, sm: 2, md: 3 },
+              py: 1,
+              fontWeight: 600,
+              fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+              backdropFilter: location.pathname === "/pricing" ? 'blur(10px)' : 'none',
+              border: location.pathname === "/pricing" ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+              '&:hover': {
+                backgroundColor: "rgba(255,255,255,0.15)",
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }
+            }}
+            startIcon={!isMobile ? <PricingIcon /> : null}
+          >
+            {isMobile ? "Pricing" : "Pricing"}
+          </Button>
+        ))}
+
+        {/* Authentication buttons for non-authenticated users */}
+        {!isLoggedIn && (
+          <>
+            <Button
+              component={Link}
+              to="/login"
+              color="inherit"
+              variant="outlined"
+              sx={{
+                borderColor: 'rgba(255,255,255,0.5)',
+                borderRadius: 2,
+                px: { xs: 1.5, sm: 2, md: 3 },
+                py: 1,
+                fontWeight: 600,
+                fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+                '&:hover': {
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                  borderColor: 'rgba(255,255,255,0.8)',
+                  backdropFilter: 'blur(10px)'
+                }
+              }}
+              startIcon={!isMobile ? <PersonIcon /> : null}
+            >
+              Login
+            </Button>
+            <Button
+              component={Link}
+              to="/register"
+              color="inherit"
+              variant="contained"
+              sx={{
+                backgroundColor: "rgba(255,255,255,0.2)",
+                borderRadius: 2,
+                px: { xs: 1.5, sm: 2, md: 3 },
+                py: 1,
+                fontWeight: 600,
+                fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                '&:hover': {
+                  backgroundColor: "rgba(255,255,255,0.3)",
+                  border: '1px solid rgba(255,255,255,0.5)'
+                }
+              }}
+              startIcon={!isMobile ? <PersonAddIcon /> : null}
+            >
+              Register
+            </Button>
+          </>
+        )}
+
+        {/* User Menu */}
+        {isLoggedIn && (
+          <>
+            <IconButton
+              size="large"
+              onClick={handleMenu}
+              color="inherit"
+              sx={{
+                ml: 1,
+                '&:hover': {
+                  backgroundColor: "rgba(255,255,255,0.2)",
+                }
+              }}
+            >
+              <Avatar 
+                sx={{ 
+                  width: 32, 
+                  height: 32, 
+                  bgcolor: 'secondary.main',
+                  fontSize: '0.875rem'
+                }}
+              >
+                {user.name?.charAt(0) || user.email?.charAt(0)}
+              </Avatar>
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleClose}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              PaperProps={{
+                sx: {
+                  mt: 1,
+                  minWidth: 200,
+                  borderRadius: 2,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                }
+              }}
+            >
+              <Box sx={{ px: 2, py: 1 }}>
+                <Typography variant="subtitle2" fontWeight="bold">
+                  {user.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {user.email}
+                </Typography>
+                <Chip 
+                  label={user.plan || 'Free'} 
+                  size="small" 
+                  color={user.role === 'admin' ? 'error' : 'primary'}
+                  sx={{ mt: 0.5 }}
+                />
+              </Box>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <LogoutIcon sx={{ mr: 1 }} />
+                Logout
+              </MenuItem>
+            </Menu>
+          </>
+        )}
       </Box>
 
       {/* Scrollable Content */}
