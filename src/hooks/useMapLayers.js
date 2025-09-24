@@ -110,12 +110,14 @@ export function useMapLayers() {
         } else {
           // Fallback to local layers if no database layers
           console.log('No database layers found, using fallback layers');
+          console.log('FALLBACK_LAYERS:', FALLBACK_LAYERS);
           setLayers(FALLBACK_LAYERS);
         }
       } catch (error) {
         console.error("Error loading layers from database:", error);
         setError(error);
         // Fallback to local layers on error
+        console.log('Error occurred, using fallback layers:', FALLBACK_LAYERS);
         setLayers(FALLBACK_LAYERS);
       } finally {
         setLoading(false);

@@ -6,6 +6,7 @@ import LayerSelector from "./LayerSelector";
 import L from "leaflet";
 import { restoreMapState } from "../utils/mapStateUtils";
 import { FaPen } from "react-icons/fa";
+import { debounce } from "../utils/debounce";
 
 
 function DynamicImageOverlay({ imageUrl, bounds: initialBounds }) {
@@ -13,6 +14,8 @@ function DynamicImageOverlay({ imageUrl, bounds: initialBounds }) {
   const overlayRef = useRef(null);
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [dynamicBounds, setDynamicBounds] = useState(initialBounds);
+  const imageLoadingRef = useRef(false);
+  const currentImageUrlRef = useRef(imageUrl);
 
   
   useEffect(() => {
@@ -51,35 +54,45 @@ function DynamicImageOverlay({ imageUrl, bounds: initialBounds }) {
   }, [map]);
 
   useEffect(() => {
-    // Clean up any existing overlays first
+    if (!imageUrl) {
+      // Clean up if no imageUrl provided
+      if (overlayRef.current) {
+        if (map.hasLayer(overlayRef.current)) {
+          map.removeLayer(overlayRef.current);
+        }
+        overlayRef.current = null;
+      }
+      return;
+    }
+
+    // Always remove ALL existing overlays first to prevent overlapping
     map.eachLayer((layer) => {
       if (layer instanceof L.ImageOverlay) {
         map.removeLayer(layer);
       }
     });
     
-    if (!imageUrl) {
-      // Clean up if no imageUrl provided
-      if (overlayRef.current) {
-        overlayRef.current = null;
-      }
+    // Reset our overlay reference
+    overlayRef.current = null;
+
+    // Prevent multiple simultaneous image loads for the same URL
+    if (imageLoadingRef.current && currentImageUrlRef.current === imageUrl) {
       return;
     }
-    
-    setIsImageLoading(true);
-    
-    // Always remove existing overlay when imageUrl changes
-    if (overlayRef.current) {
-      if (map.hasLayer(overlayRef.current)) {
-        map.removeLayer(overlayRef.current);
-      }
-      overlayRef.current = null;
-    }
 
+    currentImageUrlRef.current = imageUrl;
+    imageLoadingRef.current = true;
+    setIsImageLoading(true);
     
     const img = new Image();
     img.onload = () => {
       try {
+        // Check if this is still the current image request
+        if (currentImageUrlRef.current !== imageUrl) {
+          imageLoadingRef.current = false;
+          return;
+        }
+
         // Calculate dynamic bounds based on image aspect ratio
         const imageWidth = img.width;
         const imageHeight = img.height;
@@ -117,38 +130,32 @@ function DynamicImageOverlay({ imageUrl, bounds: initialBounds }) {
           crossOrigin: true
         });
 
-        
         overlayRef.current.addTo(map);
         
-        setIsImageLoading(false);
-
-        
-        if (map && map._container && map._loaded) {
-          
-          requestAnimationFrame(() => {
-            try {
+        // Single map refresh after successful overlay addition
+        requestAnimationFrame(() => {
+          try {
+            if (map && map._container && map._loaded) {
               map.invalidateSize({ animate: false });
-              
-              
-              setTimeout(() => {
-                if (map && map._loaded) {
-                  map.invalidateSize({ animate: false });
-                }
-              }, 50);
-            } catch (err) {
-              console.log("Map refresh after image load error:", err);
             }
-          });
-        }
+          } catch (err) {
+            console.log("Map refresh after image load error:", err);
+          }
+        });
+
+        setIsImageLoading(false);
+        imageLoadingRef.current = false;
       } catch (err) {
         console.log("Image overlay creation error:", err);
         setIsImageLoading(false);
+        imageLoadingRef.current = false;
       }
     };
     
     img.onerror = () => {
       console.log("Failed to load image:", imageUrl);
       setIsImageLoading(false);
+      imageLoadingRef.current = false;
     };
     
     
@@ -212,9 +219,31 @@ function MapStateRestorer({ imageBounds }) {
 
 function MapRefresher({ layerId }) {
   const map = useMap();
+  const refreshTimeoutRef = useRef(null);
+
+  // Create debounced refresh function
+  const debouncedRefresh = useRef(
+    debounce((currentCenter, currentZoom) => {
+      try {
+        if (map && map._container && map._loaded) {
+          map.invalidateSize({ animate: false });
+          
+          if (currentCenter && currentZoom !== undefined) {
+            map.setView(currentCenter, currentZoom, { animate: false });
+          }
+        }
+      } catch (err) {
+        console.log("Map refresh error:", err);
+      }
+    }, 200) // 200ms debounce
+  ).current;
 
   useEffect(() => {
-    
+    // Clear any existing refresh timeout
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+
     let currentCenter, currentZoom;
     
     try {
@@ -226,35 +255,15 @@ function MapRefresher({ layerId }) {
       console.log("Could not get map state:", err);
     }
 
-    
-    const refreshMap = () => {
-      try {
-        
-        if (map && map._container && map._loaded) {
-          
-          map.invalidateSize({ animate: false });
-          
-          
-          if (currentCenter && currentZoom !== undefined) {
-            setTimeout(() => {
-              if (map && map._loaded) {
-                map.setView(currentCenter, currentZoom, { animate: false });
-              }
-            }, 100);
-          }
-        }
-      } catch (err) {
-        console.log("Map refresh error:", err);
-      }
-    };
-
-    
-    const timeoutId = setTimeout(refreshMap, 300);
+    // Use debounced refresh instead of immediate timeout
+    debouncedRefresh(currentCenter, currentZoom);
     
     return () => {
-      clearTimeout(timeoutId);
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
     };
-  }, [layerId, map]);
+  }, [layerId, map, debouncedRefresh]);
 
   return null;
 }
@@ -262,46 +271,52 @@ function MapRefresher({ layerId }) {
 
 function MapBackgroundUpdater({ activeLayer }) {
   const map = useMap();
+  const lastBackgroundRef = useRef(null);
+
+  // Create debounced background update function
+  const debouncedBackgroundUpdate = useRef(
+    debounce((backgroundColor) => {
+      try {
+        if (!map || !map._container) return;
+        
+        const mapContainer = map._container;
+        if (mapContainer) {
+          mapContainer.style.backgroundColor = backgroundColor;
+        }
+        
+        const mapPane = map.getPane('mapPane');
+        if (mapPane) {
+          mapPane.style.backgroundColor = backgroundColor;
+        }
+        
+        const tilesPane = map.getPane('tilePane');
+        if (tilesPane) {
+          tilesPane.style.backgroundColor = backgroundColor;
+        }
+        
+        // Single refresh after background update
+        if (map && map._loaded) {
+          map.invalidateSize({ animate: false });
+        }
+      } catch (err) {
+        console.log("Map background update error:", err);
+      }
+    }, 150) // 150ms debounce
+  ).current;
 
   useEffect(() => {
-    if (!map || !map._container || !activeLayer) return;
+    if (!activeLayer) return;
 
-    try {
-      const backgroundColor = activeLayer.backgroundColor || activeLayer.background_color || '#f0f0f0';
-      
-      
-      const mapContainer = map._container;
-      if (mapContainer) {
-        mapContainer.style.backgroundColor = backgroundColor;
-      }
-      
-      
-      const mapPane = map.getPane('mapPane');
-      if (mapPane) {
-        mapPane.style.backgroundColor = backgroundColor;
-      }
-      
-      
-      const tilesPane = map.getPane('tilePane');
-      if (tilesPane) {
-        tilesPane.style.backgroundColor = backgroundColor;
-      }
-      
-      
-      setTimeout(() => {
-        try {
-          if (map && map._loaded) {
-            map.invalidateSize({ animate: false });
-          }
-        } catch (err) {
-          console.log("Background update redraw error:", err);
-        }
-      }, 10);
-      
-    } catch (err) {
-      console.log("Map background update error:", err);
+    const backgroundColor = activeLayer.backgroundColor || activeLayer.background_color || '#f0f0f0';
+    
+    // Skip if same background color
+    if (lastBackgroundRef.current === backgroundColor) {
+      return;
     }
-  }, [map, activeLayer]);
+
+    lastBackgroundRef.current = backgroundColor;
+    debouncedBackgroundUpdate(backgroundColor);
+  }, [activeLayer, debouncedBackgroundUpdate]);
 
   return null;
 }
