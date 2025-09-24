@@ -703,22 +703,36 @@ function Sidebar({
                               {/* Icon */}
                               <Box sx={{ mr: 1, flexShrink: 0 }}>
                                 {subCategory.icon_image_url ? (
-                                  <img
-                                     src={subCategory.icon_image_url}
-                                     alt={subCategory.name}
-                                     style={{
-                                       width: 20,
-                                       height: 20,
-                                       borderRadius: 2,
-                                       filter: shouldShowStrikethrough ? 'grayscale(100%)' : 'none'
-                                     }}
-                                  />
+                                  <Box
+                                    sx={{
+                                      width: 20,
+                                      height: 20,
+                                      borderRadius: '50%',
+                                      backgroundColor: subCategory.color || categoryColor,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      padding: '2px',
+                                      filter: shouldShowStrikethrough ? 'grayscale(100%)' : 'none'
+                                    }}
+                                  >
+                                    <img
+                                       src={subCategory.icon_image_url}
+                                       alt={subCategory.name}
+                                       style={{
+                                         width: 14,
+                                         height: 14,
+                                         borderRadius: '50%',
+                                         objectFit: 'cover'
+                                       }}
+                                    />
+                                  </Box>
                                 ) : (
                                   <Box
                                     sx={{
                                       width: 20,
                                       height: 20,
-                                      borderRadius: 1,
+                                      borderRadius: '50%',
                                       backgroundColor: subCategory.color || alpha(categoryColor, 0.4),
                                       display: 'flex',
                                       alignItems: 'center',
