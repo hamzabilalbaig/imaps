@@ -481,14 +481,14 @@ function Sidebar({
             <Button
               onClick={handleShowAll}
               startIcon={<VisibilityIcon />}
-              sx={{ fontSize: '0.75rem' }}
+              sx={{ fontSize: '0.75rem', color: 'text.primary', borderColor: 'text.primary' }}
             >
               Show All
             </Button>
             <Button
               onClick={handleHideAll}
               startIcon={<VisibilityOffIcon />}
-              sx={{ fontSize: '0.75rem' }}
+              sx={{ fontSize: '0.75rem', color: 'text.primary', borderColor: 'text.primary' }}
             >
               Hide All
             </Button>

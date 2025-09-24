@@ -308,7 +308,9 @@ function ProgressTracker({
 
         {/* Authentication buttons for non-authenticated users */}
         {!isLoggedIn && (
-          <>
+          <Box
+            sx={{ display: 'flex', gap: 1, flexDirection: 'column', width: '100%' }}
+          >
             <Button
               component={Link}
               to="/login"
@@ -331,6 +333,7 @@ function ProgressTracker({
             >
               Login
             </Button>
+            <Divider />
             <Button
               component={Link}
               to="/register"
@@ -354,7 +357,7 @@ function ProgressTracker({
             >
               Register
             </Button>
-          </>
+          </Box>
         )}
 
         {/* User Menu */}
@@ -422,6 +425,7 @@ function ProgressTracker({
       </Box>
 
       {/* Scrollable Content */}
+      {id && (
       <Box sx={{ 
         flex: 1, 
         overflow: 'auto',
@@ -804,9 +808,28 @@ function ProgressTracker({
             </Box>
           </>
         )}
-
         
       </Box>
+      )
+}
+  {
+    !id && (
+      <Box sx={{ p: 2 }}>
+              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                Features:
+              </Typography>
+              <Typography variant="body2">• Mark locations as found</Typography>
+              <Typography variant="body2">• Track your collectibles</Typography>
+              <Typography variant="body2">• Add custom locations</Typography>
+              <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ mt: 2 }}>
+                PRO Features:
+              </Typography>
+              <Typography variant="body2">• Share your custom locations with friends</Typography>
+              <Typography variant="body2">• Unlimited progress tracking</Typography>
+              <Typography variant="body2">• No more ads!</Typography>
+            </Box>
+    )
+  }
       
       {/* Login Dialog for non-logged-in users */}
       <LoginDialog

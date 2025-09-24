@@ -875,6 +875,7 @@ function InteractiveMapLayout(props) {
           // className={JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'atlas' ? 'atlas-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'road' ? 'road-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'satellite' ? 'satellite-image' : JSON.parse(localStorage.getItem('map-layers') || '[]')?.find(layer => layer.isActive)?.id === 'uv' ? 'uv-image' : 'default-image !border-[0px]'}
           className="w-full h-full !border-[0px] !rounded-none"
           isRightSidebarVisible={rightSidebarOpen}
+          onAddPOI={handleAddPOI}
         >
           {/* Map Click Handler - Allow non-logged-in users to use suggest mode */}
           {(isSuggestMode || isNoteMode || isPOIMode || isMyPOIMapClickMode) && (
