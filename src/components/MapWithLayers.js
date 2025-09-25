@@ -561,11 +561,11 @@ function MapWithLayers({
             bottom: 140, // Position above zoom controls
             right: isRightSidebarVisible ? 362 : 10, // Sync with zoom control position
             zIndex: 1000,
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             backgroundColor: 'white',
-            borderRadius: 1,
-            boxShadow: '0 1px 5px rgba(0,0,0,0.4)',
+            borderRadius: 2,
+            // boxShadow: '0 1px 5px rgba(0,0,0,0.4)',
             border: '2px solid rgba(0,0,0,0.2)',
             
             display: 'flex',
