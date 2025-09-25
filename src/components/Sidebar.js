@@ -118,6 +118,8 @@ function Sidebar({
   const [globalVisibility, setGlobalVisibility] = useState(true);
   const [hiddenCategories, setHiddenCategories] = useState(new Set());
   const [hiddenSubCategories, setHiddenSubCategories] = useState(new Set());
+  const [hiddenMyPOIs, setHiddenMyPOIs] = useState(false);
+  const [hiddenMySubCategories, setHiddenMySubCategories] = useState(new Set());
 
   // POI management state
   const [editingPoi, setEditingPoi] = useState(null);
@@ -190,6 +192,8 @@ function Sidebar({
         onVisibilityChange({
           hiddenCategories: newHidden,
           hiddenSubCategories,
+          hiddenMyPOIs,
+          hiddenMySubCategories,
           globalVisibility
         });
       }
@@ -212,6 +216,51 @@ function Sidebar({
         onVisibilityChange({
           hiddenCategories,
           hiddenSubCategories: newHidden,
+          hiddenMyPOIs,
+          hiddenMySubCategories,
+          globalVisibility
+        });
+      }
+      
+      return newHidden;
+    });
+  };
+
+  const handleMyPOIsToggle = () => {
+    setHiddenMyPOIs(prev => {
+      const newHidden = !prev;
+      
+      // Notify parent of visibility changes
+      if (onVisibilityChange) {
+        onVisibilityChange({
+          hiddenCategories,
+          hiddenSubCategories,
+          hiddenMyPOIs: newHidden,
+          hiddenMySubCategories,
+          globalVisibility
+        });
+      }
+      
+      return newHidden;
+    });
+  };
+
+  const handleMySubCategoryToggle = (subCategoryId) => {
+    setHiddenMySubCategories(prev => {
+      const newHidden = new Set(prev);
+      if (newHidden.has(subCategoryId)) {
+        newHidden.delete(subCategoryId);
+      } else {
+        newHidden.add(subCategoryId);
+      }
+      
+      // Notify parent of visibility changes
+      if (onVisibilityChange) {
+        onVisibilityChange({
+          hiddenCategories,
+          hiddenSubCategories,
+          hiddenMyPOIs,
+          hiddenMySubCategories: newHidden,
           globalVisibility
         });
       }
@@ -224,12 +273,16 @@ function Sidebar({
     setGlobalVisibility(true);
     setHiddenCategories(new Set());
     setHiddenSubCategories(new Set());
+    setHiddenMyPOIs(false);
+    setHiddenMySubCategories(new Set());
     
     // Notify parent of visibility changes
     if (onVisibilityChange) {
       onVisibilityChange({
         hiddenCategories: new Set(),
         hiddenSubCategories: new Set(),
+        hiddenMyPOIs: false,
+        hiddenMySubCategories: new Set(),
         globalVisibility: true
       });
     }
@@ -239,14 +292,19 @@ function Sidebar({
     setGlobalVisibility(false);
     const allCategoryIds = new Set(categories.map(cat => cat.id));
     const allSubCategoryIds = new Set(subCategories.map(sub => sub.id));
+    const allMySubCategoryIds = new Set(myCategories.map(sub => sub.id));
     setHiddenCategories(allCategoryIds);
     setHiddenSubCategories(allSubCategoryIds);
+    setHiddenMyPOIs(true);
+    setHiddenMySubCategories(allMySubCategoryIds);
     
     // Notify parent of visibility changes
     if (onVisibilityChange) {
       onVisibilityChange({
         hiddenCategories: allCategoryIds,
         hiddenSubCategories: allSubCategoryIds,
+        hiddenMyPOIs: true,
+        hiddenMySubCategories: allMySubCategoryIds,
         globalVisibility: false
       });
     }
@@ -1036,15 +1094,16 @@ function Sidebar({
                 '&:hover': {
                   backgroundColor: alpha(theme.palette.primary.main, 0.02)
                 },
-                opacity: 1
+                opacity: globalVisibility ? 1 : 0.5
               }}
             >
               <AccordionSummary
                 expandIcon={null} // Remove expand icon since categories don't collapse
+                onClick={handleMyPOIsToggle}
                 sx={{
                   minHeight: 48,
                   px: 2,
-                  cursor: 'default',
+                  cursor: 'pointer',
                   '& .MuiAccordionSummary-content': {
                     alignItems: 'center',
                     margin: 0
@@ -1119,16 +1178,21 @@ function Sidebar({
                     {myCategories.map((subCategory) => {
                       // Get POI count for this subcategory from myPois
                       const myPOICount = myPois.filter(poi => poi.sub_category_id === subCategory.id).length;
+                      const isMyPOIsHidden = !globalVisibility || hiddenMyPOIs;
+                      const isMySubCategoryHidden = hiddenMySubCategories.has(subCategory.id);
+                      const shouldShowStrikethrough = isMyPOIsHidden || isMySubCategoryHidden;
                       
                       return (
                         <Box
                           key={subCategory.id}
+                          onClick={() => handleMySubCategoryToggle(subCategory.id)}
                           sx={{
                             display: 'flex',
                             alignItems: 'center',
                             p: 1,
                             borderRadius: 1,
-                            cursor: 'default',
+                            cursor: 'pointer',
+                            opacity: shouldShowStrikethrough ? 0.6 : 1,
                             '&:hover': {
                               backgroundColor: alpha(theme.palette.primary.main, 0.08),
                             }
@@ -1146,7 +1210,8 @@ function Sidebar({
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  padding: '2px'
+                                  padding: '2px',
+                                  filter: shouldShowStrikethrough ? 'grayscale(100%)' : 'none'
                                 }}
                               >
                                 <img
@@ -1169,7 +1234,8 @@ function Sidebar({
                                   backgroundColor: subCategory.color || alpha(theme.palette.primary.main, 0.4),
                                   display: 'flex',
                                   alignItems: 'center',
-                                  justifyContent: 'center'
+                                  justifyContent: 'center',
+                                  filter: shouldShowStrikethrough ? 'grayscale(100%)' : 'none'
                                 }}
                               >
                                 <Typography
@@ -1197,7 +1263,8 @@ function Sidebar({
                                 lineHeight: 1.2,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
+                                whiteSpace: 'nowrap',
+                                textDecoration: shouldShowStrikethrough ? 'line-through' : 'none'
                               }}
                             >
                               {subCategory.name}
@@ -1207,7 +1274,8 @@ function Sidebar({
                               sx={{
                                 fontSize: '0.65rem',
                                 fontWeight: 'bold',
-                                color: theme.palette.text.secondary
+                                color: theme.palette.text.secondary,
+                                textDecoration: shouldShowStrikethrough ? 'line-through' : 'none'
                               }}
                             >
                               {myPOICount}

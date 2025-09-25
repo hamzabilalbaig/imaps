@@ -175,6 +175,8 @@ function InteractiveMapLayout(props) {
   const [sidebarVisibilityState, setSidebarVisibilityState] = useState({
     hiddenCategories: new Set(),
     hiddenSubCategories: new Set(),
+    hiddenMyPOIs: false,
+    hiddenMySubCategories: new Set(),
     globalVisibility: true
   });
 
@@ -228,7 +230,39 @@ function InteractiveMapLayout(props) {
     console.log('InteractiveMapLayout - Filtered POIs:', filtered.length);
     console.log('InteractiveMapLayout - Filtered POIs Details:', filtered)
     console.log('InteractiveMapLayout - My POIs:', myPois)
-    return [...filtered, ...myPois];
+    
+    // Filter My POIs based on visibility state
+    const filteredMyPOIs = myPois?.filter(poi => {
+      // Check global visibility
+      if (!sidebarVisibilityState.globalVisibility) {
+        console.log('My POI hidden due to global visibility');
+        return false;
+      }
+      
+      // Check if My POIs section is hidden
+      if (sidebarVisibilityState.hiddenMyPOIs) {
+        console.log(`My POI "${poi.name}" hidden due to My POIs section being hidden`);
+        return false;
+      }
+      
+      // Check if specific My SubCategory is hidden
+      if (sidebarVisibilityState.hiddenMySubCategories.has(poi.sub_category_id)) {
+        console.log(`My POI "${poi.name}" hidden due to subcategory ${poi.sub_category_id} being hidden`);
+        return false;
+      }
+      
+      // Check search term match
+      const matchesSearch = !searchTerm || 
+        poi.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        poi.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        poi.description?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      console.log(`My POI "${poi.name}" - Matches Search: ${matchesSearch}, Show: ${matchesSearch}`);
+      return matchesSearch;
+    }) || [];
+    
+    console.log('InteractiveMapLayout - Filtered My POIs:', filteredMyPOIs.length);
+    return [...filtered, ...filteredMyPOIs];
   }, [pois, subCategories, sidebarVisibilityState, searchTerm, myPois]);
 
   // Handle POI from URL parameter
