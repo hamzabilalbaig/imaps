@@ -1000,27 +1000,14 @@ function Sidebar({
           </Box>
         )}
 
-        {/* User POIs Management Section - Only for non-admin users */}
+        {/* My POIs Section - Only for non-admin users */}
         {!isadmin && currentUserId && (
-          <Box sx={{ mt: 3, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  // color: 'primary.main',
-                  fontSize: '0.75rem'
-                }}
-              >
-                My POIs ({myPois.length})
-              </Typography>
-            </Box>
-
+          <Box >
             {/* Show map click prompt when waiting for location */}
             {waitingForMyPOILocation && (
               <Alert 
                 severity="info" 
-                sx={{ mt: 1, fontSize: '0.75rem' }}
+                sx={{ mt: 1, mb: 2, fontSize: '0.75rem' }}
                 action={
                   <IconButton
                     size="small"
@@ -1036,244 +1023,241 @@ function Sidebar({
                 Click anywhere on the map to add a new location
               </Alert>
             )}
-            
-            {myPois.length === 0 ? (
-              <Box sx={{ 
-                p: 2, 
-                textAlign: 'center',
-                backgroundColor: alpha(theme.palette.info.main, 0.05),
-                borderRadius: 1,
-                border: `1px dashed ${alpha(theme.palette.info.main, 0.2)}`
-              }}>
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary" 
-                  sx={{ fontSize: '0.8rem' }}
-                >
-                  You haven't created any POIs yet
-                </Typography>
-              </Box>
-            ) : (
-              <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
-                {myPois.map((poi) => (
-                <Box
-                  key={poi.id}
-                  sx={{
-                    display: 'flex',
+
+            {/* My POIs Category */}
+            <Accordion
+              expanded={true}
+              onChange={() => {}} // Prevent accordion collapse
+              sx={{
+                boxShadow: 'none',
+                '&:before': { display: 'none' },
+                '&.Mui-expanded': { margin: 0 },
+                mb: 1,
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.02)
+                },
+                opacity: 1
+              }}
+            >
+              <AccordionSummary
+                expandIcon={null} // Remove expand icon since categories don't collapse
+                sx={{
+                  minHeight: 48,
+                  px: 2,
+                  cursor: 'default',
+                  '& .MuiAccordionSummary-content': {
                     alignItems: 'center',
-                    p: 1.5,
-                    mb: 1,
-                    borderRadius: 1,
-                    backgroundColor: poi.is_approved 
-                      ? alpha(theme.palette.success.main, 0.05)
-                      : alpha(theme.palette.warning.main, 0.05),
-                    border: poi.is_approved 
-                      ? `1px solid ${alpha(theme.palette.success.main, 0.2)}`
-                      : `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
-                    '&:hover': {
-                      backgroundColor: poi.is_approved 
-                        ? alpha(theme.palette.success.main, 0.1)
-                        : alpha(theme.palette.warning.main, 0.1),
-                    }
-                  }}
-                >
-                  {/* POI Info */}
-                  <Box sx={{ flex: 1, mr: 1 }}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: theme.palette.text.primary,
-                        lineHeight: 1.2,
-                        mb: 0.5
-                      }}
-                    >
-                      {poi.name}
-                    </Typography>
-                    
-                    {poi.description && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontSize: '0.7rem',
-                          color: theme.palette.text.secondary,
-                          display: 'block',
-                          lineHeight: 1.2,
-                          mb: 0.5,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {poi.description}
-                      </Typography>
-                    )}
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {/* <Chip
-                        size="small"
-                        label={poi.is_approved ? "Approved" : "Pending"}
-                        color={poi.is_approved ? "success" : "warning"}
-                        variant="outlined"
-                        sx={{ 
-                          fontSize: '0.65rem', 
-                          height: 20,
-                          '& .MuiChip-label': { px: 1 }
-                        }}
-                      /> */}
-                      <LocationIcon sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
-                      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                        ID: {poi.id}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Action Buttons - Only Edit and Delete for users */}
-                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0.5 }}>
-                    {/* <Tooltip title="Edit POI">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEditUserPOI(poi)}
-                        disabled={actionLoading}
-                        sx={{
-                          backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                          color: 'primary.main',
-                          '&:hover': {
-                            backgroundColor: alpha(theme.palette.primary.main, 0.2),
-                          },
-                          width: 28,
-                          height: 28
-                        }}
-                      >
-                        <EditIcon sx={{ fontSize: '0.9rem' }} />
-                      </IconButton>
-                    </Tooltip> */}
-
-                    <Tooltip title="Delete POI">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteUserPOI(poi)}
-                        disabled={actionLoading}
-                        sx={{
-                          backgroundColor: alpha(theme.palette.error.main, 0.1),
-                          color: 'error.main',
-                          '&:hover': {
-                            backgroundColor: alpha(theme.palette.error.main, 0.2),
-                          },
-                          width: 28,
-                          height: 28
-                        }}
-                      >
-                        {actionLoading ? (
-                          <CircularProgress size={14} />
-                        ) : (
-                          <DeleteIcon sx={{ fontSize: '0.9rem' }} />
-                        )}
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Box>
-              ))}
-              </Box>
-            )}
-          </Box>
-        )}
-
-        {/* User SubCategories Management Section - Only for non-admin users */}
-        {!isadmin && currentUserId && myCategories.length > 0 && (
-          <Box sx={{ mt: 3, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  // color: 'secondary.main',
-                  fontSize: '0.75rem'
+                    margin: 0
+                  }
                 }}
               >
-                My SubCategories ({myCategories.length})
-              </Typography>
-            </Box>
-
-            <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
-              {myCategories.map((subCategory) => (
-                <Box
-                  key={subCategory.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    p: 1.5,
-                    mb: 1,
-                    borderRadius: 1,
-                    backgroundColor: alpha(theme.palette.secondary.main, 0.05),
-                    border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
-                    '&:hover': {
-                      backgroundColor: alpha(theme.palette.secondary.main, 0.1),
-                    }
-                  }}
-                >
-                  {/* SubCategory Info */}
-                  <Box sx={{ flex: 1, mr: 1 }}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: '0.8rem',
+                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                  <Box
+                    sx={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      backgroundColor: theme.palette.primary.main,
+                      mr: 1.5,
+                      flexShrink: 0
+                    }}
+                  />
+                  
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography 
+                      variant="subtitle2" 
+                      sx={{ 
                         fontWeight: 600,
-                        color: theme.palette.text.primary,
-                        lineHeight: 1.2,
-                        mb: 0.5
+                        fontSize: '0.9rem',
+                        color: theme.palette.text.primary
                       }}
                     >
-                      {subCategory.name}
+                      My POIs
                     </Typography>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: 12,
-                          height: 12,
-                          borderRadius: '50%',
-                          backgroundColor: subCategory.color || theme.palette.secondary.main,
-                          flexShrink: 0
-                        }}
-                      />
-                      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                        ID: {subCategory.id}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Action Buttons - Only Delete for user subcategories */}
-                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0.5 }}>
-                    <Tooltip title="Delete SubCategory">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteUserSubCategory(subCategory)}
-                        disabled={actionLoading}
-                        sx={{
-                          backgroundColor: alpha(theme.palette.error.main, 0.1),
-                          color: 'error.main',
-                          '&:hover': {
-                            backgroundColor: alpha(theme.palette.error.main, 0.2),
-                          },
-                          width: 28,
-                          height: 28
-                        }}
-                      >
-                        {actionLoading ? (
-                          <CircularProgress size={14} />
-                        ) : (
-                          <DeleteIcon sx={{ fontSize: '0.9rem' }} />
-                        )}
-                      </IconButton>
-                    </Tooltip>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        fontSize: '0.75rem',
+                        color: theme.palette.text.secondary,
+                        display: 'block',
+                        lineHeight: 1.2
+                      }}
+                    >
+                      Your created subcategories and locations
+                    </Typography>
                   </Box>
                 </Box>
-              ))}
-            </Box>
+              </AccordionSummary>
+              
+              <AccordionDetails sx={{ pt: 0, px: 1, pb: 1 }}>
+                {myCategories.length === 0 ? (
+                  <Box sx={{ 
+                    p: 3, 
+                    textAlign: 'center',
+                    backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                    borderRadius: 1,
+                    border: `1px dashed ${alpha(theme.palette.primary.main, 0.2)}`
+                  }}>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary" 
+                      sx={{ 
+                        fontSize: '0.8rem',
+                        fontStyle: 'italic'
+                      }}
+                    >
+                      No subcategories created yet
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ 
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: 1,
+                    p: 1
+                  }}>
+                    {myCategories.map((subCategory) => {
+                      // Get POI count for this subcategory from myPois
+                      const myPOICount = myPois.filter(poi => poi.sub_category_id === subCategory.id).length;
+                      
+                      return (
+                        <Box
+                          key={subCategory.id}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            p: 1,
+                            borderRadius: 1,
+                            cursor: 'default',
+                            '&:hover': {
+                              backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                            }
+                          }}
+                        >
+                          {/* Icon */}
+                          <Box sx={{ mr: 1, flexShrink: 0 }}>
+                            {subCategory.icon_image_url ? (
+                              <Box
+                                sx={{
+                                  width: 20,
+                                  height: 20,
+                                  borderRadius: '50%',
+                                  backgroundColor: subCategory.color || theme.palette.primary.main,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: '2px'
+                                }}
+                              >
+                                <img
+                                   src={subCategory.icon_image_url}
+                                   alt={subCategory.name}
+                                   style={{
+                                     width: 14,
+                                     height: 14,
+                                     borderRadius: '50%',
+                                     objectFit: 'cover'
+                                   }}
+                                />
+                              </Box>
+                            ) : (
+                              <Box
+                                sx={{
+                                  width: 20,
+                                  height: 20,
+                                  borderRadius: '50%',
+                                  backgroundColor: subCategory.color || alpha(theme.palette.primary.main, 0.4),
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontSize: '0.6rem',
+                                    fontWeight: 'bold',
+                                    color: 'white'
+                                  }}
+                                >
+                                  {subCategory.name.charAt(0).toUpperCase()}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Box>
+
+                          {/* Content */}
+                          <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontSize: '0.75rem',
+                                fontWeight: 500,
+                                color: theme.palette.text.primary,
+                                lineHeight: 1.2,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {subCategory.name}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontSize: '0.65rem',
+                                fontWeight: 'bold',
+                                color: theme.palette.text.secondary
+                              }}
+                            >
+                              {myPOICount}
+                            </Typography>
+                          </Box>
+
+                          {/* Delete Button */}
+                          <Box sx={{ ml: 0.5 }}>
+                            <Tooltip title="Delete SubCategory">
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteUserSubCategory(subCategory);
+                                }}
+                                disabled={actionLoading}
+                                sx={{
+                                  // backgroundColor: alpha(theme.palette.error.main, 0.1),
+                                  // color: 'error.main',
+                                  // '&:hover': {
+                                  //   backgroundColor: alpha(theme.palette.error.main, 0.2),
+                                  // },
+                                  width: 20,
+                                  height: 20,
+                                  mb: '3px'
+                                }}
+                              >
+                                {actionLoading ? (
+                                  <CircularProgress size={10} />
+                                ) : (
+                                  // <DeleteIcon sx={{ fontSize: '0.7rem' }} />
+                                  <CloseIcon 
+                                  sx={{ fontSize: '0.75rem',
+                                fontWeight: 500, }}
+                                  />
+                                )}
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+              </AccordionDetails>
+            </Accordion>
           </Box>
         )}
+
+
 
        
 
