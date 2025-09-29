@@ -34,7 +34,7 @@ import { useAlerts } from '../hooks/useAlerts';
 
 const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [], myCategories = [] }) => {
   const { user } = useAuth();
-  const { plan, planLimits: userPlanLimits, getRemainingCategories } = useUserStore();
+  const { plan, planLimits: userPlanLimits, id: userStoreId } = useUserStore();
   const { error, warning } = useAlerts();
   const [loading, setLoading] = useState(false);
   const [subcategories, setSubcategories] = useState([]);
@@ -64,11 +64,13 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
     icon_image_url: ''
   });
 
+  const effectiveUserId = user?.id || userStoreId;
+
   useEffect(() => {
-    if (open && user?.id) {
+    if (open && effectiveUserId) {
       fetchMySubcategories();
     }
-  }, [open, user?.id]);
+  }, [open, effectiveUserId]);
 
   useEffect(() => {
     if (mapClickCoords) {
@@ -96,8 +98,11 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
     Math.max(0, (planLimits?.maxCustomCategories || 0) - currentSubcategoriesCount);
 
   const fetchMySubcategories = async () => {
+    if (!effectiveUserId) {
+      return;
+    }
     try {
-      const response = await apiCall(`/my-pois/subcategories/${user.id}`, 'GET');
+      const response = await apiCall(`/my-pois/subcategories/${effectiveUserId}`, 'GET');
       setSubcategories(response || []);
     } catch (error) {
       console.error('Error fetching my subcategories:', error);
@@ -186,6 +191,11 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
       return;
     }
 
+    if (!effectiveUserId) {
+      warning('Your session has expired. Please log in again to create subcategories.');
+      return;
+    }
+
     // Check subcategory limit
     if (!canCreateMoreSubcategories) {
       warning(`You have reached your subcategory limit (${planLimits?.maxCustomCategories || 0}). Please upgrade your plan to add more subcategories.`);
@@ -197,7 +207,7 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
       console.log('Creating subcategory with data:', subcategoryData); // Debug log
       const response = await apiCall('/my-pois/subcategories', 'POST', {
         ...subcategoryData,
-        userId: user.id
+        userId: effectiveUserId
       });
 
       if (response) {
@@ -230,6 +240,11 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
       return;
     }
 
+    if (!effectiveUserId) {
+      warning('Your session has expired. Please log in again to create POIs.');
+      return;
+    }
+
     // Check POI limit
     if (!canCreateMorePOIs) {
       warning(`You have reached your My POI limit (${planLimits?.totalPOILimit || 0}). Please upgrade your plan to add more POIs.`);
@@ -240,7 +255,7 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
     try {
       const response = await apiCall('/my-pois/pois', 'POST', {
         ...formData,
-        userId: user.id
+        userId: effectiveUserId
       });
 
       if (response) {
@@ -573,7 +588,14 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={loading || !formData.name.trim() || !formData.sub_category_id || !formData.coords || !canCreateMorePOIs}
+          disabled={
+            loading ||
+            !formData.name.trim() ||
+            !formData.sub_category_id ||
+            !formData.coords ||
+            !canCreateMorePOIs ||
+            !effectiveUserId
+          }
         >
           {loading ? <CircularProgress size={20} /> : `Create POI (${currentMyPOIsCount}/${planLimits?.totalPOILimit === Infinity ? '∞' : planLimits?.totalPOILimit || 0})`}
         </Button>
