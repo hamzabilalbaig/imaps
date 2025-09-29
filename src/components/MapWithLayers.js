@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { MapContainer, ImageOverlay, useMap, ZoomControl } from "react-leaflet";
 import { Box, Typography, Alert } from "@mui/material";
 import { useMapLayers } from "../hooks/useMapLayers";
@@ -7,6 +7,11 @@ import L from "leaflet";
 import { restoreMapState } from "../utils/mapStateUtils";
 import { FaPen } from "react-icons/fa";
 import { debounce } from "../utils/debounce";
+
+const DEFAULT_IMAGE_BOUNDS = Object.freeze([
+  Object.freeze([24.75, 67.0]),
+  Object.freeze([25.05, 67.3])
+]);
 
 
 function DynamicImageOverlay({ imageUrl, bounds: initialBounds }) {
@@ -332,15 +337,17 @@ function MapWithLayers({
   streetsVisible = true,
   isRightSidebarVisible,
   onAddPOI, // Add POI handler prop
-  imageBounds = [  // Add this prop with default value
-    [24.75, 67.0], 
-    [25.05, 67.3]  
-  ]
+  imageBounds
 }) {
   const { activeLayer } = useMapLayers();
   const mapRef = useRef(null);
   const [isMounted, setIsMounted] = useState(false);
   
+  const resolvedImageBounds = useMemo(
+    () => imageBounds ?? DEFAULT_IMAGE_BOUNDS,
+    [imageBounds]
+  );
+
   const initialCenterRef = useRef(center);
   const initialZoomRef = useRef(zoom);
   
@@ -543,12 +550,12 @@ function MapWithLayers({
         <DynamicImageOverlay 
           key={`${activeLayer.id}-${activeLayer.imageUrl}`}
           imageUrl={activeLayer.imageUrl} 
-          bounds={imageBounds} 
+          bounds={resolvedImageBounds} 
         />
         
         <MapRefresher layerId={activeLayer.id} />
         <MapBackgroundUpdater activeLayer={activeLayer} />
-        <MapStateRestorer imageBounds={imageBounds} />
+        <MapStateRestorer imageBounds={resolvedImageBounds} />
         
         {children}
       </MapContainer>
