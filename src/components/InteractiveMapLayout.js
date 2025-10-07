@@ -116,17 +116,16 @@ function InteractiveMapLayout(props) {
   const [hideAll, setHideAll] = useState(false);
   const [hiddenCategories, setHiddenCategories] = useState([]);
   const [focusedPOI, setFocusedPOI] = useState(null);
-  const [myPois, setMyPOIs] = useState([]);
   const [myCategories, setMyCategories] = useState([]);
 
   const {id: currentUserId, fetchFoundLocations, foundLocations} = useUserStore()
+  
+  // Use myPois directly from the store instead of local state
+  const { myPois, fetchMyPOIs: fetchMyPOIsFromStore } = usePOIsStore();
 
  const fetchMyPOIs = async () => {
-  const mypois = await getMyPOIs(currentUserId);
-  setMyPOIs(mypois);
-  // Also update the store's myPois
-  const poisStore = usePOIsStore.getState();
-  poisStore.fetchMyPOIs(currentUserId);
+  // Fetch from store which will update the store's state
+  await fetchMyPOIsFromStore(currentUserId);
 };
 
  const fetchMyCategories = async () => {

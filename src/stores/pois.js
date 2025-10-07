@@ -275,20 +275,20 @@ const usePOIsStore = create((set, get) => ({
       set({ loading: true, error: null });
       await deletePOIById(id);
       
-      // Remove from local state
-      const currentPOIs = get().pois;
-      const filteredPOIs = currentPOIs.filter(poi => poi.id !== id);
-      
-      // Also remove from myPois if it's in that list
-      const currentMyPOIs = get().myPois;
-      const filteredMyPOIs = currentMyPOIs.filter(poi => poi.id !== id);
+      // Remove from local state - capture all state at once
+      const state = get();
+      const filteredPOIs = state.pois.filter(poi => poi.id !== id);
+      const filteredMyPOIs = state.myPois.filter(poi => poi.id !== id);
+      const updatedCurrentPOI = state.currentPOI?.id === id ? null : state.currentPOI;
       
       set({ 
         pois: filteredPOIs,
         myPois: filteredMyPOIs,
-        currentPOI: get().currentPOI?.id === id ? null : get().currentPOI,
+        currentPOI: updatedCurrentPOI,
         loading: false 
       });
+      
+      console.log(`POI ${id} deleted. Updated pois count: ${filteredPOIs.length}, myPois count: ${filteredMyPOIs.length}`);
       
       return { success: true };
     } catch (error) {
