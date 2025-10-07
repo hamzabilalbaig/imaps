@@ -102,20 +102,11 @@ const Pricing = () => {
       features.push(`${config.total_poi_limit} POIs Total`);
     }
     
-    // Add common features based on plan type
-    if (config.plan_name === 'free') {
-      // features.push('View public maps', 'Basic map layers');
-      features.push('upto 5 notes') 
-    } else if (config.plan_name === 'premium') {
-      // features.push('Advanced map layers', 'Export map data', 'Priority support', 'Analytics dashboard');
-      features.push('upto 50 notes')
-    } else if (config.plan_name === 'unlimited') {
-      if (config.allow_custom_icons) {
-        // features.push('Custom Icon Upload');
-        features.push() // empty as no need for these features
-      }
-      // features.push('All premium features', 'API access', 'White-label options', 'Dedicated support', 'Custom integrations');
-      features.push('unlimited notes')
+    // Add notes limit based on max_notes from configuration
+    if (config.max_notes === -1) {
+      features.push('Unlimited Notes');
+    } else {
+      features.push(`Up to ${config.max_notes} Notes`);
     }
     
     return features;
@@ -322,6 +313,12 @@ const Pricing = () => {
                   <Typography variant="h5" fontWeight="bold" gutterBottom>
                     {plan.name}
                   </Typography>
+                  
+                  {plan.description && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: 40 }}>
+                      {plan.description}
+                    </Typography>
+                  )}
                   
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="h3" fontWeight="bold" color={`${plan.color}.main`}>

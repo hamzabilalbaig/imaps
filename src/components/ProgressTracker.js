@@ -754,7 +754,36 @@ function ProgressTracker({
                 )}
               </Box>
 
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              {/* Notes Usage */}
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                    Notes
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
+                    {currentNoteCount} / {maxNotes === Infinity ? '∞' : maxNotes}
+                  </Typography>
+                </Box>
+                {maxNotes !== Infinity && (
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={(currentNoteCount / maxNotes) * 100} 
+                    sx={{ 
+                      height: 6, 
+                      borderRadius: 3,
+                      backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 3,
+                        backgroundColor: (currentNoteCount / maxNotes) >= 0.8 ? 
+                          theme.palette.warning.main : 
+                          theme.palette.secondary.main
+                      }
+                    }}
+                  />
+                )}
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
                 <Chip 
                   label={`${remainingCategories === Infinity ? '∞' : remainingCategories} categories left`}
                   size="small"
@@ -762,9 +791,15 @@ function ProgressTracker({
                   sx={{ fontSize: '0.7rem' }}
                 />
                 <Chip 
-                  label={`${remainingPOIs} remaining`}
+                  label={`${remainingPOIs} POIs remaining`}
                   size="small"
                   color={remainingPOIs === 0 ? "error" : "primary"}
+                  sx={{ fontSize: '0.7rem' }}
+                />
+                <Chip 
+                  label={`${remainingNotes} notes left`}
+                  size="small"
+                  color={remainingNotes === 0 ? "error" : "info"}
                   sx={{ fontSize: '0.7rem' }}
                 />
               </Box>

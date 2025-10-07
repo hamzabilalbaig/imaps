@@ -144,7 +144,8 @@ function AdminDashboard() {
     allow_custom_icons: false,
     price_cents: 0,
     description: '',
-    is_active: true
+    is_active: true,
+    max_notes: 5
   });
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [planUsageStats, setPlanUsageStats] = useState([]);
@@ -664,7 +665,8 @@ function AdminDashboard() {
       allow_custom_icons: plan.allow_custom_icons || false,
       price_cents: plan.price_cents || 0,
       description: plan.description || '',
-      is_active: plan.is_active !== undefined ? plan.is_active : true
+      is_active: plan.is_active !== undefined ? plan.is_active : true,
+      max_notes: plan.max_notes !== undefined ? plan.max_notes : 5
     });
     setEditPlanLimitsDialogOpen(true);
   };
@@ -1161,6 +1163,15 @@ function AdminDashboard() {
                       </Typography>
                       <Typography variant="body2" fontWeight={500}>
                         {plan.total_poi_limit === -1 ? '∞' : plan.total_poi_limit}
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Max Notes
+                      </Typography>
+                      <Typography variant="body2" fontWeight={500}>
+                        {plan.max_notes === -1 ? '∞' : plan.max_notes}
                       </Typography>
                     </Box>
                     
@@ -2742,7 +2753,7 @@ function AdminDashboard() {
                   }}
                 />
               </Grid>
-              {/* <Grid item xs={12}>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="Description"
@@ -2755,7 +2766,7 @@ function AdminDashboard() {
                   })}
                   placeholder="Brief description of this plan"
                 />
-              </Grid> */}
+              </Grid>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -2792,6 +2803,19 @@ function AdminDashboard() {
                   onChange={(e) => setPlanFormData({
                     ...planFormData,
                     total_poi_limit: e.target.value === '' ? -1 : parseInt(e.target.value) || 0
+                  })}
+                  helperText="Leave empty for unlimited"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Max Notes"
+                  type="number"
+                  value={planFormData.max_notes === -1 ? '' : planFormData.max_notes || ''}
+                  onChange={(e) => setPlanFormData({
+                    ...planFormData,
+                    max_notes: e.target.value === '' ? -1 : parseInt(e.target.value) || 0
                   })}
                   helperText="Leave empty for unlimited"
                 />
