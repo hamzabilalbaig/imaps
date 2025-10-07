@@ -1,16 +1,22 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useMemo } from "react";
 import {
   Box,
   Paper,
   Button,
   ButtonGroup,
-  Typography,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
   useTheme,
   useMediaQuery,
   alpha
 } from "@mui/material";
 import {
   Check as CheckIcon,
+  ChevronLeft,
+  ChevronRight,
   Layers as LayersIcon
 } from "@mui/icons-material";
 import { useMapLayers } from "../hooks/useMapLayers";
@@ -20,15 +26,21 @@ import { debounce } from "../utils/debounce";
 /**
  * Component for quick layer selection on the map - now shows as buttons in bottom center
  */
-function LayerSelector({ position = "bottom-center", showInPublic = true, isAdmin = false }) {
+function LayerSelector({ position = "bottom-center", showInPublic = true, isAdmin = false, isRightSidebarVisible = false }) {
   const { layers, activeLayer, setActiveLayer } = useMapLayers();
   const [isChangingLayer, setIsChangingLayer] = useState(false);
   const debouncedLayerChangeRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
 
 
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isBottomCenter = position === 'bottom-center';
+  const isMenuOpen = Boolean(menuAnchorEl);
 
   // Simplified layer change function with timeout
   const performLayerChange = useCallback((layerId, preservedCenter, preservedZoom) => {
@@ -79,20 +91,93 @@ function LayerSelector({ position = "bottom-center", showInPublic = true, isAdmi
     debouncedLayerChangeRef.current = debouncedLayerChange;
   }, [debouncedLayerChange]);
 
-  if (!showInPublic && !isAdmin) {
-    return null;
-  }
+  const mobileBottomOffset = useMemo(
+    () => `calc(16px + env(safe-area-inset-bottom, 0px))`,
+    []
+  );
 
-  const positionClasses = {
-    "top-right": { top: { xs: 8, md: 16 }, right: { xs: 8, md: 16 } },
-    "top-left": { top: { xs: 8, md: 16 }, left: { xs: 8, md: 16 } },
-    "bottom-right": { bottom: { xs: 80, md: 16 }, right: { xs: 8, md: 16 } },
-    "bottom-left": { bottom: { xs: 80, md: 16 }, left: { xs: 8, md: 16 } },
-    "bottom-center": { 
-      bottom: { xs: 80, md: 16 }, 
-      left: "50%", 
-      transform: "translateX(-50%)" 
-    },
+  const containerPositionStyles = useMemo(() => {
+    const desktopBottom = 16;
+    switch (position) {
+      case "top-right":
+        return {
+          top: { xs: 8, md: 16 },
+          right: { xs: 8, md: 16 },
+          transform: 'none'
+        };
+      case "top-left":
+        return {
+          top: { xs: 8, md: 16 },
+          left: { xs: 8, md: 16 },
+          transform: 'none'
+        };
+      case "bottom-right":
+        return {
+          bottom: isMobile ? mobileBottomOffset : desktopBottom,
+          right: { xs: 16, md: 16 },
+          transform: 'none'
+        };
+      case "bottom-left":
+        return {
+          bottom: isMobile ? mobileBottomOffset : desktopBottom,
+          left: { xs: 16, md: 16 },
+          transform: 'none'
+        };
+      case "bottom-center":
+      default:
+        return isMobile
+          ? {
+              bottom: mobileBottomOffset,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 'calc(100vw - 120px)'
+            }
+          : {
+              bottom: desktopBottom,
+              left: '50%',
+              transform: 'translateX(-50%)'
+            };
+    }
+  }, [isMobile, mobileBottomOffset, position]);
+
+  React.useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    const updateScrollState = () => {
+      const scrollLeft = container.scrollLeft;
+      const maxScrollLeft = container.scrollWidth - container.clientWidth;
+      setCanScrollLeft(scrollLeft > 8);
+      setCanScrollRight(scrollLeft < maxScrollLeft - 8);
+    };
+
+    updateScrollState();
+    container.addEventListener('scroll', updateScrollState);
+    window.addEventListener('resize', updateScrollState);
+
+    return () => {
+      container.removeEventListener('scroll', updateScrollState);
+      window.removeEventListener('resize', updateScrollState);
+    };
+  }, [layers, isMobile]);
+
+  const handleArrowScroll = (direction) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const scrollAmount = direction * (isMobile ? 140 : 220);
+    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  };
+
+  const handleMenuOpen = (event) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
   };
 
   const handleLayerChange = (layerId) => {
@@ -137,15 +222,109 @@ function LayerSelector({ position = "bottom-center", showInPublic = true, isAdmi
     }
   };
 
+  const handleMobileLayerSelect = (layerId) => {
+    handleLayerChange(layerId);
+    handleMenuClose();
+  };
+
+  if (!showInPublic && !isAdmin) {
+    return null;
+  }
+
+  if (isMobile) {
+    const sidebarOffset = isRightSidebarVisible ? 362 : 10;
+
+    return (
+      <>
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: `calc(180px + env(safe-area-inset-bottom, 0px))`,
+            right: sidebarOffset,
+            zIndex: 1000,
+            pointerEvents: 'auto'
+          }}
+        >
+          <IconButton
+            onClick={handleMenuOpen}
+            size="medium"
+            sx={{
+              width: 32,
+              height: 32,
+              backgroundColor: 'background.paper',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: alpha(theme.palette.common.black, 0.2),
+              boxShadow: `0 6px 18px ${alpha(theme.palette.common.black, 0.2)}`,
+              color: 'text.primary',
+              transition: 'transform 120ms ease, background-color 120ms ease',
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                transform: 'translateY(-2px)'
+              }
+            }}
+            aria-label="Select map layer"
+          >
+            <LayersIcon fontSize="small" />
+          </IconButton>
+        </Box>
+
+        <Menu
+          anchorEl={menuAnchorEl}
+          open={isMenuOpen}
+          onClose={handleMenuClose}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          PaperProps={{
+            sx: {
+              mb: 1,
+              px: 0.5,
+              borderRadius: 2,
+              minWidth: 200
+            }
+          }}
+          keepMounted
+        >
+          {layers.map((layer) => {
+            const isActive = activeLayer === layer.id || layer.isActive;
+            return (
+              <MenuItem
+                key={layer.id}
+                onClick={() => handleMobileLayerSelect(layer.id)}
+                selected={isActive}
+                dense
+              >
+                <ListItemIcon sx={{ minWidth: 30 }}>
+                  <CheckIcon
+                    fontSize="small"
+                    sx={{ opacity: isActive ? 1 : 0, transition: 'opacity 150ms ease' }}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={layer.name}
+                  primaryTypographyProps={{
+                    fontSize: '0.9rem',
+                    fontWeight: isActive ? 600 : 500
+                  }}
+                />
+              </MenuItem>
+            );
+          })}
+        </Menu>
+      </>
+    );
+  }
+
   return (
     <Box
       sx={{
         position: 'absolute',
-        ...positionClasses[position],
+        ...containerPositionStyles,
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
-        gap: 1
+        gap: 1,
+        pointerEvents: 'auto'
       }}
     >
       <Paper 
@@ -155,62 +334,119 @@ function LayerSelector({ position = "bottom-center", showInPublic = true, isAdmi
           overflow: 'hidden',
           backgroundColor: alpha(theme.palette.background.paper, 0.95),
           backdropFilter: 'blur(10px)',
-          border: `1px solid ${alpha(theme.palette.divider, 0.2)}`
+          border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+          width: isBottomCenter ? { xs: '100%', md: 'auto' } : 'auto',
+          maxWidth: isBottomCenter ? { xs: '100%', md: 520 } : 520
         }}
       >
-        <ButtonGroup 
-          variant="contained" 
-          size={isMobile ? "small" : "medium"}
-          sx={{
-            '& .MuiButton-root': {
-              borderRadius: 0,
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: { xs: '0.75rem', md: '0.875rem' },
-              px: { xs: 2, md: 3 },
-              py: { xs: 1, md: 1.5 },
-              minWidth: { xs: 60, md: 80 },
-              transition: 'all 0.2s ease-in-out',
-              '&:not(.active)': {
-                backgroundColor: alpha(theme.palette.grey[100], 0.8),
-                color: theme.palette.text.primary,
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  color: theme.palette.primary.main,
-                  transform: 'translateY(-1px)'
-                }
-              },
-              '&:disabled': {
-                opacity: 0.6,
-                cursor: 'not-allowed',
-                '&:hover': {
-                  transform: 'none'
-                }
-              },
-              '&.active': {
-                backgroundColor: theme.palette.primary.main,
-                color: 'white',
-                boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`,
-                '&:hover': {
-                  backgroundColor: theme.palette.primary.dark,
-                  transform: 'translateY(-1px)'
+        <Box sx={{ position: 'relative', width: '100%' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              px: { xs: 0.5, md: 0 },
+              py: { xs: 0.5, md: 0 },
+              '&::-webkit-scrollbar': { display: 'none' },
+              scrollbarWidth: 'none'
+            }}
+            ref={scrollContainerRef}
+          >
+          <ButtonGroup 
+            variant="contained" 
+            size={isMobile ? "small" : "medium"}
+            sx={{
+              flexWrap: 'nowrap',
+              '& .MuiButton-root': {
+                borderRadius: 0,
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: { xs: '0.75rem', md: '0.82rem' },
+                px: { xs: 2, md: 2.5 },
+                py: { xs: 1, md: 1.2 },
+                minWidth: { xs: 72, md: 84 },
+                transition: 'all 0.2s ease-in-out',
+                '&:not(.active)': {
+                  backgroundColor: alpha(theme.palette.grey[100], 0.8),
+                  color: theme.palette.text.primary,
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                    color: theme.palette.primary.main,
+                    transform: 'translateY(-1px)'
+                  }
+                },
+                '&:disabled': {
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                  '&:hover': {
+                    transform: 'none'
+                  }
+                },
+                '&.active': {
+                  backgroundColor: theme.palette.primary.main,
+                  color: 'white',
+                  boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`,
+                  '&:hover': {
+                    backgroundColor: theme.palette.primary.dark,
+                    transform: 'translateY(-1px)'
+                  }
                 }
               }
-            }
-          }}
-        >
-          {layers.map((layer) => (
-            <Button
-              key={layer.id}
-              onClick={() => handleLayerChange(layer.id)}
-              className={layer.isActive ? 'active' : ''}
-              disabled={isChangingLayer}
-              startIcon={layer.isActive ? <CheckIcon sx={{ fontSize: '1rem' }} /> : null}
+            }}
+          >
+            {layers.map((layer) => {
+              const isActive = activeLayer === layer.id || layer.isActive;
+              return (
+                <Button
+                  key={layer.id}
+                  onClick={() => handleLayerChange(layer.id)}
+                  className={isActive ? 'active' : ''}
+                  disabled={isChangingLayer}
+                  startIcon={isActive ? <CheckIcon sx={{ fontSize: '1rem' }} /> : null}
+                >
+                  {layer.name}
+                </Button>
+              );
+            })}
+          </ButtonGroup>
+        </Box>
+
+          {isBottomCenter && canScrollLeft && (
+            <IconButton
+              size="small"
+              onClick={() => handleArrowScroll(-1)}
+              sx={{
+                position: 'absolute',
+                left: 4,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: alpha(theme.palette.background.paper, 0.9),
+                boxShadow: 2,
+                '&:hover': { backgroundColor: alpha(theme.palette.background.paper, 0.95) }
+              }}
             >
-              {layer.name}
-            </Button>
-          ))}
-        </ButtonGroup>
+              <ChevronLeft fontSize="small" />
+            </IconButton>
+          )}
+
+          {isBottomCenter && canScrollRight && (
+            <IconButton
+              size="small"
+              onClick={() => handleArrowScroll(1)}
+              sx={{
+                position: 'absolute',
+                right: 4,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: alpha(theme.palette.background.paper, 0.9),
+                boxShadow: 2,
+                '&:hover': { backgroundColor: alpha(theme.palette.background.paper, 0.95) }
+              }}
+            >
+              <ChevronRight fontSize="small" />
+            </IconButton>
+          )}
+        </Box>
       </Paper>
     </Box>
   );

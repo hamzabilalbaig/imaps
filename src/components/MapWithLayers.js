@@ -601,6 +601,7 @@ function MapWithLayers({
           position={layerSelectorPosition}
           showInPublic={true}
           isAdmin={isAdmin}
+          isRightSidebarVisible={isRightSidebarVisible}
         />
       )}
     </Box>
