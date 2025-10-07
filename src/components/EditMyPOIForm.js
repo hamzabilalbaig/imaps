@@ -35,6 +35,7 @@ import { useAlerts } from '../hooks/useAlerts';
 const EditMyPOIForm = ({ open, onClose, onSuccess, poi, myCategories = [] }) => {
   const { user } = useAuth();
   const { updatePOI } = usePOIsStore();
+  const { plan, planLimits: userPlanLimits } = useUserStore();
   const { error, warning } = useAlerts();
   const [loading, setLoading] = useState(false);
   const [subcategories, setSubcategories] = useState([]);
@@ -44,6 +45,11 @@ const EditMyPOIForm = ({ open, onClose, onSuccess, poi, myCategories = [] }) => 
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Check if POI images are allowed for current plan
+  const currentUserPlan = plan || 'free';
+  const planLimits = userPlanLimits?.[currentUserPlan];
+  const canUploadPOIImages = planLimits?.allowPOIImages !== false;
   
   // POI form data
   const [formData, setFormData] = useState({
@@ -332,34 +338,46 @@ const EditMyPOIForm = ({ open, onClose, onSuccess, poi, myCategories = [] }) => 
               POI Image (Optional)
             </Typography>
             
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              style={{ display: 'none' }}
-              id="poi-image-upload"
-              disabled={uploadingImage}
-            />
+            {!canUploadPOIImages && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  You need to upgrade your plan to use this feature
+                </Typography>
+              </Alert>
+            )}
             
-            <label htmlFor="poi-image-upload">
+            {canUploadPOIImages && (
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                style={{ display: 'none' }}
+                id="poi-image-upload"
+                disabled={uploadingImage}
+              />
+            )}
+            
+            <label htmlFor={canUploadPOIImages ? "poi-image-upload" : undefined}>
               <Button
                 variant="outlined"
                 component="span"
                 startIcon={uploadingImage ? <CircularProgress size={20} /> : <CloudUploadIcon />}
-                disabled={uploadingImage}
+                disabled={uploadingImage || !canUploadPOIImages}
                 fullWidth
                 sx={{
                   borderRadius: 2,
                   borderStyle: 'dashed',
                   py: { xs: 1.5, md: 2 },
-                  fontSize: { xs: '0.875rem', md: '1rem' }
+                  fontSize: { xs: '0.875rem', md: '1rem' },
+                  opacity: !canUploadPOIImages ? 0.5 : 1,
+                  cursor: !canUploadPOIImages ? 'not-allowed' : 'pointer'
                 }}
               >
                 {uploadingImage ? 'Uploading...' : 'Upload Image'}
               </Button>
             </label>
 
-            {imagePreview && (
+            {canUploadPOIImages && imagePreview && (
               <Box sx={{ mt: 2, textAlign: 'center' }}>
                 <img
                   src={imagePreview}

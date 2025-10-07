@@ -666,7 +666,8 @@ function AdminDashboard() {
       price_cents: plan.price_cents || 0,
       description: plan.description || '',
       is_active: plan.is_active !== undefined ? plan.is_active : true,
-      max_notes: plan.max_notes !== undefined ? plan.max_notes : 5
+      max_notes: plan.max_notes !== undefined ? plan.max_notes : 5,
+      allow_poi_images: plan.allow_poi_images !== undefined ? plan.allow_poi_images : true
     });
     setEditPlanLimitsDialogOpen(true);
   };
@@ -1173,6 +1174,18 @@ function AdminDashboard() {
                       <Typography variant="body2" fontWeight={500}>
                         {plan.max_notes === -1 ? '∞' : plan.max_notes}
                       </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        POI Images
+                      </Typography>
+                      <Chip
+                        label={plan.allow_poi_images !== false ? 'Enabled' : 'Disabled'}
+                        size="small"
+                        variant="outlined"
+                        color={plan.allow_poi_images !== false ? 'success' : 'default'}
+                      />
                     </Box>
                     
                     {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2834,7 +2847,21 @@ function AdminDashboard() {
                   label="Allow Custom Icons"
                 />
               </Grid> */}
-              <Grid item xs={12}>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={planFormData.allow_poi_images !== false}
+                      onChange={(e) => setPlanFormData({
+                        ...planFormData,
+                        allow_poi_images: e.target.checked
+                      })}
+                    />
+                  }
+                  label="Allow POI Images"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
                 <FormControlLabel
                   control={
                     <Switch

@@ -82,19 +82,22 @@ const useUserStore = create((set, get) => ({
             maxCustomCategories: 10,
             totalPOILimit: 100,
             maxNotes: 5,
-            allowCustomIcons: false
+            allowCustomIcons: false,
+            allowPOIImages: false
           },
           premium: { 
             maxCustomCategories: 20,
             totalPOILimit: 400,
             maxNotes: 50,
-            allowCustomIcons: false
+            allowCustomIcons: false,
+            allowPOIImages: true
           },
           unlimited: { 
             maxCustomCategories: Infinity,
             totalPOILimit: Infinity,
             maxNotes: Infinity,
-            allowCustomIcons: true
+            allowCustomIcons: true,
+            allowPOIImages: true
           }
         }
       });

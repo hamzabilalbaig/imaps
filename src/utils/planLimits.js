@@ -30,7 +30,9 @@ export async function fetchPlanLimits() {
         // Add maxNotes if it exists in the plan, otherwise use sensible defaults
         maxNotes: plan.max_notes !== undefined 
           ? (plan.max_notes === -1 ? Infinity : plan.max_notes)
-          : getDefaultMaxNotes(plan.plan_name)
+          : getDefaultMaxNotes(plan.plan_name),
+        // Add allowPOIImages - defaults to true if not specified
+        allowPOIImages: plan.allow_poi_images !== undefined ? plan.allow_poi_images : true
       };
     });
 
@@ -68,19 +70,22 @@ function getFallbackPlanLimits() {
       maxCustomCategories: 10,
       totalPOILimit: 100,
       maxNotes: 5,
-      allowCustomIcons: false
+      allowCustomIcons: false,
+      allowPOIImages: false
     },
     premium: { 
       maxCustomCategories: 20,
       totalPOILimit: 400,
       maxNotes: 50,
-      allowCustomIcons: false
+      allowCustomIcons: false,
+      allowPOIImages: true
     },
     unlimited: { 
       maxCustomCategories: Infinity,
       totalPOILimit: Infinity,
       maxNotes: Infinity,
-      allowCustomIcons: true
+      allowCustomIcons: true,
+      allowPOIImages: true
     }
   };
 }

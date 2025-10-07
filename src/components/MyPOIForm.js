@@ -96,6 +96,9 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
   const remainingSubcategories = planLimits?.maxCustomCategories === Infinity ? 
     Infinity : 
     Math.max(0, (planLimits?.maxCustomCategories || 0) - currentSubcategoriesCount);
+  
+  // Check if POI images are allowed for current plan
+  const canUploadPOIImages = planLimits?.allowPOIImages !== false;
 
   const fetchMySubcategories = async () => {
     if (!effectiveUserId) {
@@ -376,8 +379,16 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
               POI Image
             </Typography>
             
+            {!canUploadPOIImages && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  You need to upgrade your plan to use this feature
+                </Typography>
+              </Alert>
+            )}
+            
             {/* Image Preview */}
-            {(imagePreview || formData.image_url) && (
+            {canUploadPOIImages && (imagePreview || formData.image_url) && (
               <Paper sx={{ p: 2, mb: 2, position: 'relative' }}>
                 <img
                   src={imagePreview || formData.image_url}
@@ -412,17 +423,23 @@ const MyPOIForm = ({ open, onClose, onSuccess, mapClickCoords = null, myPois = [
                 component="label"
                 variant="outlined"
                 startIcon={uploadingImage ? <CircularProgress size={16} /> : <CloudUploadIcon />}
-                disabled={uploadingImage}
-                sx={{ justifyContent: 'flex-start' }}
+                disabled={uploadingImage || !canUploadPOIImages}
+                sx={{ 
+                  justifyContent: 'flex-start',
+                  opacity: !canUploadPOIImages ? 0.5 : 1,
+                  cursor: !canUploadPOIImages ? 'not-allowed' : 'pointer'
+                }}
                 fullWidth
               >
                 {uploadingImage ? 'Uploading...' : (selectedFile ? selectedFile.name : 'Choose Image File')}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  style={{ display: 'none' }}
-                />
+                {canUploadPOIImages && (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    style={{ display: 'none' }}
+                  />
+                )}
               </Button>
             </Box>
           </Box>
