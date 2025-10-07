@@ -72,7 +72,7 @@ import usePOIsStore from '../stores/pois';
 import useCategoriesStore from '../stores/categories';
 import useSubCategoriesStore from '../stores/subCategories';
 import useSettingsStore from '../stores/settings';
-import { getAllUsers, updateUserPlan, getAdminStats, bulkApprovePOIs, bulkRejectPOIs, getAllPlanConfigurations, updatePlanConfiguration, createPlanConfiguration, deletePlanConfiguration, getPlanUsageStats, getAllMapLayers, createMapLayer, updateMapLayer, deleteMapLayer, uploadMapLayerImage } from '../api/functions/apiFunctions';
+import { getAllUsers, updateUserPlan, getAdminStats, bulkApprovePOIs, bulkRejectPOIs, getAllPlanConfigurations, updatePlanConfiguration, createPlanConfiguration, deletePlanConfiguration, getPlanUsageStats, getAllMapLayers, createMapLayer, updateMapLayer, deleteMapLayer, uploadMapLayerImage, updatePoiSetting } from '../api/functions/apiFunctions';
 import uploadFile from '../aws/fileUpload';
 import { generateShareableLink } from '../utils/mapUtils';
 import { useAlerts } from '../hooks/useAlerts';
@@ -667,6 +667,24 @@ function AdminDashboard() {
       is_active: plan.is_active !== undefined ? plan.is_active : true
     });
     setEditPlanLimitsDialogOpen(true);
+  };
+
+  // Handle POI icon size change and save to database
+  const handlePoiIconSizeChange = async (event, newValue) => {
+    try {
+      // Update local state immediately for responsive UI
+      setPoiIconSize(newValue);
+      
+      // Save to database
+      await updatePoiSetting('poi_icon_size', newValue.toString(), 'Global POI icon size in pixels (20-80)');
+      
+      // Show success message
+      success('POI icon size updated successfully');
+    } catch (err) {
+      console.error('Error updating POI icon size:', err);
+      // Show error message
+      error('Failed to update POI icon size. Please try again.');
+    }
   };
 
   // Render statistics cards
@@ -1509,7 +1527,7 @@ function AdminDashboard() {
               </Typography>
               <Slider
                 value={poiIconSize}
-                onChange={(event, newValue) => setPoiIconSize(newValue)}
+                onChange={handlePoiIconSizeChange}
                 min={20}
                 max={80}
                 step={5}

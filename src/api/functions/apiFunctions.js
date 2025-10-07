@@ -342,6 +342,30 @@ export async function getAdminStats() {
     return data;
 }
 
+// Fetch POI settings (single or all)
+export async function getAllPoiSettings() {
+    const { data } = await apiClient.get('/admin/poi-settings');
+    return data;
+}
+
+export async function getPoiSetting(settingName) {
+    try {
+        const { data } = await apiClient.get(`/admin/poi-settings/${encodeURIComponent(settingName)}`);
+        return data;
+    } catch (error) {
+        // Surface useful error information to caller
+        throw error;
+    }
+}
+
+export async function updatePoiSetting(settingName, settingValue, description) {
+    const { data } = await apiClient.put(`/admin/poi-settings/${encodeURIComponent(settingName)}`, {
+        setting_value: settingValue,
+        description
+    });
+    return data;
+}
+
 export async function getPendingPOIs() {
     const { data } = await apiClient.get('/admin/stats/pois/pending');
     return data;

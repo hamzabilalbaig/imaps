@@ -9,6 +9,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { CategoriesProvider } from './contexts/CategoriesContext';
 import { ModalProvider } from './contexts/ModalContext';
 import useUserStore from './stores/user';
+import useSettingsStore from './stores/settings';
+import { getPoiSetting } from './api/functions/apiFunctions';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
 import PublicMap from './components/PublicMap';
@@ -33,6 +35,27 @@ function App() {
     };
     initializeApp();
   }, [initializeUser]);
+
+  // Fetch global POI settings from backend and apply to settings store
+  // This runs on every app load and overrides any localStorage values
+  React.useEffect(() => {
+    const applyPoiSettings = async () => {
+      try {
+        const setting = await getPoiSetting('poi_icon_size');
+        if (setting && setting.setting_value) {
+          const parsed = parseInt(setting.setting_value, 10);
+          if (!Number.isNaN(parsed)) {
+            const initializePoiIconSize = useSettingsStore.getState().initializePoiIconSize;
+            initializePoiIconSize(parsed);
+          }
+        }
+      } catch (err) {
+        // Ignore errors - keep default value from store
+        console.warn('Failed to load POI settings from database, using default:', err.message);
+      }
+    };
+    applyPoiSettings();
+  }, []);
 
   React.useEffect(() => {
     if (path === '/login' || path === '/admin-login' || path === '/register' || path === '/forgot-password' || path === '/reset-password') {
