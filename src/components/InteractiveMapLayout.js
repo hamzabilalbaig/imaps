@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, use } from 'react';
 import { Link } from 'react-router-dom';
 import { useAlerts } from '../hooks/useAlerts';
 import L from "leaflet";
+
 import { 
   Box, 
   Typography, 
@@ -117,6 +118,7 @@ function InteractiveMapLayout(props) {
   const [hiddenCategories, setHiddenCategories] = useState([]);
   const [focusedPOI, setFocusedPOI] = useState(null);
   const [myCategories, setMyCategories] = useState([]);
+  const [siteConfigs, setSiteConfigs] = useState({});
 
   const {id: currentUserId, fetchFoundLocations, foundLocations} = useUserStore()
   
@@ -127,6 +129,18 @@ function InteractiveMapLayout(props) {
   // Fetch from store which will update the store's state
   await fetchMyPOIsFromStore(currentUserId);
 };
+
+const fetchSiteConfigs = async () => {
+  const fetchedSiteConfigs = await fetch('/siteConfigs.json').then(res => res.json());
+  setSiteConfigs(fetchedSiteConfigs);
+};
+useEffect(() => {
+  fetchSiteConfigs();
+},[])
+
+useEffect(() => {
+  console.log('Site Configs:', siteConfigs);
+}, [siteConfigs]);
 
  const fetchMyCategories = async () => {
   const mycategories = await getMyPOISubcategories(currentUserId);
@@ -708,18 +722,51 @@ function InteractiveMapLayout(props) {
         justifyContent: 'space-between', 
         alignItems: 'center', 
         p: 2, 
-        borderBottom: `1px solid ${theme.palette.divider}` 
+        borderBottom: `1px solid ${theme.palette.divider}` ,
       }}>
-        <Link to={currentUserId ? "/map" : "/"} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-          <img src="/logos/logo-light.png" alt="iMaps Logo" style={{ height: isMobile ? 30 : 40, marginRight: 8 }} />
+        <div>
+          {/* this is just to balance the logo in the center */}
+        </div>
+        <Link to={currentUserId ? "/map" : "/"} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', flexDirection: 'column', marginLeft: 28 }}>
+          <img src="/logos/logo-light.png" alt="iMaps Logo" style={{ height: isMobile ? 30 : 40 }} />
 
           <Typography variant="h6" color="textPrimary" sx={{ fontWeight: 'bold' }}>
-            iMaps
+            {
+              siteConfigs?.name || ''
+            }
           </Typography>
         </Link>
         <IconButton onClick={() => setLeftSidebarOpen(false)}>
           <CloseIcon />
         </IconButton>
+      </Box>
+      <Box sx={{ overflow: 'hidden' }}>
+            {
+              siteConfigs?.['site-links']?.length > 0 &&
+              <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+                <Grid container spacing={1} sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  {siteConfigs['site-links'].map((link, index) => (
+                    <Grid item key={index}>
+                      <Button
+                        variant="text"
+                        color="primary"
+                        size="small"
+                        component="a"
+                        href={link.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <img src={link.icon} alt={link.name} style={{ height: 36, marginRight: 4 }} />
+                      </Button>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            }
       </Box>
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <Sidebar
@@ -852,7 +899,7 @@ function InteractiveMapLayout(props) {
               }
             }}
           >
-            <Box sx={{ 
+            {/* <Box sx={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center', 
@@ -865,7 +912,7 @@ function InteractiveMapLayout(props) {
               <IconButton onClick={() => setLeftSidebarOpen(false)}>
                 <CloseIcon />
               </IconButton>
-            </Box>
+            </Box> */}
             {leftSidebarContent}
           </Drawer>
 

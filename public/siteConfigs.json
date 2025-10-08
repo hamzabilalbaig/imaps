@@ -1,0 +1,21 @@
+{
+    "name":"Mapsleonida",
+    "site-links": [
+        {
+            "icon": "/site images/example.svg",
+            "link": "https://example.com",
+        },
+        {
+            "icon": "/site images/example.svg",
+            "link": "https://example.com",
+        },
+        {
+            "icon": "/site images/example.svg",
+            "link": "https://example.com",
+        },
+        {
+            "icon": "/site images/example.svg",
+            "link": "https://example.com",
+        }
+    ]
+}
