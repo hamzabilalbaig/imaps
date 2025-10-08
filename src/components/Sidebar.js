@@ -528,13 +528,13 @@ function Sidebar({
     >
       
       {/* Header */}
-      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+      <Box sx={{ px: 2,py:1.5, borderBottom: `1px solid ${theme.palette.divider}` }}>
         <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ fontSize: '1.2rem' }}>
           Categories
         </Typography>
         
         {/* Show/Hide All Buttons */}
-        <Box sx={{ mb: 2 }}>
+        <Box sx={{ mb: 1.5 }}>
           <ButtonGroup variant="outlined" size="small" fullWidth>
             <Button
               onClick={handleShowAll}
@@ -575,7 +575,7 @@ function Sidebar({
             )
           }}
           sx={{ 
-            mt: 1.5,
+            mt: 0.5,
             '& .MuiInputBase-root': {
               fontSize: '0.8rem'
             }
@@ -588,7 +588,7 @@ function Sidebar({
         flex: 1, 
         overflow: 'auto',
         minHeight: 0,
-        p: 2
+        px: 2
       }}>
         {/* Loading State */}
         {(loading || subCategoriesLoading || poisLoading) && (
@@ -611,8 +611,8 @@ function Sidebar({
 
         {/* Empty State */}
         {!loading && !subCategoriesLoading && !poisLoading && !error && !subCategoriesError && !poisError && filteredCategories.length === 0 && (
-          <Box sx={{ py: 4, textAlign: 'center' }}>
-            <CategoryIcon sx={{ fontSize: '3rem', color: 'text.secondary', mb: 2 }} />
+          <Box sx={{ py: 2, textAlign: 'center' }}>
+            <CategoryIcon sx={{ fontSize: '3rem', color: 'text.secondary', mb: 0.5 }} />
             <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontSize: '1rem' }}>
               {searchTerm ? 'No categories found' : 'No Categories Available'}
             </Typography>
@@ -647,7 +647,7 @@ function Sidebar({
                     boxShadow: 'none',
                     '&:before': { display: 'none' },
                     '&.Mui-expanded': { margin: 0 },
-                    mb: 1,
+                    mb: 0.5,
 
                     '&:hover': {
                       backgroundColor: alpha(categoryColor, 0.02)
@@ -660,7 +660,7 @@ function Sidebar({
                     onClick={() => handleCategoryToggle(category.id)}
                     sx={{
                       minHeight: 48,
-                      px: 2,
+                      px: 1.2,
                       cursor: 'pointer',
                       '& .MuiAccordionSummary-content': {
                         alignItems: 'center',
@@ -711,7 +711,7 @@ function Sidebar({
                   <AccordionDetails sx={{ pt: 0, px: 1, pb: 1 }}>
                     {categorySubCategories.length === 0 ? (
                       <Box sx={{ 
-                        p: 3, 
+                        p: 1, 
                         textAlign: 'center',
                         backgroundColor: alpha(categoryColor, 0.05),
                         borderRadius: 1,
@@ -732,8 +732,8 @@ function Sidebar({
                       <Box sx={{ 
                         display: 'grid',
                         gridTemplateColumns: 'repeat(2, 1fr)',
-                        gap: 1,
-                        p: 1
+                        gap: 0.5,
+                        p: 0.5
                       }}>
                         {categorySubCategories.map((subCategory) => {
                           const isSubCategoryHidden = hiddenSubCategories.has(subCategory.id);
@@ -746,7 +746,7 @@ function Sidebar({
                               sx={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                p: 1,
+                                p: 0.5,
                                 borderRadius: 1,
                                 // backgroundColor: alpha(categoryColor, 0.03),
                                 // border: `1px solid ${alpha(categoryColor, 0.1)}`,
@@ -855,11 +855,11 @@ function Sidebar({
 
         {/* Unapproved POIs Section - Show for testing */}
         {(isadmin ) && ( 
-          <Box sx={{ mt: 3, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+          <Box sx={{ mt: 0.5, pt: 0.5, borderTop: `1px solid ${theme.palette.divider}` }}>
             <Typography 
               variant="caption" 
               sx={{ 
-                mb: 2, 
+                mb: 0.5, 
                 display: 'block', 
                 fontWeight: 'bold', 
                 color: 'warning.main',
@@ -871,7 +871,7 @@ function Sidebar({
             
             {unapprovedPois.length === 0 ? (
               <Box sx={{ 
-                p: 2, 
+                p: 1, 
                 textAlign: 'center',
                 backgroundColor: alpha(theme.palette.info.main, 0.05),
                 borderRadius: 1,
@@ -919,7 +919,7 @@ function Sidebar({
                     display: 'flex',
                     alignItems: 'center',
                     p: 1.5,
-                    mb: 1,
+                    mb: 0.5,
                     borderRadius: 1,
                     backgroundColor: alpha(theme.palette.warning.main, 0.05),
                     border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
@@ -1065,7 +1065,7 @@ function Sidebar({
             {waitingForMyPOILocation && (
               <Alert 
                 severity="info" 
-                sx={{ mt: 1, mb: 2, fontSize: '0.75rem' }}
+                sx={{ mt: 0.5, mb: 0.5, fontSize: '0.75rem' }}
                 action={
                   <IconButton
                     size="small"
@@ -1090,7 +1090,7 @@ function Sidebar({
                 boxShadow: 'none',
                 '&:before': { display: 'none' },
                 '&.Mui-expanded': { margin: 0 },
-                mb: 1,
+                mb: 0.5,
                 '&:hover': {
                   backgroundColor: alpha(theme.palette.primary.main, 0.02)
                 },
@@ -1151,7 +1151,7 @@ function Sidebar({
               <AccordionDetails sx={{ pt: 0, px: 1, pb: 1 }}>
                 {myCategories.length === 0 ? (
                   <Box sx={{ 
-                    p: 3, 
+                    p: 1, 
                     textAlign: 'center',
                     backgroundColor: alpha(theme.palette.primary.main, 0.05),
                     borderRadius: 1,
@@ -1172,8 +1172,8 @@ function Sidebar({
                   <Box sx={{ 
                     display: 'grid',
                     gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: 1,
-                    p: 1
+                    gap: 0.5,
+                    p: 0.5
                   }}>
                     {myCategories.map((subCategory) => {
                       // Get POI count for this subcategory from myPois
@@ -1189,7 +1189,7 @@ function Sidebar({
                           sx={{
                             display: 'flex',
                             alignItems: 'center',
-                            p: 1,
+                            p: 0.5,
                             borderRadius: 1,
                             cursor: 'pointer',
                             opacity: shouldShowStrikethrough ? 0.6 : 1,
