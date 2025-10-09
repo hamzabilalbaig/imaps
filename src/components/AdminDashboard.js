@@ -726,7 +726,12 @@ function AdminDashboard() {
     return (
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {statsData.map((card, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
+          <Grid item xs={12} sm={6} md={3} key={index}
+          sx={{
+            flex: 1,
+            minWidth: 200,
+          }}
+          >
             <Card 
               elevation={0}
               sx={{
@@ -1083,7 +1088,12 @@ function AdminDashboard() {
         
         <Grid container spacing={3}>
           {planUsageStats.map((plan) => (
-            <Grid item xs={12} lg={4} md={6} key={plan.plan_name}>
+            <Grid item xs={12} lg={4} md={6} key={plan.plan_name}
+            sx={{
+              flex: 1,
+              minWidth: 200
+            }}
+            >
               <Card 
                 elevation={0}
                 sx={{
@@ -2366,7 +2376,12 @@ function AdminDashboard() {
           <Tabs 
             value={activeTab} 
             onChange={(e, newValue) => setActiveTab(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch', // smooth touch scrolling on iOS
               '& .MuiTab-root': {
                 minHeight: 48,
                 textTransform: 'none',

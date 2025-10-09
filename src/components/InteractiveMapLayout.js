@@ -131,12 +131,22 @@ function InteractiveMapLayout(props) {
 };
 
 const fetchSiteConfigs = async () => {
-  const fetchedSiteConfigs = await fetch('/siteConfigs.json').then(res => res.json());
-  setSiteConfigs(fetchedSiteConfigs);
+  try {
+    const response = await fetch('/siteConfigs.json');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const fetchedSiteConfigs = await response.json();
+    console.log('Fetched site configs:', fetchedSiteConfigs);
+    setSiteConfigs(fetchedSiteConfigs);
+  } catch (error) {
+    console.error('Error fetching site configs:', error);
+  }
 };
+
 useEffect(() => {
   fetchSiteConfigs();
-},[])
+}, [])
 
 useEffect(() => {
   console.log('Site Configs:', siteConfigs);
@@ -1399,7 +1409,15 @@ useEffect(() => {
               width: { xs: '85vw', sm: '70vw', md: 320 },
               maxWidth: 400,
               height: '100%',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              // Round the left side when anchored on the right (mobile)
+              borderTopLeftRadius: 16,
+              borderBottomLeftRadius: 16,
+              // Ensure right side corners are not rounded
+              borderTopRightRadius: 0,
+              borderBottomRightRadius: 0,
+              // Keep the drawer flush to the right edge
+              right: 0
             }
           }}
         >

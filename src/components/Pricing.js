@@ -276,11 +276,18 @@ const Pricing = () => {
         ) : (
           <Grid container spacing={3} justifyContent="center">
             {plans.map((plan) => (
-            <Grid item xs={12} sm={6} md={4} key={plan.id}>
+            <Grid
+            sx={{ display: 'flex',
+              flex: 1,
+              minWidth: 250,
+              flexWrap: 'wrap',
+             }}
+            item xs={12} sm={6} md={4} key={plan.id}>
               <Card
                 elevation={plan.popular ? 8 : 2}
                 sx={{
                   height: '100%',
+                  width: '100%',
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
