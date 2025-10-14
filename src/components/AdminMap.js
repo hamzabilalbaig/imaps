@@ -51,6 +51,7 @@ function AdminMap() {
   const [pendingLocation, setPendingLocation] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [isSuggestMode, setIsSuggestMode] = useState(false);
+  const [isNoteMode, setIsNoteMode] = useState(false);
 
   const handleMapClick = (latlng) => {
     setPendingLocation(latlng);
@@ -61,6 +62,11 @@ function AdminMap() {
 
   const handleSuggestLocation = () => {
     setIsSuggestMode(!isSuggestMode);
+  };
+
+  const handleAddNote = () => {
+    // Toggle note mode for admin
+    setIsNoteMode((prev) => !prev);
   };
 
   const handleEditPOI = (poi) => {
@@ -180,13 +186,18 @@ function AdminMap() {
         canCreateMore={true}
         onSuggestLocation={handleSuggestLocation}
         isSuggestMode={isSuggestMode}
+        onAddNote={handleAddNote}
+        isNoteMode={isNoteMode}
+        onExitNoteMode={() => setIsNoteMode(false)}
         onExitSuggestMode={() => setIsSuggestMode(false)}
       />
 
       {/* Floating Action Button to go back to Dashboard */}
       <Fab
         color="primary"
-        sx={{ position: 'fixed', bottom: 16, left: 16 }}
+        sx={{ position: 'fixed', bottom: 16, left: 16,
+          display: { xs: 'flex', sm: 'flex', md: 'none' }
+         }}
         onClick={() => navigate('/admin')}
       >
         <Tooltip title="Back to Dashboard">

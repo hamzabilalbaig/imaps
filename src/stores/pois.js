@@ -1,13 +1,95 @@
 import { create } from 'zustand';
-import { 
-  getAllPOIs, 
-  getPOIById, 
-  createPOI, 
+import {
+  getAllPOIs,
+  getPOIById,
+  createPOI,
   updatePOIById,
   deletePOIById,
   getMyPOIs,
   createMyPOI
 } from '../api/functions/apiFunctions';
+
+const ensureNumberPair = (pair) => {
+  if (!Array.isArray(pair) || pair.length < 2) {
+    return null;
+  }
+
+  const lat = Number(pair[0]);
+  const lng = Number(pair[1]);
+
+  if (Number.isNaN(lat) || Number.isNaN(lng)) {
+    return null;
+  }
+
+  return [lat, lng];
+};
+
+const parseCoords = (coords) => {
+  if (!coords && coords !== 0) {
+    return null;
+  }
+
+  if (Array.isArray(coords)) {
+    return ensureNumberPair(coords);
+  }
+
+  if (typeof coords === 'object' && coords !== null) {
+    if (coords.lat != null && coords.lng != null) {
+      return ensureNumberPair([coords.lat, coords.lng]);
+    }
+    if (coords.latitude != null && coords.longitude != null) {
+      return ensureNumberPair([coords.latitude, coords.longitude]);
+    }
+  }
+
+  if (typeof coords === 'string') {
+    const trimmed = coords.trim();
+
+    try {
+      const parsed = JSON.parse(trimmed);
+
+      if (Array.isArray(parsed)) {
+        return ensureNumberPair(parsed);
+      }
+
+      if (parsed && typeof parsed === 'object') {
+        const { lat, lng, latitude, longitude } = parsed;
+
+        if (lat != null && lng != null) {
+          return ensureNumberPair([lat, lng]);
+        }
+
+        if (latitude != null && longitude != null) {
+          return ensureNumberPair([latitude, longitude]);
+        }
+      }
+    } catch (error) {
+      const matches = trimmed.match(/-?\d+(?:\.\d+)?/g);
+
+      if (matches && matches.length >= 2) {
+        return ensureNumberPair(matches.slice(0, 2));
+      }
+    }
+
+    const commaSeparated = trimmed.split(',').map((part) => part.replace(/[^0-9+\-\.]/g, ''));
+
+    if (commaSeparated.length >= 2) {
+      return ensureNumberPair(commaSeparated.slice(0, 2));
+    }
+  }
+
+  return null;
+};
+
+const transformPOI = (poi) => {
+  const rawCoords = poi?.position ?? poi?.coords;
+  const position = parseCoords(rawCoords);
+
+  return {
+    ...poi,
+    position
+  };
+};
 
 const usePOIsStore = create((set, get) => ({
   // State
@@ -30,45 +112,8 @@ const usePOIsStore = create((set, get) => ({
       set({ loading: true, error: null });
       const pois = await getAllPOIs();
       console.log('POI Store - Received POIs from API:', pois?.length, pois);
-      
-      // Transform coords to position for map compatibility
-      const transformedPOIs = (pois || []).map(poi => {
-        let position = null;
-        if (poi.coords) {
-          try {
-            if (Array.isArray(poi.coords)) {
-              // Already an array
-              position = poi.coords;
-            } else if (typeof poi.coords === 'string') {
-              // Try to parse as JSON first
-              try {
-                const parsed = JSON.parse(poi.coords);
-                if (parsed.lat != null && parsed.lng != null) {
-                  position = [parsed.lat, parsed.lng];
-                } else {
-                  // Try parsing as comma-separated string
-                  const parts = poi.coords.split(',').map(part => parseFloat(part.trim()));
-                  if (parts.length === 2 && !parts.some(isNaN)) {
-                    position = parts;
-                  }
-                }
-              } catch {
-                // Try parsing as comma-separated string
-                const parts = poi.coords.split(',').map(part => parseFloat(part.trim()));
-                if (parts.length === 2 && !parts.some(isNaN)) {
-                  position = parts;
-                }
-              }
-            }
-          } catch (error) {
-            console.warn('Failed to parse coords for POI:', poi.id, poi.coords, error);
-          }
-        }
-        return {
-          ...poi,
-          position
-        };
-      });
+
+      const transformedPOIs = (pois || []).map(transformPOI);
       console.log('POI Store - Transformed POIs:', transformedPOIs.length, transformedPOIs);
       
       set({ 
@@ -89,40 +134,7 @@ const usePOIsStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
       const pois = await getAllPOIs();
-      // Transform coords to position for map compatibility
-      const transformedPOIs = (pois || []).map(poi => {
-        let position = null;
-        if (poi.coords) {
-          try {
-            if (Array.isArray(poi.coords)) {
-              position = poi.coords;
-            } else if (typeof poi.coords === 'string') {
-              try {
-                const parsed = JSON.parse(poi.coords);
-                if (parsed.lat != null && parsed.lng != null) {
-                  position = [parsed.lat, parsed.lng];
-                } else {
-                  const parts = poi.coords.split(',').map(part => parseFloat(part.trim()));
-                  if (parts.length === 2 && !parts.some(isNaN)) {
-                    position = parts;
-                  }
-                }
-              } catch {
-                const parts = poi.coords.split(',').map(part => parseFloat(part.trim()));
-                if (parts.length === 2 && !parts.some(isNaN)) {
-                  position = parts;
-                }
-              }
-            }
-          } catch (error) {
-            console.warn('Failed to parse coords for POI:', poi.id, poi.coords, error);
-          }
-        }
-        return {
-          ...poi,
-          position
-        };
-      });
+      const transformedPOIs = (pois || []).map(transformPOI);
       set({ 
         pois: transformedPOIs,
         loading: false 
@@ -140,40 +152,7 @@ const usePOIsStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
       const pois = await getAllPOIs();
-      // Transform coords to position for map compatibility
-      const transformedPOIs = (pois || []).map(poi => {
-        let position = null;
-        if (poi.coords) {
-          try {
-            if (Array.isArray(poi.coords)) {
-              position = poi.coords;
-            } else if (typeof poi.coords === 'string') {
-              try {
-                const parsed = JSON.parse(poi.coords);
-                if (parsed.lat != null && parsed.lng != null) {
-                  position = [parsed.lat, parsed.lng];
-                } else {
-                  const parts = poi.coords.split(',').map(part => parseFloat(part.trim()));
-                  if (parts.length === 2 && !parts.some(isNaN)) {
-                    position = parts;
-                  }
-                }
-              } catch {
-                const parts = poi.coords.split(',').map(part => parseFloat(part.trim()));
-                if (parts.length === 2 && !parts.some(isNaN)) {
-                  position = parts;
-                }
-              }
-            }
-          } catch (error) {
-            console.warn('Failed to parse coords for POI:', poi.id, poi.coords, error);
-          }
-        }
-        return {
-          ...poi,
-          position
-        };
-      });
+      const transformedPOIs = (pois || []).map(transformPOI);
       set({ 
         pois: transformedPOIs,
         loading: false 
@@ -194,11 +173,12 @@ const usePOIsStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
       const poi = await getPOIById(id);
+      const transformedPOI = transformPOI(poi);
       set({ 
-        currentPOI: poi,
+        currentPOI: transformedPOI,
         loading: false 
       });
-      return { success: true, poi };
+      return { success: true, poi: transformedPOI };
     } catch (error) {
       console.error('Error fetching POI:', error);
       set({ 
@@ -214,15 +194,16 @@ const usePOIsStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
       const newPOI = await createPOI(poiData);
+      const transformedPOI = transformPOI(newPOI);
       
       // Add to local state
       const currentPOIs = get().pois;
       set({ 
-        pois: [...currentPOIs, newPOI],
+        pois: [...currentPOIs, transformedPOI],
         loading: false 
       });
       
-      return { success: true, poi: newPOI };
+      return { success: true, poi: transformedPOI };
     } catch (error) {
       console.error('Error creating POI:', error);
       set({ 
@@ -237,7 +218,7 @@ const usePOIsStore = create((set, get) => ({
   updatePOI: async (id, poiData) => {
     try {
       set({ loading: true, error: null });
-      const updatedPOI = await updatePOIById(id, poiData);
+      const updatedPOI = transformPOI(await updatePOIById(id, poiData));
       
       // Update in local state
       const currentPOIs = get().pois;
@@ -304,8 +285,39 @@ const usePOIsStore = create((set, get) => ({
   approvePOI: async (id, poiData) => {
     try {
       set({ loading: true, error: null });
-      const updatedPOI = await updatePOIById(id, { ...poiData, is_approved: true });
-      set({ loading: false });
+
+      // Ensure we send the full POI payload to the API so required fields
+      // like sub_category_id are not omitted. Prefer the passed poiData,
+      // fall back to local state, and finally fetch from the API if needed.
+      let existing = poiData || get().getPOIById(id);
+      if (!existing) {
+        // Lazily import the getPOIById API function to avoid circular issues
+        const { getPOIById: fetchPOIByIdFromApi } = await import('../api/functions/apiFunctions');
+        try {
+          existing = await fetchPOIByIdFromApi(id);
+        } catch (fetchErr) {
+          console.warn('approvePOI: failed to fetch POI from API, proceeding with minimal payload', fetchErr);
+          existing = {};
+        }
+      }
+
+  const payload = { ...existing, ...(poiData || {}), is_approved: true };
+  const updatedPOI = transformPOI(await updatePOIById(id, payload));
+
+      // Update local store entries to reflect approval immediately
+      const currentPOIs = get().pois;
+  const updatedPOIs = currentPOIs.map(poi => (poi.id === id ? updatedPOI : poi));
+
+      const currentMyPOIs = get().myPois;
+      const updatedMyPOIs = currentMyPOIs.map(poi => (poi.id === id ? updatedPOI : poi));
+
+      set({
+        pois: updatedPOIs,
+        myPois: updatedMyPOIs,
+        currentPOI: get().currentPOI?.id === id ? updatedPOI : get().currentPOI,
+        loading: false
+      });
+
       return { success: true, poi: updatedPOI };
     } catch (error) {
       console.error('Error approving POI:', error);
@@ -421,13 +433,16 @@ const usePOIsStore = create((set, get) => ({
   getPOIsNearLocation: (latitude, longitude, radiusKm = 1) => {
     const pois = get().pois;
     return pois.filter(poi => {
-      if (!poi.coords) return false;
-      
-      // Simple distance calculation (you might want to use a more accurate method)
-      const poiCoords = JSON.parse(poi.coords);
+      const position = poi.position || parseCoords(poi.coords);
+      if (!position) {
+        return false;
+      }
+
+      const [poiLat, poiLng] = position;
+
       const distance = Math.sqrt(
-        Math.pow(poiCoords?.lat - latitude, 2) + 
-        Math.pow(poiCoords?.lng - longitude, 2)
+        Math.pow(poiLat - latitude, 2) + 
+        Math.pow(poiLng - longitude, 2)
       );
       
       // Rough conversion to km (this is approximate)
@@ -456,41 +471,7 @@ const usePOIsStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
       const myPois = await getMyPOIs(userId);
-      
-      // Transform coords to position for map compatibility
-      const transformedMyPOIs = (myPois || []).map(poi => {
-        let position = null;
-        if (poi.coords) {
-          try {
-            if (Array.isArray(poi.coords)) {
-              position = poi.coords;
-            } else if (typeof poi.coords === 'string') {
-              try {
-                const parsed = JSON.parse(poi.coords);
-                if (parsed.lat != null && parsed.lng != null) {
-                  position = [parsed.lat, parsed.lng];
-                } else {
-                  const parts = poi.coords.split(',').map(part => parseFloat(part.trim()));
-                  if (parts.length === 2 && !parts.some(isNaN)) {
-                    position = parts;
-                  }
-                }
-              } catch {
-                const parts = poi.coords.split(',').map(part => parseFloat(part.trim()));
-                if (parts.length === 2 && !parts.some(isNaN)) {
-                  position = parts;
-                }
-              }
-            }
-          } catch (error) {
-            console.warn('Failed to parse coords for My POI:', poi.id, poi.coords, error);
-          }
-        }
-        return {
-          ...poi,
-          position
-        };
-      });
+      const transformedMyPOIs = (myPois || []).map(transformPOI);
       
       set({ 
         myPois: transformedMyPOIs,
@@ -512,41 +493,8 @@ const usePOIsStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
       const newMyPOI = await createMyPOI(poiData);
-      
-      // Add to local My POI state
+      const transformedPOI = transformPOI(newMyPOI);
       const currentMyPOIs = get().myPois;
-      let position = null;
-      if (newMyPOI.coords) {
-        try {
-          if (Array.isArray(newMyPOI.coords)) {
-            position = newMyPOI.coords;
-          } else if (typeof newMyPOI.coords === 'string') {
-            try {
-              const parsed = JSON.parse(newMyPOI.coords);
-              if (parsed.lat != null && parsed.lng != null) {
-                position = [parsed.lat, parsed.lng];
-              } else {
-                const parts = newMyPOI.coords.split(',').map(part => parseFloat(part.trim()));
-                if (parts.length === 2 && !parts.some(isNaN)) {
-                  position = parts;
-                }
-              }
-            } catch {
-              const parts = newMyPOI.coords.split(',').map(part => parseFloat(part.trim()));
-              if (parts.length === 2 && !parts.some(isNaN)) {
-                position = parts;
-              }
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to parse coords for new My POI:', newMyPOI.id, newMyPOI.coords, error);
-        }
-      }
-      const transformedPOI = {
-        ...newMyPOI,
-        position
-      };
-      
       set({ 
         myPois: [...currentMyPOIs, transformedPOI],
         loading: false 

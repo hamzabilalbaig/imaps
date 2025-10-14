@@ -1267,7 +1267,10 @@ function AdminDashboard() {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => openCategoryDialog()}
-              sx={{ height: 36 }}
+              sx={{ height: 36,
+                p: 2,
+                lineHeight: 1
+               }}
             >
               Add Category
             </Button>
@@ -1379,7 +1382,10 @@ function AdminDashboard() {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => openSubCategoryDialog()}
-              sx={{ height: 36 }}
+              sx={{ height: 36,
+                p: 2,
+                lineHeight: 1
+               }}
             >
               Add Sub Category
             </Button>
@@ -1914,7 +1920,7 @@ function AdminDashboard() {
                 Manage base map images for the application ({mapLayers.length} total)
               </Typography>
             </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1 }, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
@@ -1925,7 +1931,7 @@ function AdminDashboard() {
                   setImagePreviewUrl(null);
                   setMapLayerDialogOpen(true);
                 }}
-                sx={{ height: 36 }}
+                sx={{ height: 36, width: { xs: '100%', sm: 'auto' }, py: 2, lineHeight: 1.2 }}
               >
                 Add Layer
               </Button>
@@ -1933,7 +1939,7 @@ function AdminDashboard() {
                 variant="outlined"
                 startIcon={<RefreshIcon />}
                 onClick={loadMapLayers}
-                sx={{ height: 36 }}
+                sx={{ height: 36, width: { xs: '100%', sm: 'auto' }, py: 2, lineHeight: 1.2 }}
               >
                 Refresh
               </Button>
@@ -2346,13 +2352,13 @@ function AdminDashboard() {
             </Typography>
           </Box>
           
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5 }, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
             <Button
               variant="contained"
               size="small"
               startIcon={<MapIcon />}
               onClick={() => navigate('/admin-map')}
-              sx={{ height: 36 }}
+              sx={{ height: 36, width: { xs: '100%', sm: 'auto' }, py: 2, lineHeight: 1.2 }}
             >
               Map View
             </Button>
@@ -2364,7 +2370,7 @@ function AdminDashboard() {
                 loadUsers();
                 initializePOIs();
               }}
-              sx={{ height: 36 }}
+              sx={{ height: 36, width: { xs: '100%', sm: 'auto' }, py: 2, lineHeight: 1.2 }}
             >
               Refresh
             </Button>
@@ -2652,6 +2658,25 @@ function AdminDashboard() {
                 {iconPreviewUrl ? (
                   <Stack spacing={2} alignItems="center">
                     <Box sx={{ position: 'relative' }}>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearSelectedIcon();
+                          }}
+                          sx={{
+                            position: 'absolute',
+                            top: -8,
+                            right: -8,
+                            backgroundColor: 'error.main',
+                            color: 'white',
+                            '&:hover': {
+                              backgroundColor: 'error.dark'
+                            }
+                          }}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
                       <img
                         src={iconPreviewUrl}
                         alt="Icon preview"
@@ -2662,25 +2687,6 @@ function AdminDashboard() {
                           borderRadius: 8
                         }}
                       />
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          clearSelectedIcon();
-                        }}
-                        sx={{
-                          position: 'absolute',
-                          top: -8,
-                          right: -8,
-                          backgroundColor: 'error.main',
-                          color: 'white',
-                          '&:hover': {
-                            backgroundColor: 'error.dark'
-                          }
-                        }}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
                     </Box>
                     <Typography variant="body2" color="text.secondary">
                       {selectedIconFile?.name || 'Current icon'}

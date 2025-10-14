@@ -52,6 +52,68 @@ import uploadFile from '../aws/fileUpload';
 import MyPOIForm from './MyPOIForm';
 import { useAlerts } from '../hooks/useAlerts';
 
+const extractPoiCoordinates = (poi) => {
+  if (!poi) return null;
+
+  const ensureNumberPair = (pair) => {
+    if (!Array.isArray(pair) || pair.length < 2) return null;
+    const lat = Number(pair[0]);
+    const lng = Number(pair[1]);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+    return [lat, lng];
+  };
+
+  if (poi.position) {
+    if (Array.isArray(poi.position)) {
+      const coords = ensureNumberPair(poi.position);
+      if (coords) return coords;
+    } else if (typeof poi.position === 'object' && poi.position !== null) {
+      const { lat, lng, latitude, longitude } = poi.position;
+      const coords = ensureNumberPair([
+        lat ?? latitude,
+        lng ?? longitude
+      ]);
+      if (coords) return coords;
+    }
+  }
+
+  if (Array.isArray(poi.coords)) {
+    const coords = ensureNumberPair(poi.coords);
+    if (coords) return coords;
+  }
+
+  if (typeof poi.coords === 'string') {
+    const trimmed = poi.coords.trim();
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        const coords = ensureNumberPair(parsed);
+        if (coords) return coords;
+      } else if (parsed && typeof parsed === 'object') {
+        const { lat, lng, latitude, longitude } = parsed;
+        const coords = ensureNumberPair([
+          lat ?? latitude,
+          lng ?? longitude
+        ]);
+        if (coords) return coords;
+      }
+    } catch (err) {
+      const matches = trimmed.match(/-?\d+(?:\.\d+)?/g);
+      if (matches && matches.length >= 2) {
+        const coords = ensureNumberPair(matches.slice(0, 2));
+        if (coords) return coords;
+      }
+    }
+  }
+
+  const coords = ensureNumberPair([
+    poi.lat ?? poi.latitude,
+    poi.lng ?? poi.longitude
+  ]);
+
+  return coords;
+};
+
 /**
  * Simple sidebar component displaying categories
  */
@@ -889,26 +951,20 @@ function Sidebar({
               <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
                 {unapprovedPois.map((poi) => {
                   const handlePOIClick = () => {
-                    if (onPendingPOIClick && poi.coords) {
-                      // Parse coordinates - they could be array or string
-                      let lat, lng;
-                      if (Array.isArray(poi.coords)) {
-                        lat = poi.coords[0];
-                        lng = poi.coords[1];
-                      } else if (typeof poi.coords === 'string') {
-                        const coords = poi.coords.split(',').map(coord => parseFloat(coord.trim()));
-                        lat = coords[0];
-                        lng = coords[1];
-                      }
-                      
-                      if (lat !== undefined && lng !== undefined) {
-                        onPendingPOIClick({
-                          lat,
-                          lng,
-                          poi: poi // Pass the full POI data
-                        });
-                      }
+                    if (!onPendingPOIClick) return;
+
+                    const coords = extractPoiCoordinates(poi);
+                    if (!coords) {
+                      console.warn('Sidebar: Unable to parse coordinates for pending POI', poi);
+                      return;
                     }
+
+                    const [lat, lng] = coords;
+                    onPendingPOIClick({
+                      lat,
+                      lng,
+                      poi
+                    });
                   };
 
                   return (
