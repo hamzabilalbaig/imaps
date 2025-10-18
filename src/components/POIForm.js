@@ -28,6 +28,63 @@ import { useAlerts } from "../hooks/useAlerts";
 /**
  * Form component for adding or editing POIs
  */
+const extractCoords = (source) => {
+  if (!source) {
+    return null;
+  }
+
+  const candidate = source.position ?? source.coords ?? source.location;
+
+  const toNumberPair = (value) => {
+    if (!Array.isArray(value) || value.length < 2) {
+      return null;
+    }
+
+    const numbers = value.slice(0, 2).map((item) => {
+      if (typeof item === 'number' && Number.isFinite(item)) {
+        return item;
+      }
+
+      if (typeof item === 'string') {
+        const parsed = Number(item.trim());
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      return null;
+    });
+
+    if (numbers.every((item) => item !== null)) {
+      return numbers;
+    }
+
+    return null;
+  };
+
+  if (Array.isArray(candidate)) {
+    return toNumberPair(candidate);
+  }
+
+  if (typeof candidate === 'string') {
+    const matches = candidate.match(/-?\d+(?:\.\d+)?/g);
+    if (matches && matches.length >= 2) {
+      return toNumberPair(matches.slice(0, 2));
+    }
+    return null;
+  }
+
+  if (candidate && typeof candidate === 'object') {
+    const { lat, lng, latitude, longitude } = candidate;
+    if (lat != null && lng != null) {
+      return toNumberPair([lat, lng]);
+    }
+    if (latitude != null && longitude != null) {
+      return toNumberPair([latitude, longitude]);
+    }
+  }
+
+  return null;
+};
+
 function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -36,6 +93,12 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
   const { categories, initializeCategories } = useCategoriesStore();
   const { warning, error } = useAlerts();
   // POI creation and update handled by parent via onSave callback
+
+  const isPoiApproved = (value) => {
+    return value === true || value === 1 || value === 'true';
+  };
+
+  const isPendingApproval = Boolean(isEdit && poi && !isPoiApproved(poi?.is_approved));
 
   useEffect(() => {
     initializeUser();
@@ -157,17 +220,21 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
     }
 
     try {
-      const submissionData = {
+      const baseSubmission = {
         name: formData.name.trim(),
         description: formData.description.trim(),
         sub_category_id: parseInt(formData.sub_category_id),
         image_url: formData.image_url || "", // Always send empty string, never null
-        coords: poi?.coords ? (typeof poi.coords === 'string' ? 
-          poi.coords.split(',').map(coord => parseFloat(coord.trim())) : 
-          poi.coords
-        ) : null,
         is_approved: isAdmin // Admin auto-approval
       };
+
+      const resolvedCoords = extractCoords(poi);
+      const submissionData = { ...baseSubmission };
+
+      if (resolvedCoords) {
+        submissionData.coords = resolvedCoords;
+        submissionData.position = resolvedCoords;
+      }
 
       // Pass data to parent for API call
       onSave(submissionData);
@@ -405,7 +472,13 @@ function POIForm({ poi, onSave, onCancel, isEdit = false, isAdmin = false }) {
             fontSize: { xs: '0.875rem', md: '1rem' }
           }}
         >
-          {loading ? 'Saving...' : isEdit ? 'Update POI' : (isAdmin ? 'Create POI' : 'Suggest POI')}
+          {loading
+            ? 'Saving...'
+            : isEdit
+              ? (isPendingApproval
+                  ? (isAdmin ? 'Approve POI' : 'Submit for Approval')
+                  : 'Update POI')
+              : (isAdmin ? 'Create POI' : 'Suggest POI')}
         </Button>
       </DialogActions>
     </Dialog>

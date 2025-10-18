@@ -35,7 +35,8 @@ import {
   PersonAdd as PersonAddIcon,
   Settings as SettingsIcon,
   Public as PublicIcon,
-  AttachMoney as PricingIcon
+  AttachMoney as PricingIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import { localDB } from '../utils/localStorage';
 import useUserStore from '../stores/user';
@@ -50,6 +51,7 @@ function ProgressTracker({
   onClose,
   onAddNote,
   onEditNote,
+  onNoteClick,
   onRemoveNote,
   notes = [],
   isMinimized = false,
@@ -566,7 +568,19 @@ function ProgressTracker({
                       backgroundColor: alpha(theme.palette.secondary.main, 0.05)
                     }
                   }}
-                  onClick={() => onEditNote && onEditNote(note)}
+                  onClick={() => onNoteClick && onNoteClick(note)}
+                  secondaryAction={
+                    <IconButton 
+                      edge="end" 
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditNote && onEditNote(note);
+                      }}
+                    >
+                      <EditIcon sx={{ fontSize: '0.9rem' }} />
+                    </IconButton>
+                  }
                 >
                   <ListItemIcon sx={{ minWidth: 32 }}>
                     <NotesIcon sx={{ fontSize: '1rem', color: theme.palette.secondary.main }} />
@@ -618,23 +632,42 @@ function ProgressTracker({
                 // Parse coordinates from found location
                 const handleLocationClick = () => {
                   if (onFoundLocationClick && location.coords) {
-                    // Parse coordinates - they could be array or string
+                    // Parse coordinates - they could be array, string, or PostgreSQL array format
                     let lat, lng;
                     if (Array.isArray(location.coords)) {
-                      lat = location.coords[0];
-                      lng = location.coords[1];
+                      lat = parseFloat(location.coords[0]);
+                      lng = parseFloat(location.coords[1]);
                     } else if (typeof location.coords === 'string') {
-                      const coords = location.coords.split(',').map(coord => parseFloat(coord.trim()));
-                      lat = coords[0];
-                      lng = coords[1];
+                      // Check if it's PostgreSQL array format like '{"25.032","67.262"}'
+                      if (location.coords.startsWith('{') && location.coords.endsWith('}')) {
+                        try {
+                          // Remove curly braces and quotes, then split
+                          const cleanedCoords = location.coords
+                            .slice(1, -1)  // Remove { and }
+                            .replace(/"/g, '')  // Remove all quotes
+                            .split(',');
+                          lat = parseFloat(cleanedCoords[0]);
+                          lng = parseFloat(cleanedCoords[1]);
+                        } catch (error) {
+                          console.error('Error parsing PostgreSQL array coords:', error);
+                        }
+                      } else {
+                        // Standard comma-separated format like "25.032, 67.262"
+                        const coords = location.coords.split(',').map(coord => parseFloat(coord.trim()));
+                        lat = coords[0];
+                        lng = coords[1];
+                      }
                     }
                     
-                    if (lat !== undefined && lng !== undefined) {
+                    // Validate that lat and lng are valid numbers before calling the callback
+                    if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
                       onFoundLocationClick({
                         lat,
                         lng,
                         poi: location // Pass the full location data with POI info
                       });
+                    } else {
+                      console.error('Invalid coordinates for location:', location.name, { lat, lng, coords: location.coords });
                     }
                   }
                 };

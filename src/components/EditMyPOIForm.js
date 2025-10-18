@@ -32,6 +32,82 @@ import useUserStore from '../stores/user';
 import usePOIsStore from '../stores/pois';
 import { useAlerts } from '../hooks/useAlerts';
 
+const normalizeCoordinatePair = (value) => {
+  if (value == null) {
+    return null;
+  }
+
+  const toFinite = (candidate) => {
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      return candidate;
+    }
+
+    if (typeof candidate === 'string') {
+      const parsed = Number(candidate.trim());
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  };
+
+  const fromArray = (arr) => {
+    if (!Array.isArray(arr) || arr.length < 2) {
+      return null;
+    }
+
+    const numbers = arr.slice(0, 2).map(toFinite);
+    return numbers.every((num) => num !== null) ? numbers : null;
+  };
+
+  if (Array.isArray(value)) {
+    return fromArray(value);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      const pair = fromArray(parsed);
+      if (pair) {
+        return pair;
+      }
+    } catch (error) {
+      // fall back to regex parsing below
+    }
+
+    const matches = trimmed.match(/-?\d+(?:\.\d+)?/g);
+    if (matches && matches.length >= 2) {
+      return fromArray(matches.slice(0, 2));
+    }
+
+    return null;
+  }
+
+  if (typeof value === 'object') {
+    const { lat, lng, latitude, longitude } = value;
+
+    if (lat != null && lng != null) {
+      return fromArray([lat, lng]);
+    }
+
+    if (latitude != null && longitude != null) {
+      return fromArray([latitude, longitude]);
+    }
+  }
+
+  return null;
+};
+
+const formatCoordinatePair = (value) => {
+  const pair = normalizeCoordinatePair(value);
+  if (!pair) {
+    return '';
+  }
+
+  return `${pair[0]}, ${pair[1]}`;
+};
+
 const EditMyPOIForm = ({ open, onClose, onSuccess, poi, myCategories = [] }) => {
   const { user } = useAuth();
   const { updatePOI } = usePOIsStore();
@@ -69,9 +145,7 @@ const EditMyPOIForm = ({ open, onClose, onSuccess, poi, myCategories = [] }) => 
   // Initialize form data when POI is provided
   useEffect(() => {
     if (poi && open) {
-      const coords = Array.isArray(poi.coords) 
-        ? `${poi.coords[0]}, ${poi.coords[1]}` 
-        : poi.coords || '';
+      const coords = formatCoordinatePair(poi.coords ?? poi.position ?? poi.location);
       
       setFormData({
         name: poi.name || '',
@@ -90,12 +164,27 @@ const EditMyPOIForm = ({ open, onClose, onSuccess, poi, myCategories = [] }) => 
   const fetchMySubcategories = async () => {
     try {
       const subcategoriesData = await getMyPOISubcategories(user.id);
-      setSubcategories(subcategoriesData || []);
+      if (Array.isArray(subcategoriesData) && subcategoriesData.length > 0) {
+        setSubcategories(subcategoriesData);
+      } else if (Array.isArray(myCategories) && myCategories.length > 0) {
+        setSubcategories(myCategories);
+      } else {
+        setSubcategories([]);
+      }
     } catch (err) {
       console.error('Error fetching subcategories:', err);
       error('Failed to load subcategories');
+      if (Array.isArray(myCategories) && myCategories.length > 0) {
+        setSubcategories(myCategories);
+      }
     }
   };
+
+  useEffect(() => {
+    if (Array.isArray(myCategories) && myCategories.length > 0) {
+      setSubcategories(prev => (prev && prev.length > 0 ? prev : myCategories));
+    }
+  }, [myCategories]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -160,27 +249,29 @@ const EditMyPOIForm = ({ open, onClose, onSuccess, poi, myCategories = [] }) => 
       setLoading(true);
       
       // Handle coordinates - convert string to array if needed
-      let coords = formData.coords;
-      if (typeof coords === 'string' && coords.trim()) {
-        coords = coords.split(',').map(coord => parseFloat(coord.trim()));
-      } else if (Array.isArray(poi.coords)) {
-        coords = poi.coords;
-      } else if (poi.position && Array.isArray(poi.position)) {
-        coords = poi.position;
-      } else {
-        // Fallback - keep original coords from POI
-        coords = poi.coords;
-      }
+      const coords = normalizeCoordinatePair(formData.coords)
+        || normalizeCoordinatePair(poi.coords)
+        || normalizeCoordinatePair(poi.position)
+        || normalizeCoordinatePair(poi.location);
 
       const updateData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
         sub_category_id: parseInt(formData.sub_category_id),
         image_url: formData.image_url || '',
-        coords: coords,
         // Preserve the original approval status when editing
         is_approved: poi.is_approved
       };
+
+      const finalCoords = coords
+        || normalizeCoordinatePair(poi.coords)
+        || normalizeCoordinatePair(poi.position)
+        || null;
+
+      if (finalCoords) {
+        updateData.coords = finalCoords;
+        updateData.position = finalCoords;
+      }
 
       console.log('EditMyPOIForm - Updating POI:', { 
         poiId: poi.id, 

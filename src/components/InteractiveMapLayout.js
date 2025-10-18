@@ -623,10 +623,49 @@ useEffect(() => {
     setNotes(prev => prev.filter(note => note.id !== noteId));
   };
 
+  const handleNoteClick = (note) => {
+    console.log('Note clicked:', note);
+    
+    // Get note position
+    let position = note.position;
+    
+    // Validate position
+    if (!position || !Array.isArray(position) || position.length !== 2 ||
+        position[0] == null || position[1] == null ||
+        isNaN(position[0]) || isNaN(position[1])) {
+      console.error('Invalid note position:', position);
+      return;
+    }
+    
+    // Navigate to note location
+    if (window.leafletMap) {
+      window.leafletMap.setView(position, 15);
+      // Wait a bit to ensure map has moved, then try to open the note popup
+      setTimeout(() => {
+        // Trigger the note marker to open its popup
+        window.leafletMap.eachLayer((layer) => {
+          if (layer instanceof L.Marker && layer.getLatLng) {
+            const markerPos = layer.getLatLng();
+            if (Math.abs(markerPos.lat - position[0]) < 0.00001 && 
+                Math.abs(markerPos.lng - position[1]) < 0.00001) {
+              layer.openPopup();
+            }
+          }
+        });
+      }, 500);
+    }
+  };
+
   const handleFoundLocationClick = (locationData) => {
     const { lat, lng, poi } = locationData;
     
     console.log('Found location clicked:', locationData);
+    
+    // Validate coordinates before proceeding
+    if (isNaN(lat) || isNaN(lng) || lat === null || lng === null || lat === undefined || lng === undefined) {
+      console.error('Invalid coordinates in handleFoundLocationClick:', { lat, lng, locationData });
+      return;
+    }
     
     // Check if this POI is in the main POIs list or My POIs
     const allAvailablePOIs = [...(filteredPOIs || []), ...(myPois || [])];
@@ -813,6 +852,7 @@ useEffect(() => {
       foundLocations={foundLocations}
       onAddNote={handleAddNote}
       onEditNote={handleEditNote}
+      onNoteClick={handleNoteClick}
       onRemoveNote={handleRemoveNote}
       isMinimized={progressTrackerMinimized}
       onToggleMinimize={() => setProgressTrackerMinimized(!progressTrackerMinimized)}

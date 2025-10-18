@@ -15,6 +15,64 @@ import usePOIsStore from "../stores/pois";
 import useSubCategoriesStore from "../stores/subCategories";
 import { useAlerts } from "../hooks/useAlerts";
 
+const normalizeCoords = (value) => {
+  if (!value && value !== 0) {
+    return null;
+  }
+
+  const toNumber = (candidate) => {
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      return candidate;
+    }
+
+    if (typeof candidate === 'string') {
+      const parsed = Number(candidate.trim());
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  };
+
+  const buildPair = (maybePair) => {
+    if (!Array.isArray(maybePair) || maybePair.length < 2) {
+      return null;
+    }
+
+    const first = toNumber(maybePair[0]);
+    const second = toNumber(maybePair[1]);
+
+    if (first === null || second === null) {
+      return null;
+    }
+
+    return [first, second];
+  };
+
+  if (Array.isArray(value)) {
+    return buildPair(value);
+  }
+
+  if (typeof value === 'string') {
+    const matches = value.match(/-?\d+(?:\.\d+)?/g);
+    if (matches && matches.length >= 2) {
+      return buildPair(matches.slice(0, 2));
+    }
+    return null;
+  }
+
+  if (value && typeof value === 'object') {
+    const { lat, lng, latitude, longitude } = value;
+    if (lat != null && lng != null) {
+      return buildPair([lat, lng]);
+    }
+    if (latitude != null && longitude != null) {
+      return buildPair([latitude, longitude]);
+    }
+  }
+
+  return null;
+};
+
 /**
  * Admin Map component with full editing capabilities
  * This is the map view accessible from the admin dashboard
@@ -78,7 +136,21 @@ function AdminMap() {
   const handleSavePOI = async (formData) => {
     try {
       if (editingPOI) {
-        const result = await updatePOI(editingPOI.id, formData);
+        const existingCoords = normalizeCoords(formData.coords)
+          || normalizeCoords(editingPOI?.position)
+          || normalizeCoords(editingPOI?.coords);
+
+        const payload = { ...formData };
+
+        if (existingCoords) {
+          payload.coords = existingCoords;
+          payload.position = existingCoords;
+        } else {
+          delete payload.coords;
+          delete payload.position;
+        }
+
+        const result = await updatePOI(editingPOI.id, payload);
         if (result.success) {
           setSnackbar({
             open: true,
@@ -96,6 +168,7 @@ function AdminMap() {
         const poiData = {
           ...formData,
           coords: [pendingLocation?.lat, pendingLocation?.lng],
+          position: [pendingLocation?.lat, pendingLocation?.lng],
           user_id: id,
           is_approved: true // Admin POIs are auto-approved
         };

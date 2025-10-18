@@ -33,7 +33,7 @@ import useSettingsStore from "../stores/settings";
  * @param {boolean} isFocused - Whether this POI is focused (from shareable link)
  */
 function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocused = false }) {
-  const { isadmin: isAdmin, id: userId, isLocationFound, addToFoundLocations, removeFromFoundLocations } = useUserStore()
+  const { isadmin: isAdmin, id: userId, foundLocations, isLocationFound, addToFoundLocations, removeFromFoundLocations } = useUserStore()
   const { success, warning } = useAlerts();
   const { poiIconSize } = useSettingsStore();
   
@@ -95,13 +95,13 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
     }
   }, [poi, subCategory, isNewStructure, isFocused, displayName, displayCategory, position]);
 
-    // Check if POI is found when component mounts or POI changes
+  // Check if POI is found when component mounts or POI changes or foundLocations changes
   useEffect(() => {
     if (userId && currentItem?.id) {
       const found = isLocationFound(currentItem.id);
       setIsFound(found);
     }
-  }, [userId, currentItem?.id, isLocationFound]);
+  }, [userId, currentItem?.id, foundLocations, isLocationFound]);
 
   useEffect(() => {
     console.log("POI/Marker updated:", currentItem);
@@ -117,14 +117,6 @@ function MapMarker({ poi, marker, subCategories = [], onRemove, onEdit, isFocuse
       console.log('MapMarker - Position format:', position, typeof position, Array.isArray(position));
     }
   }, [isNewStructure, poi, subCategory, position]);
-
-  // Check if POI is found when component mounts or POI changes
-  useEffect(() => {
-    if (userId && currentItem?.id) {
-      const found = isLocationFound(currentItem.id);
-      setIsFound(found);
-    }
-  }, [userId, currentItem?.id, isLocationFound]);
 
   // Don't render marker if position is invalid
   if (!position || !Array.isArray(position) || position.length !== 2 || 

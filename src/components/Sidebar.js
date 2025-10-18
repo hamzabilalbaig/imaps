@@ -233,11 +233,34 @@ function Sidebar({
     }
   }, [categories]);
 
-  // Filter categories based on search term
-  const filteredCategories = categories?.filter(category => 
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  ) || [];
+  const normalizedSearchTerm = (searchTerm ?? '').trim().toLowerCase();
+  const hasSearchTerm = normalizedSearchTerm.length > 0;
+  const subCategoryMatchesSearch = (subCategory) => {
+    const subName = subCategory.name?.toLowerCase() ?? '';
+    const subDescription = subCategory.description?.toLowerCase() ?? '';
+    return (
+      subName.includes(normalizedSearchTerm) ||
+      subDescription.includes(normalizedSearchTerm)
+    );
+  };
+
+  // Filter categories based on search term across categories and subcategories
+  const filteredCategories = categories?.filter((category) => {
+    if (!hasSearchTerm) return true;
+
+    const categoryName = category.name?.toLowerCase() ?? '';
+    const categoryDescription = category.description?.toLowerCase() ?? '';
+
+    if (
+      categoryName.includes(normalizedSearchTerm) ||
+      categoryDescription.includes(normalizedSearchTerm)
+    ) {
+      return true;
+    }
+
+    const categorySubCategories = getSubCategoriesByCategoryId(category.id);
+    return categorySubCategories.some(subCategoryMatchesSearch);
+  }) || [];
 
   const handleCategoryToggle = (categoryId) => {
     // Categories are always expanded, so we toggle subcategory visibility instead
@@ -576,6 +599,10 @@ function Sidebar({
     }
   };
 
+  const filteredMyCategories = hasSearchTerm
+    ? myCategories.filter(subCategoryMatchesSearch)
+    : myCategories;
+
   return (
     <Box
       sx={{
@@ -698,6 +725,13 @@ function Sidebar({
               const isExpanded = true; // Categories are always expanded
               const categoryColor = category.color || CATEGORY_COLORS[category.name] || CATEGORY_COLORS['Other'];
               const categorySubCategories = getSubCategoriesByCategoryId(category.id);
+              const categoryMatchesSearch = hasSearchTerm && (
+                (category.name?.toLowerCase() ?? '').includes(normalizedSearchTerm) ||
+                (category.description?.toLowerCase() ?? '').includes(normalizedSearchTerm)
+              );
+              const visibleSubCategories = hasSearchTerm
+                ? categorySubCategories.filter(subCategoryMatchesSearch)
+                : categorySubCategories;
               const isCategoryHidden = hiddenCategories.has(category.id);
 
               return (
@@ -771,7 +805,7 @@ function Sidebar({
                   </AccordionSummary>
                   
                   <AccordionDetails sx={{ pt: 0, px: 1, pb: 1 }}>
-                    {categorySubCategories.length === 0 ? (
+                    {visibleSubCategories.length === 0 ? (
                       <Box sx={{ 
                         p: 1, 
                         textAlign: 'center',
@@ -787,7 +821,9 @@ function Sidebar({
                             fontStyle: 'italic'
                           }}
                         >
-                          No subcategories available
+                          {categorySubCategories.length === 0
+                            ? 'No subcategories available'
+                            : 'No subcategories match your search'}
                         </Typography>
                       </Box>
                     ) : (
@@ -797,7 +833,7 @@ function Sidebar({
                         gap: 0.5,
                         p: 0.5
                       }}>
-                        {categorySubCategories.map((subCategory) => {
+                        {visibleSubCategories.map((subCategory) => {
                           const isSubCategoryHidden = hiddenSubCategories.has(subCategory.id);
                           const shouldShowStrikethrough = isCategoryHidden || isSubCategoryHidden;
                           
@@ -1205,7 +1241,7 @@ function Sidebar({
               </AccordionSummary>
               
               <AccordionDetails sx={{ pt: 0, px: 1, pb: 1 }}>
-                {myCategories.length === 0 ? (
+                {filteredMyCategories.length === 0 ? (
                   <Box sx={{ 
                     p: 1, 
                     textAlign: 'center',
@@ -1221,7 +1257,9 @@ function Sidebar({
                         fontStyle: 'italic'
                       }}
                     >
-                      No subcategories created yet
+                      {myCategories.length === 0
+                        ? 'No subcategories created yet'
+                        : 'No subcategories match your search'}
                     </Typography>
                   </Box>
                 ) : (
@@ -1231,7 +1269,7 @@ function Sidebar({
                     gap: 0.5,
                     p: 0.5
                   }}>
-                    {myCategories.map((subCategory) => {
+                    {filteredMyCategories.map((subCategory) => {
                       // Get POI count for this subcategory from myPois
                       const myPOICount = myPois.filter(poi => poi.sub_category_id === subCategory.id).length;
                       const isMyPOIsHidden = !globalVisibility || hiddenMyPOIs;
