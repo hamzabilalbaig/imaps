@@ -156,7 +156,7 @@ const Login = ({loginType, isRegister}) => {
               Welcome to iMaps
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              {mode === 'register' ? 'Create your user account (Admin accounts are pre-configured)' : 'Sign in to access your account'}
+              {mode === 'register' ? 'Create your user account' : 'Sign in to access your account'}
             </Typography>
           </Box>
 

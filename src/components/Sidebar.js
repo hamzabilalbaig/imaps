@@ -618,9 +618,9 @@ function Sidebar({
       
       {/* Header */}
       <Box sx={{ px: 2,py:1.5, borderBottom: `1px solid ${theme.palette.divider}` }}>
-        <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ fontSize: '1.2rem' }}>
+        {/* <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ fontSize: '1.2rem' }}>
           Categories
-        </Typography>
+        </Typography> */}
         
         {/* Show/Hide All Buttons */}
         <Box sx={{ mb: 1.5 }}>
